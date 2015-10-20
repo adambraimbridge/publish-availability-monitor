@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/Financial-Times/go-message-queue-consumer"
+	"log"
 	"net/url"
 	"time"
-
-	"github.com/Financial-Times/go-message-queue-consumer"
 )
 
 type Interval struct {
@@ -24,22 +24,15 @@ type PublishMetric struct {
 	endpoint        url.URL
 }
 
-type QueueConfig struct {
-	Address string `json:"address"`
-	Group   string `json:"group"`
-	Topic   string `json:"topic"`
-	Queue   string `json:"queue"`
-}
-
 type MetricConfig struct {
 	Granularity int    `json:"granularity"` //how we split up the threshold, ex. 120/12
 	Endpoint    string `json:"endpoint"`
 }
 
 type AppConfig struct {
-	Threshold  int            `json:"threshold"` //pub SLA in seconds, ex. 120
-	QueueConf  QueueConfig    `json:"queueConfig"`
-	MetricConf []MetricConfig `json:"metricConfig"`
+	Threshold  int                  `json:"threshold"` //pub SLA in seconds, ex. 120
+	QueueConf  consumer.QueueConfig `json:"queueConfig"`
+	MetricConf []MetricConfig       `json:"metricConfig"`
 	//TODO feeder configs
 }
 
@@ -50,10 +43,15 @@ func main() {
 	configFileName := flag.String("config", "", "Path to configuration file")
 	flag.Parse()
 
-	appConfig, _ := ParseConfig(*configFileName)
+	appConfig, err := ParseConfig(*configFileName)
+	if err != nil {
+		log.Printf("ERROR - %v", err)
+		return
+	}
+	log.Printf("INFO - AppConfig: %#v", *appConfig)
 	//TODO handle err
-	myConsumer := consumer.NewConsumer(appConfig.QueueConf.Address, appConfig.QueueConf.Group, appConfig.QueueConf.Topic, appConfig.QueueConf.Queue)
-	err := myConsumer.Consume(PublishMessageListener{}, 8)
+	myConsumer := consumer.NewConsumer(appConfig.QueueConf)
+	err = myConsumer.Consume(PublishMessageListener{}, 8)
 	if err != nil {
 		fmt.Println(err.Error)
 	}
