@@ -29,14 +29,14 @@ type QueueConfig struct {
 }
 
 type MetricConfig struct {
-	Threshold   int `json:"threshold"`   //pub SLA in seconds, ex. 120
-	Granularity int `json:"granularity"` //how we split up the threshold, ex. 120/12
+	Granularity int    `json:"granularity"` //how we split up the threshold, ex. 120/12
+	Endpoint    string `json:"endpoint"`
 }
 
 type AppConfig struct {
-	Endpoints  []string     `json:"endpoints"`
-	QueueConf  QueueConfig  `json:"queueConfig"`
-	MetricConf MetricConfig `json:"metricConfig"`
+	Threshold  int            `json:"threshold"` //pub SLA in seconds, ex. 120
+	QueueConf  QueueConfig    `json:"queueConfig"`
+	MetricConf []MetricConfig `json:"metricConfig"`
 	//TODO feeder configs
 }
 
