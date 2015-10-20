@@ -1,7 +1,7 @@
-package scheduler
+package main
 
 type Check struct {
-	endpoint //etc.
+	endpoint string //etc.
 }
 
 func Schedule() {

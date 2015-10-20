@@ -1,0 +1,16 @@
+{
+	"endpoints": ["url1",
+	"url2",
+	"url3",
+	"url4"],
+	"queueConfig": {
+		"address": "http://kafka-proxy",
+		"group": "publishing",
+		"topic": "nativePub",
+		"queue": "foo"
+	},
+	"metricConfig": {
+		"threshold": 120,
+		"granularity": 12
+	}
+}
