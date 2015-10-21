@@ -1,7 +1,7 @@
 {
 	"threshold": 120,
 	"queueConfig": {
-		"addr": "http://kafka-proxy",
+		"address": "http://kafka-proxy",
 		"group": "publishing",
 		"topic": "nativePub",
 		"queue": "foo"
