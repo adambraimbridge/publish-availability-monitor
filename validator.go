@@ -11,9 +11,9 @@ import (
 )
 
 const image = "Image"
+const systemIdKey = "Origin-System-Id"
 const webContainer = "EOM::WebContainer"
 const compoundStory = "EOM::CompoundStory"
-const systemIdKey = "Origin-System-Id"
 
 const titleXPath = "/doc/lead/lead-headline/headline/ln"
 const channelXPath = "/props/productInfo/name"
@@ -37,11 +37,7 @@ func isMessageValid(message consumer.Message) bool {
 
 func isEomfileValid(eomfile EomFile) bool {
 	contentUuid := eomfile.UUID
-	parsedUuid, _ := uuid.FromString(contentUuid)
-	//TODO handle error
-
-	if contentUuid != parsedUuid.String() {
-		//TODO message
+	if !isUUIDValid(contentUuid) {
 		return false
 	}
 
@@ -57,6 +53,12 @@ func isEomfileValid(eomfile EomFile) bool {
 		//TODO message
 		return false
 	}
+}
+
+func isUUIDValid(contentUuid string) bool {
+	parsedUuid, _ := uuid.FromString(contentUuid)
+	//TODO handle error
+	return contentUuid == parsedUuid.String()
 }
 
 func isListValid(eomfile EomFile) bool {
