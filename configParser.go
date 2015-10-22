@@ -16,6 +16,6 @@ func ParseConfig(configFileName string) (*AppConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("Results: %v\n", conf)
+	fmt.Printf("Config: %v\n", conf)
 	return &conf, nil
 }
