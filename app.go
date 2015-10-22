@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -39,6 +40,14 @@ type AppConfig struct {
 
 type PublishMessageListener struct{}
 
+type EomFile struct {
+	UUID             string `json:"uuid"`
+	Type             string `json:"type"`
+	Value            []byte `json:"value"`
+	Attributes       string `json:"attributes"`
+	SystemAttributes string `json:"systemAttributes"`
+}
+
 const dateLayout = "2006-01-02T15:04:05.000Z"
 
 func main() {
@@ -52,7 +61,7 @@ func main() {
 		return
 	}
 	log.Printf("INFO - AppConfig: %#v", *appConfig)
-	//TODO handle err
+
 	myConsumer := consumer.NewConsumer(appConfig.QueueConf)
 	err = myConsumer.Consume(PublishMessageListener{}, 8)
 
@@ -70,6 +79,20 @@ func main() {
 func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 	fmt.Printf("message headers: %v\n", msg.Headers)
 	fmt.Printf("message body: %v\n", msg.Body)
+
+	if !isMessageValid(msg) {
+		return nil
+	}
+
+	var eomFile EomFile
+	err := json.Unmarshal([]byte(msg.Body), &eomFile)
+	if err != nil {
+		panic(err)
+		return err
+	}
+	if !isEomfileValid(eomFile) {
+		return nil
+	}
 
 	//if message is not valid, skip
 	//read publish timestamp (this is the moment we measure the publish from)
