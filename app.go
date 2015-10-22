@@ -2,8 +2,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"log"
 	"net/url"
 	"time"
+
+	"github.com/Financial-Times/go-message-queue-consumer"
 )
 
 type Interval struct {
@@ -21,50 +25,61 @@ type PublishMetric struct {
 	endpoint        url.URL
 }
 
-type QueueConfig struct {
-	Address string `json:"address"`
-	Group   string `json:"group"`
-	Topic   string `json:"topic"`
-	Queue   string `json:"queue"`
-}
-
 type MetricConfig struct {
 	Granularity int    `json:"granularity"` //how we split up the threshold, ex. 120/12
 	Endpoint    string `json:"endpoint"`
 }
 
 type AppConfig struct {
-	Threshold  int            `json:"threshold"` //pub SLA in seconds, ex. 120
-	QueueConf  QueueConfig    `json:"queueConfig"`
-	MetricConf []MetricConfig `json:"metricConfig"`
+	Threshold  int                  `json:"threshold"` //pub SLA in seconds, ex. 120
+	QueueConf  consumer.QueueConfig `json:"queueConfig"`
+	MetricConf []MetricConfig       `json:"metricConfig"`
 	//TODO feeder configs
 }
+
+type PublishMessageListener struct{}
+
+const dateLayout = "2006-01-02T15:04:05.000Z"
 
 func main() {
 	//read config (into structs?)
 	configFileName := flag.String("config", "", "Path to configuration file")
 	flag.Parse()
 
-	ParseConfig(*configFileName)
+	appConfig, err := ParseConfig(*configFileName)
+	if err != nil {
+		log.Printf("ERROR - %v", err)
+		return
+	}
+	log.Printf("INFO - AppConfig: %#v", *appConfig)
+	//TODO handle err
+	myConsumer := consumer.NewConsumer(appConfig.QueueConf)
+	err = myConsumer.Consume(PublishMessageListener{}, 8)
+
+	if err != nil {
+		fmt.Println(err.Error)
+	}
 	/*
-		consumer := consumer.NewConsumer(QueueConfig.address etc.)
 		scheduler := scheduler.NewScheduler()
 		aggregator := aggregator.NewAggregator()
 		validator := validator.NewValidator()
-
-		consumer.Consume(/*this?/)
 	*/
 	//maybe separate the distributor so it just waits for metrics from the aggregator like a servlet?
-	//call consume
 }
 
-/*
-func OnMessage(msg consumer.Message) error {
+func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
+	fmt.Printf("message headers: %v\n", msg.Headers)
+	fmt.Printf("message body: %v\n", msg.Body)
+
 	//if message is not valid, skip
-	//generate timestamp (this is the moment we measure the publish from)
+	//read publish timestamp (this is the moment we measure the publish from)
+	//Message-Timestamp: 2015-10-21T10:27:00.597Z
+	//TODO check if exists and not null
+	//publishDateString := msg.Headers["Message-Timestamp"]
+	//publishDate, err := time.Parse(dateLayout, publishDateString)
+
 	//scheduler.scheduleChecks(message, publishMetric)
 	//connect the scheduler with the aggregator with channels or something
 	//so when each scheduler is finished, the aggregator reads the results
-
+	return nil
 }
-*/
