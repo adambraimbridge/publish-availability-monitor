@@ -133,13 +133,13 @@ func TestIsMessageValid_InvalidSystemId(t *testing.T) {
 
 var validMessage = consumer.Message{
 	map[string]string{
-		"Origin-System-Id": "methode-web-pub",
+		"Origin-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
 	},
 	"body",
 }
 var invalidMessageWrongHeader = consumer.Message{
 	map[string]string{
-		"Foobar-System-Id": "methode-web-pub",
+		"Foobar-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
 	},
 	"body",
 }

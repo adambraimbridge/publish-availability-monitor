@@ -19,7 +19,7 @@ const channelXPath = "/props/productInfo/name"
 const webTypeXPath = "//ObjectMetadata/FTcom/DIFTcomWebType"
 const filePathXPath = "//ObjectMetadata/EditorialNotes/ObjectLocation"
 
-const expectedSystemId = "methode-web-pub"
+const expectedSystemId = "http://cmdb.ft.com/systems/methode-web-pub"
 const expectedWebChannel = "FTcom"
 const expectedWebTypePrefix = "digitalList"
 const expectedFilePathSuffix = ".xml"

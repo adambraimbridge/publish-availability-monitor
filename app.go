@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net/url"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/kr/pretty"
 )
 
 type Interval struct {
@@ -37,6 +37,7 @@ type AppConfig struct {
 	Threshold  int                  `json:"threshold"` //pub SLA in seconds, ex. 120
 	QueueConf  consumer.QueueConfig `json:"queueConfig"`
 	MetricConf []MetricConfig       `json:"metricConfig"`
+	Platform   string               `json:"platform"`
 	//TODO feeder configs
 }
 
@@ -55,26 +56,27 @@ const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | 
 
 var info *log.Logger
 var warn *log.Logger
+var configFileName = flag.String("config", "", "Path to configuration file")
+var appConfig AppConfig
+var err error
 
 func main() {
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
-	//read config (into structs?)
-	configFileName := flag.String("config", "", "Path to configuration file")
 	flag.Parse()
 
 	appConfig, err := ParseConfig(*configFileName)
 	if err != nil {
-		log.Printf("ERROR - %v", err)
+		log.Printf("Cannot load configuration: [%v]", err)
 		return
 	}
-	log.Printf("INFO - AppConfig: %#v", *appConfig)
 
-	myConsumer := consumer.NewConsumer(appConfig.QueueConf)
-	err = myConsumer.Consume(PublishMessageListener{}, 8)
-
+	messageConsumer := consumer.NewConsumer(appConfig.QueueConf)
+	err = messageConsumer.Consume(PublishMessageListener{}, 8)
 	if err != nil {
-		fmt.Println(err.Error)
+		log.Printf("Cannot start listening for messages: [%v]", err.Error())
+		return
 	}
+
 	/*
 		scheduler := scheduler.NewScheduler()
 		aggregator := aggregator.NewAggregator()
@@ -84,8 +86,8 @@ func main() {
 }
 
 func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
-	fmt.Printf("message headers: %v\n", msg.Headers)
-	fmt.Printf("message body: %v\n", msg.Body)
+	tid := msg.Headers["X-Request-Id"]
+	info.Printf("Received message with TID [%v]", tid)
 
 	if !isMessageValid(msg) {
 		return nil
@@ -94,14 +96,47 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 	var eomFile EomFile
 	err := json.Unmarshal([]byte(msg.Body), &eomFile)
 	if err != nil {
-		panic(err)
+		log.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return err
 	}
+
 	if !isEomfileValid(eomFile) {
 		return nil
 	}
 
-	//if message is not valid, skip
+	info.Printf("Message [%v] is VALID, scheduling checks...", tid)
+
+	publishDateString := msg.Headers["Message-Timestamp"]
+	publishDate, err := time.Parse(dateLayout, publishDateString)
+	if err != nil {
+		log.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
+			publishDateString, tid, err.Error())
+		return nil
+	}
+
+	var publishMetrics []PublishMetric
+
+	for _, metricConf := range appConfig.MetricConf {
+
+		endpointUrl, err := url.Parse(metricConf.Endpoint)
+		if err != nil {
+			log.Printf("Cannot parse url [%v], error: [%v]", metricConf.Endpoint, err.Error())
+			continue
+		}
+
+		var publishMetric = PublishMetric{
+			eomFile.UUID,
+			false,
+			publishDate,
+			appConfig.Platform,
+			Interval{},
+			metricConf,
+			*endpointUrl,
+		}
+		publishMetrics = append(publishMetrics, publishMetric)
+	}
+
+	info.Println("Metrics to schedule: %# v", pretty.Formatter(publishMetrics))
 	//read publish timestamp (this is the moment we measure the publish from)
 	//Message-Timestamp: 2015-10-21T10:27:00.597Z
 	//TODO check if exists and not null
@@ -117,7 +152,7 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 func initLogs(infoHandle io.Writer, warnHandle io.Writer, panicHandle io.Writer) {
 	//to be used for INFO-level logging: info.Println("foo is now bar")
 	info = log.New(infoHandle, "INFO  - ", logPattern)
-	//to be used for WARN-level logging: info.Println("foo is now bar")
+	//to be used for WARN-level logging: warn.Println("foo is now bar")
 	warn = log.New(warnHandle, "WARN  - ", logPattern)
 
 	log.SetFlags(logPattern)
