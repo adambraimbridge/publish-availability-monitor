@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/Financial-Times/go-message-queue-consumer"
@@ -49,8 +51,13 @@ type EomFile struct {
 }
 
 const dateLayout = "2006-01-02T15:04:05.000Z"
+const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
+
+var info *log.Logger
+var warn *log.Logger
 
 func main() {
+	initLogs(os.Stdout, os.Stdout, os.Stderr)
 	//read config (into structs?)
 	configFileName := flag.String("config", "", "Path to configuration file")
 	flag.Parse()
@@ -105,4 +112,15 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 	//connect the scheduler with the aggregator with channels or something
 	//so when each scheduler is finished, the aggregator reads the results
 	return nil
+}
+
+func initLogs(infoHandle io.Writer, warnHandle io.Writer, panicHandle io.Writer) {
+	//to be used for INFO-level logging: info.Println("foo is now bar")
+	info = log.New(infoHandle, "INFO  - ", logPattern)
+	//to be used for WARN-level logging: info.Println("foo is now bar")
+	warn = log.New(warnHandle, "WARN  - ", logPattern)
+
+	log.SetFlags(logPattern)
+	log.SetPrefix("ERROR - ")
+	log.SetOutput(panicHandle)
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/base64"
-	"log"
 	"strings"
 
 	"github.com/Financial-Times/go-message-queue-consumer"
@@ -29,7 +28,7 @@ func isMessageValid(message consumer.Message) bool {
 	headers := message.Headers
 	systemId := headers[systemIdKey]
 	if systemId != expectedSystemId {
-		//TODO message
+		warn.Printf("Message invalid: unexpected system ID: [%v]", systemId)
 		return false
 	}
 	return true
@@ -38,6 +37,7 @@ func isMessageValid(message consumer.Message) bool {
 func isEomfileValid(eomfile EomFile) bool {
 	contentUuid := eomfile.UUID
 	if !isUUIDValid(contentUuid) {
+		warn.Printf("Eomfile invalid: invalid UUID: [%v]", contentUuid)
 		return false
 	}
 
@@ -50,14 +50,17 @@ func isEomfileValid(eomfile EomFile) bool {
 	case image:
 		return isImageValid(eomfile)
 	default:
-		//TODO message
+		warn.Printf("Eomfile invalid: unexpected content type: [%v]", contentType)
 		return false
 	}
 }
 
 func isUUIDValid(contentUuid string) bool {
-	parsedUuid, _ := uuid.FromString(contentUuid)
-	//TODO handle error
+	parsedUuid, err := uuid.FromString(contentUuid)
+	if err != nil {
+		warn.Printf("Cannot parse UUID [%v], error: [%v]", contentUuid, err.Error())
+		return false
+	}
 	return contentUuid == parsedUuid.String()
 }
 
@@ -66,10 +69,14 @@ func isListValid(eomfile EomFile) bool {
 	path := xmlpath.MustCompile(webTypeXPath)
 	root, err := xmlpath.Parse(strings.NewReader(attributes))
 	if err != nil {
-		log.Fatal(err)
+		warn.Printf("Cannot parse attribute XML of eomfile, error: [%v]", err.Error())
+		return false
 	}
-	webType, _ := path.String(root)
-	//TODO handle not ok
+	webType, ok := path.String(root)
+	if !ok {
+		warn.Printf("Cannot match node in XML using xpath [%v]", webTypeXPath)
+		return false
+	}
 	if strings.HasPrefix(webType, expectedWebTypePrefix) {
 		return true
 	}
@@ -85,10 +92,14 @@ func isSupportedFileType(eomfile EomFile) bool {
 	path := xmlpath.MustCompile(filePathXPath)
 	root, err := xmlpath.Parse(strings.NewReader(attributes))
 	if err != nil {
-		log.Fatal(err)
+		warn.Printf("Cannot parse attribute XML of eomfile, error: [%v]", err.Error())
+		return false
 	}
-	filePath, _ := path.String(root)
-	//TODO handle not ok
+	filePath, ok := path.String(root)
+	if !ok {
+		warn.Printf("Cannot match node in XML using xpath [%v]", filePathXPath)
+		return false
+	}
 	if strings.HasSuffix(filePath, expectedFilePathSuffix) {
 		return true
 	}
@@ -100,10 +111,14 @@ func isWebChannel(eomfile EomFile) bool {
 	path := xmlpath.MustCompile(channelXPath)
 	root, err := xmlpath.Parse(strings.NewReader(systemAttributes))
 	if err != nil {
-		log.Fatal(err)
+		warn.Printf("Cannot parse system attribute XML of eomfile, error: [%v]", err.Error())
+		return false
 	}
-	channel, _ := path.String(root)
-	//TODO handle not ok
+	channel, ok := path.String(root)
+	if !ok {
+		warn.Printf("Cannot match node in XML using xpath [%v]", channelXPath)
+		return false
+	}
 	if channel == expectedWebChannel {
 		return true
 	}
@@ -112,25 +127,29 @@ func isWebChannel(eomfile EomFile) bool {
 
 func hasTitle(eomfile EomFile) bool {
 	if eomfile.Value == nil || len(eomfile.Value) == 0 {
-		//TODO message
 		return false
 	}
-	//decode value from base64
 	decoded, err := base64.StdEncoding.DecodeString(string(eomfile.Value[:]))
 	if err != nil {
-		log.Printf("ERROR - failure in decoding base64 value: %s", err.Error())
+		warn.Printf("Cannot decode Base64-encoded eomfile value: [%v]", err.Error())
 		return false
 	}
 	articleXml := string(decoded[:])
 
-	path := xmlpath.MustCompile(titleXPath)
 	root, err := xmlpath.Parse(strings.NewReader(articleXml))
 	if err != nil {
-		log.Fatal(err)
+		warn.Printf("Cannot parse value XML of eomfile, error: [%v]", err.Error())
+		return false
 	}
-	title, _ := path.String(root)
+
+	path := xmlpath.MustCompile(titleXPath)
+	title, ok := path.String(root)
+	if !ok {
+		warn.Printf("Cannot match node in XML using xpath [%v]", titleXPath)
+		return false
+	}
+
 	title = strings.TrimSpace(title)
-	//TODO handle not ok
 	if len(title) > 0 {
 		return true
 	}
@@ -139,7 +158,6 @@ func hasTitle(eomfile EomFile) bool {
 
 func isImageValid(eomfile EomFile) bool {
 	if eomfile.Value == nil || len(eomfile.Value) == 0 {
-		//TODO message
 		return false
 	}
 	return true

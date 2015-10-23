@@ -1,10 +1,16 @@
 package main
 
 import (
+	"os"
 	"testing"
 
 	"github.com/Financial-Times/go-message-queue-consumer"
 )
+
+func TestMain(m *testing.M) {
+	initLogs(os.Stdout, os.Stdout, os.Stderr)
+	os.Exit(m.Run())
+}
 
 func TestIsEomfileValid_InvalidContentType(t *testing.T) {
 	if isEomfileValid(eomfileWithInvalidContentType) {
@@ -120,7 +126,7 @@ func TestIsMessageValid_MissingHeader(t *testing.T) {
 }
 
 func TestIsMessageValid_InvalidSystemId(t *testing.T) {
-	if isMessageValid(invalidMessageWrongHeader) {
+	if isMessageValid(invalidMessageWrongSystemId) {
 		t.Error("Invalid Message marked as valid!")
 	}
 }
@@ -145,16 +151,6 @@ var invalidMessageWrongSystemId = consumer.Message{
 }
 var validUUID = "e28b12f7-9796-3331-b030-05082f0b8157"
 var invalidUUID = "foobar"
-
-/*
-type EomFile struct {
-	UUID             string `json:"uuid"`
-	Type             string `json:"type"`
-	Value            []byte `json:"value"`
-	Attributes       string `json:"attributes"`
-	SystemAttributes string `json:"systemAttributes"`
-}
-*/
 
 var eomfileWithInvalidContentType = EomFile{
 	validUUID,
