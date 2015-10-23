@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Financial-Times/go-message-queue-consumer"
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 )
 
 type Interval struct {

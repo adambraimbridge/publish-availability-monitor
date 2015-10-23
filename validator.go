@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"strings"
 
-	"github.com/Financial-Times/go-message-queue-consumer"
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/satori/go.uuid"
 	"launchpad.net/xmlpath"
 )

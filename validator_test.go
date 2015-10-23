@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Financial-Times/go-message-queue-consumer"
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 )
 
 func TestMain(m *testing.M) {
