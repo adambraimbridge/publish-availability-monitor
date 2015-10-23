@@ -6,6 +6,36 @@ import (
 	"github.com/Financial-Times/go-message-queue-consumer"
 )
 
+func TestIsEomfileValid_InvalidContentType(t *testing.T) {
+	if isEomfileValid(eomfileWithInvalidContentType) {
+		t.Error("Eomfile with invalid content marked as valid")
+	}
+}
+
+func TestIsEomfileValid_InvalidUUID(t *testing.T) {
+	if isEomfileValid(eomfileWithInvalidUUID) {
+		t.Error("Eomfile with invalid UUID marked as valid")
+	}
+}
+
+func TestIsEomfileValid_ValidImage(t *testing.T) {
+	if !isEomfileValid(validImage) {
+		t.Error("Valid Image marked as invalid!")
+	}
+}
+
+func TestIsEomfileValid_ValidList(t *testing.T) {
+	if !isEomfileValid(validList) {
+		t.Error("Valid List marked as invalid!")
+	}
+}
+
+func TestIsEomfileValid_ValidCompoundStory(t *testing.T) {
+	if !isEomfileValid(validCompoundStory) {
+		t.Error("Valid CompoundStory marked as invalid!")
+	}
+}
+
 func TestHasTitle_ValidTitle(t *testing.T) {
 	if !hasTitle(eomfileWithTitle) {
 		t.Error("Compound story with title marked as invalid!")
@@ -125,6 +155,45 @@ type EomFile struct {
 	SystemAttributes string `json:"systemAttributes"`
 }
 */
+
+var eomfileWithInvalidContentType = EomFile{
+	validUUID,
+	"FOOBAR",
+	[]byte("/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr"),
+	"attributes",
+	"systemAttributes",
+}
+var eomfileWithInvalidUUID = EomFile{
+	invalidUUID,
+	"Image",
+	[]byte("/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr"),
+	"attributes",
+	"systemAttributes",
+}
+
+var validImage = EomFile{
+	validUUID,
+	"Image",
+	[]byte("/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr"),
+	"attributes",
+	"systemAttributes",
+}
+
+var validList = EomFile{
+	validUUID,
+	"EOM::WebContainer",
+	[]byte("bar"),
+	validListAttributes,
+	"system attributes",
+}
+
+var validCompoundStory = EomFile{
+	validUUID,
+	"EOM::CompoundStory",
+	[]byte(contentWithHeadline),
+	validFileTypeAttributes,
+	systemAttributesValidChannel,
+}
 
 var eomfileWithTitle = EomFile{
 	validUUID,
