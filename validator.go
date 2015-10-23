@@ -129,6 +129,7 @@ func hasTitle(eomfile EomFile) bool {
 		log.Fatal(err)
 	}
 	title, _ := path.String(root)
+	title = strings.TrimSpace(title)
 	//TODO handle not ok
 	if len(title) > 0 {
 		return true
