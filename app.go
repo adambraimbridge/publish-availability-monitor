@@ -57,14 +57,15 @@ const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | 
 var info *log.Logger
 var warn *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
-var appConfig AppConfig
+var appConfig *AppConfig
 var err error
 
 func main() {
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
 	flag.Parse()
 
-	appConfig, err := ParseConfig(*configFileName)
+	var err error
+	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
 		log.Printf("Cannot load configuration: [%v]", err)
 		return
@@ -116,12 +117,16 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 	}
 
 	var publishMetrics []PublishMetric
-
-	for _, metricConf := range appConfig.MetricConf {
-
-		endpointUrl, err := url.Parse(metricConf.Endpoint)
+	info.Printf("App config  %v", appConfig)
+	info.Printf("Publish metrics %v", appConfig.MetricConf)
+	info.Printf("Publish metrics nr %v", len(appConfig.MetricConf))
+	for _, conf := range appConfig.MetricConf {
+		info.Println("MetricConf: %# v", conf)
+		endpointUrl, err := url.Parse(conf.Endpoint)
 		if err != nil {
-			log.Printf("Cannot parse url [%v], error: [%v]", metricConf.Endpoint, err.Error())
+			info.Println("Cannot parse URLS 1")
+			log.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
+			info.Println("Cannot parse URLS 2")
 			continue
 		}
 
@@ -131,19 +136,13 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 			publishDate,
 			appConfig.Platform,
 			Interval{},
-			metricConf,
+			conf,
 			*endpointUrl,
 		}
 		publishMetrics = append(publishMetrics, publishMetric)
 	}
 
-	info.Println("Metrics to schedule: %# v", pretty.Formatter(publishMetrics))
-	//read publish timestamp (this is the moment we measure the publish from)
-	//Message-Timestamp: 2015-10-21T10:27:00.597Z
-	//TODO check if exists and not null
-	//publishDateString := msg.Headers["Message-Timestamp"]
-	//publishDate, err := time.Parse(dateLayout, publishDateString)
-
+	info.Printf("Metrics to schedule: %# v", pretty.Formatter(publishMetrics))
 	//scheduler.scheduleChecks(message, publishMetric)
 	//connect the scheduler with the aggregator with channels or something
 	//so when each scheduler is finished, the aggregator reads the results
