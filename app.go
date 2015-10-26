@@ -80,8 +80,6 @@ func main() {
 		log.Printf("Cannot start listening for messages: [%v]", err.Error())
 		return
 	}
-
-	//maybe separate the distributor so it just waits for metrics from the aggregator like a servlet?
 }
 
 func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
@@ -114,32 +112,8 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 		return nil
 	}
 
-	var publishChecks []PublishCheck
-	for _, conf := range appConfig.MetricConf {
-		info.Println("MetricConf: %# v", conf)
-		endpointUrl, err := url.Parse(conf.Endpoint)
-		if err != nil {
-			log.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
-			continue
-		}
+	scheduleChecks(eomFile, publishDate)
 
-		var publishMetric = PublishMetric{
-			eomFile.UUID,
-			false,
-			publishDate,
-			appConfig.Platform,
-			Interval{},
-			conf,
-			*endpointUrl,
-		}
-
-		var checkInterval = appConfig.Threshold / conf.Granularity
-		var publishCheck = NewPublishCheck(publishMetric, appConfig.Threshold, checkInterval, metricSink)
-		publishChecks = append(publishChecks, *publishCheck)
-		go scheduleCheck(*publishCheck)
-	}
-
-	//info.Printf("Checks to schedule: %# v", pretty.Formatter(publishChecks))
 	return nil
 }
 
@@ -152,42 +126,4 @@ func initLogs(infoHandle io.Writer, warnHandle io.Writer, panicHandle io.Writer)
 	log.SetFlags(logPattern)
 	log.SetPrefix("ERROR - ")
 	log.SetOutput(panicHandle)
-}
-
-func scheduleCheck(check PublishCheck) {
-
-	quitChan := make(chan bool)
-
-	go func() {
-		<-time.After(check.Threshold * time.Second)
-		close(quitChan)
-	}()
-
-	if check.DoCheck() {
-		check.Metric.publishOK = true
-		//TODO calculate interval or publishTime
-		check.ResultSink <- check.Metric
-		return
-	}
-	// fire once per second
-	t := time.NewTicker(check.CheckInterval * time.Second)
-	func() {
-		for {
-			if check.DoCheck() {
-				check.Metric.publishOK = true
-				//TODO calculate interval or publishTime
-				check.ResultSink <- check.Metric
-				t.Stop()
-				return
-			}
-			select {
-			case <-t.C:
-			case <-quitChan:
-				t.Stop()
-				return
-			}
-		}
-	}()
-	check.Metric.publishOK = false
-	check.ResultSink <- check.Metric
 }
