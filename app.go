@@ -46,7 +46,7 @@ type PublishMessageListener struct{}
 type EomFile struct {
 	UUID             string `json:"uuid"`
 	Type             string `json:"type"`
-	Value            []byte `json:"value"`
+	Value            string `json:"value"`
 	Attributes       string `json:"attributes"`
 	SystemAttributes string `json:"systemAttributes"`
 }
@@ -101,6 +101,7 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 	}
 
 	if !isEomfileValid(eomFile) {
+		info.Printf("Message [%v] is INVALID, skipping...", tid)
 		return nil
 	}
 
