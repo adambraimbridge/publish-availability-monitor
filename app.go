@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/kr/pretty"
 )
 
 type Interval struct {
@@ -58,6 +57,7 @@ var info *log.Logger
 var warn *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var appConfig *AppConfig
+var metricSink = make(chan PublishMetric)
 var err error
 
 func main() {
@@ -71,6 +71,9 @@ func main() {
 		return
 	}
 
+	aggregator := NewAggregator(metricSink)
+	go aggregator.Run()
+
 	messageConsumer := consumer.NewConsumer(appConfig.QueueConf)
 	err = messageConsumer.Consume(PublishMessageListener{}, 8)
 	if err != nil {
@@ -78,11 +81,6 @@ func main() {
 		return
 	}
 
-	/*
-		scheduler := scheduler.NewScheduler()
-		aggregator := aggregator.NewAggregator()
-		validator := validator.NewValidator()
-	*/
 	//maybe separate the distributor so it just waits for metrics from the aggregator like a servlet?
 }
 
@@ -116,17 +114,12 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 		return nil
 	}
 
-	var publishMetrics []PublishMetric
-	info.Printf("App config  %v", appConfig)
-	info.Printf("Publish metrics %v", appConfig.MetricConf)
-	info.Printf("Publish metrics nr %v", len(appConfig.MetricConf))
+	var publishChecks []PublishCheck
 	for _, conf := range appConfig.MetricConf {
 		info.Println("MetricConf: %# v", conf)
 		endpointUrl, err := url.Parse(conf.Endpoint)
 		if err != nil {
-			info.Println("Cannot parse URLS 1")
 			log.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
-			info.Println("Cannot parse URLS 2")
 			continue
 		}
 
@@ -139,13 +132,14 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 			conf,
 			*endpointUrl,
 		}
-		publishMetrics = append(publishMetrics, publishMetric)
+
+		var checkInterval = appConfig.Threshold / conf.Granularity
+		var publishCheck = NewPublishCheck(publishMetric, appConfig.Threshold, checkInterval, metricSink)
+		publishChecks = append(publishChecks, *publishCheck)
+		go scheduleCheck(*publishCheck)
 	}
 
-	info.Printf("Metrics to schedule: %# v", pretty.Formatter(publishMetrics))
-	//scheduler.scheduleChecks(message, publishMetric)
-	//connect the scheduler with the aggregator with channels or something
-	//so when each scheduler is finished, the aggregator reads the results
+	//info.Printf("Checks to schedule: %# v", pretty.Formatter(publishChecks))
 	return nil
 }
 
@@ -158,4 +152,42 @@ func initLogs(infoHandle io.Writer, warnHandle io.Writer, panicHandle io.Writer)
 	log.SetFlags(logPattern)
 	log.SetPrefix("ERROR - ")
 	log.SetOutput(panicHandle)
+}
+
+func scheduleCheck(check PublishCheck) {
+
+	quitChan := make(chan bool)
+
+	go func() {
+		<-time.After(check.Threshold * time.Second)
+		close(quitChan)
+	}()
+
+	if check.DoCheck() {
+		check.Metric.publishOK = true
+		//TODO calculate interval or publishTime
+		check.ResultSink <- check.Metric
+		return
+	}
+	// fire once per second
+	t := time.NewTicker(check.CheckInterval * time.Second)
+	func() {
+		for {
+			if check.DoCheck() {
+				check.Metric.publishOK = true
+				//TODO calculate interval or publishTime
+				check.ResultSink <- check.Metric
+				t.Stop()
+				return
+			}
+			select {
+			case <-t.C:
+			case <-quitChan:
+				t.Stop()
+				return
+			}
+		}
+	}()
+	check.Metric.publishOK = false
+	check.ResultSink <- check.Metric
 }
