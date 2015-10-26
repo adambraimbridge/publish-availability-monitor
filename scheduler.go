@@ -13,7 +13,9 @@ func scheduleChecks(eomFile EomFile, publishDate time.Time) {
 			log.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
 			continue
 		}
-
+		if conf.ContentType != "" && conf.ContentType != eomFile.Type {
+			continue
+		}
 		var publishMetric = PublishMetric{
 			eomFile.UUID,
 			false,
@@ -33,33 +35,37 @@ func scheduleChecks(eomFile EomFile, publishDate time.Time) {
 func scheduleCheck(check PublishCheck) {
 
 	quitChan := make(chan bool)
+	checkNr := 1
 
 	//used to signal the ticker to stop after the threshold duration is reached
 	go func() {
-		<-time.After(check.Threshold * time.Second)
+		<-time.After(time.Duration(check.Threshold) * time.Second)
 		close(quitChan)
 	}()
 
 	// ticker to fire once per interval
-	tickerChan := time.NewTicker(check.CheckInterval * time.Second)
-	func() {
-		for {
-			if check.DoCheck() {
-				check.Metric.publishOK = true
-				//TODO calculate interval or publishTime
-				check.ResultSink <- check.Metric
-				tickerChan.Stop()
-				return
-			}
-			select {
-			case <-tickerChan.C:
-				continue
-			case <-quitChan:
-				tickerChan.Stop()
-				return
-			}
+	tickerChan := time.NewTicker(time.Duration(check.CheckInterval) * time.Second)
+	for {
+		if check.DoCheck() {
+			tickerChan.Stop()
+			check.Metric.publishOK = true
+
+			lower := (checkNr - 1) * check.CheckInterval
+			upper := checkNr * check.CheckInterval
+			check.Metric.publishInterval = Interval{lower, upper}
+
+			check.ResultSink <- check.Metric
+			return
 		}
-	}()
+		checkNr++
+		select {
+		case <-tickerChan.C:
+			continue
+		case <-quitChan:
+			tickerChan.Stop()
+			return
+		}
+	}
 
 	//if we get here, checks were unsuccessful
 	check.Metric.publishOK = false

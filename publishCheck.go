@@ -1,19 +1,23 @@
 package main
 
-import "time"
+import "net/http"
 
 type PublishCheck struct {
 	Metric        PublishMetric
-	Threshold     time.Duration
-	CheckInterval time.Duration
+	Threshold     int
+	CheckInterval int
 	ResultSink    chan PublishMetric
 }
 
 func NewPublishCheck(pm PublishMetric, t int, ci int, rs chan PublishMetric) *PublishCheck {
-	return &PublishCheck{pm, time.Duration(t), time.Duration(ci), rs}
+	return &PublishCheck{pm, t, ci, rs}
 }
 
 func (pc PublishCheck) DoCheck() bool {
-	info.Printf("Checking endpoint [%v]", pc.Metric.endpoint)
+	info.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
+	resp, err := http.Head(pc.Metric.endpoint.String() + pc.Metric.UUID)
+	if err == nil {
+		return resp.StatusCode == 200
+	}
 	return false
 }

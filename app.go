@@ -30,6 +30,7 @@ type PublishMetric struct {
 type MetricConfig struct {
 	Granularity int    `json:"granularity"` //how we split up the threshold, ex. 120/12
 	Endpoint    string `json:"endpoint"`
+	ContentType string `json:"contentType"`
 }
 
 type AppConfig struct {
@@ -113,7 +114,6 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 	}
 
 	scheduleChecks(eomFile, publishDate)
-
 	return nil
 }
 

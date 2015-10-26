@@ -150,7 +150,6 @@ func hasTitle(eomfile EomFile) bool {
 	}
 
 	title = strings.TrimSpace(title)
-	info.Printf("Title is [%v]", title)
 	if len(title) > 0 {
 		return true
 	}
