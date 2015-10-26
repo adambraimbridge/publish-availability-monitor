@@ -155,14 +155,14 @@ var invalidUUID = "foobar"
 var eomfileWithInvalidContentType = EomFile{
 	validUUID,
 	"FOOBAR",
-	[]byte("/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr"),
+	"/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr",
 	"attributes",
 	"systemAttributes",
 }
 var eomfileWithInvalidUUID = EomFile{
 	invalidUUID,
 	"Image",
-	[]byte("/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr"),
+	"/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr",
 	"attributes",
 	"systemAttributes",
 }
@@ -170,7 +170,7 @@ var eomfileWithInvalidUUID = EomFile{
 var validImage = EomFile{
 	validUUID,
 	"Image",
-	[]byte("/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr"),
+	"/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr",
 	"attributes",
 	"systemAttributes",
 }
@@ -178,7 +178,7 @@ var validImage = EomFile{
 var validList = EomFile{
 	validUUID,
 	"EOM::WebContainer",
-	[]byte("bar"),
+	"bar",
 	validListAttributes,
 	"system attributes",
 }
@@ -186,7 +186,7 @@ var validList = EomFile{
 var validCompoundStory = EomFile{
 	validUUID,
 	"EOM::CompoundStory",
-	[]byte(contentWithHeadline),
+	contentWithHeadline,
 	validFileTypeAttributes,
 	systemAttributesValidChannel,
 }
@@ -194,7 +194,7 @@ var validCompoundStory = EomFile{
 var eomfileWithTitle = EomFile{
 	validUUID,
 	"EOM::CompoundStory",
-	[]byte(contentWithHeadline),
+	contentWithHeadline,
 	"attributes",
 	"systemAttributes",
 }
@@ -202,7 +202,7 @@ var eomfileWithTitle = EomFile{
 var eomfileWithoutTitle = EomFile{
 	validUUID,
 	"EOM::CompoundStory",
-	[]byte(contentWithoutHeadline),
+	contentWithoutHeadline,
 	"attributes",
 	"systemAttributes",
 }
@@ -210,7 +210,7 @@ var eomfileWithoutTitle = EomFile{
 var validChannelEomFile = EomFile{
 	validUUID,
 	"EOM::CompoundStory",
-	[]byte("bar"),
+	"bar",
 	"attributes",
 	systemAttributesValidChannel,
 }
@@ -218,7 +218,7 @@ var validChannelEomFile = EomFile{
 var invalidChannelEomFile = EomFile{
 	validUUID,
 	"EOM::CompoundStory",
-	[]byte("bar"),
+	"bar",
 	"attributes",
 	systemAttributesInvalidChannel,
 }
@@ -226,7 +226,7 @@ var invalidChannelEomFile = EomFile{
 var supportedEomFile = EomFile{
 	validUUID,
 	"EOM::CompoundStory",
-	[]byte("bar"),
+	"bar",
 	validFileTypeAttributes,
 	"system attributes",
 }
@@ -234,7 +234,7 @@ var supportedEomFile = EomFile{
 var unsupportedEomFile = EomFile{
 	validUUID,
 	"EOM::CompoundStory",
-	[]byte("bar"),
+	"bar",
 	invalidFileTypeAttributes,
 	"system attributes",
 }
@@ -242,7 +242,7 @@ var unsupportedEomFile = EomFile{
 var validListEomFile = EomFile{
 	validUUID,
 	"EOM::WebContainer",
-	[]byte("bar"),
+	"bar",
 	validListAttributes,
 	"system attributes",
 }
@@ -250,7 +250,7 @@ var validListEomFile = EomFile{
 var invalidListEomFile = EomFile{
 	validUUID,
 	"EOM::WebContainer",
-	[]byte("bar"),
+	"bar",
 	invalidListAttributes,
 	"system attributes",
 }
@@ -258,7 +258,7 @@ var invalidListEomFile = EomFile{
 var validImageEomFile = EomFile{
 	validUUID,
 	"Image",
-	[]byte("/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr"),
+	"/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr",
 	"attributes",
 	"system attributes",
 }
@@ -266,7 +266,7 @@ var validImageEomFile = EomFile{
 var invalidImageEomFile = EomFile{
 	validUUID,
 	"Image",
-	[]byte(""),
+	"",
 	"attributes",
 	"system attributes",
 }

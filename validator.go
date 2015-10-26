@@ -126,10 +126,10 @@ func isWebChannel(eomfile EomFile) bool {
 }
 
 func hasTitle(eomfile EomFile) bool {
-	if eomfile.Value == nil || len(eomfile.Value) == 0 {
+	if len(eomfile.Value) == 0 {
 		return false
 	}
-	decoded, err := base64.StdEncoding.DecodeString(string(eomfile.Value[:]))
+	decoded, err := base64.StdEncoding.DecodeString(eomfile.Value)
 	if err != nil {
 		warn.Printf("Cannot decode Base64-encoded eomfile value: [%v]", err.Error())
 		return false
@@ -150,6 +150,7 @@ func hasTitle(eomfile EomFile) bool {
 	}
 
 	title = strings.TrimSpace(title)
+	info.Printf("Title is [%v]", title)
 	if len(title) > 0 {
 		return true
 	}
@@ -157,7 +158,7 @@ func hasTitle(eomfile EomFile) bool {
 }
 
 func isImageValid(eomfile EomFile) bool {
-	if eomfile.Value == nil || len(eomfile.Value) == 0 {
+	if len(eomfile.Value) == 0 {
 		return false
 	}
 	return true
