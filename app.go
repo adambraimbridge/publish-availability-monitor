@@ -72,15 +72,27 @@ func main() {
 		return
 	}
 
+	startAggregator()
+	readMessages()
+}
+
+func readMessages() {
+	iterator := consumer.NewIterator(appConfig.QueueConf)
+	for {
+		msgs, err := iterator.NextMessages()
+		if err != nil {
+			warn.Printf("Could not read messages: [%v]", err.Error)
+			continue
+		}
+		for _, m := range msgs {
+			go PublishMessageListener{}.OnMessage(m)
+		}
+	}
+}
+
+func startAggregator() {
 	aggregator := NewAggregator(metricSink)
 	go aggregator.Run()
-
-	messageConsumer := consumer.NewConsumer(appConfig.QueueConf)
-	err = messageConsumer.Consume(PublishMessageListener{}, 8)
-	if err != nil {
-		log.Printf("Cannot start listening for messages: [%v]", err.Error())
-		return
-	}
 }
 
 func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
