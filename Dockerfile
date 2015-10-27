@@ -17,7 +17,7 @@ RUN apk add --update bash \
   && go build \
   && mv publish-availability-monitor /app \
   && mv config.json /config.json \
-  && apk del go git \
+  && apk del go git bzr \
   && rm -rf $GOPATH /var/cache/apk/*
 
 ENTRYPOINT [ "/bin/sh", "-c" ]
