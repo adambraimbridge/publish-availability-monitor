@@ -63,7 +63,7 @@ func scheduleCheck(check PublishCheck) {
 			continue
 		case <-quitChan:
 			tickerChan.Stop()
-			return
+			break
 		}
 	}
 
