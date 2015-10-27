@@ -1,13 +1,18 @@
 package main
 
-func NewAggregator() {
+import "github.com/kr/pretty"
 
+type Aggregator struct {
+	publishMetricSource chan PublishMetric
 }
 
-func Aggregate() {
-	//should offer a method which returns a channel or something on which
-	//this will listen for the results coming from a check created by
-	//the scheduler
+func NewAggregator(inputChannel chan PublishMetric) *Aggregator {
+	return &Aggregator{inputChannel}
+}
 
-	//after we get the result, send it to the distributor
+func (a *Aggregator) Run() {
+	for publishMetric := range a.publishMetricSource {
+		info.Printf("Received publish metric: [%# v]\n", pretty.Formatter(publishMetric))
+		//TODO forward metric to different sinks - graphite, splunk etc.
+	}
 }

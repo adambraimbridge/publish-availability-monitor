@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/kr/pretty"
 )
 
 type Interval struct {
@@ -31,6 +30,7 @@ type PublishMetric struct {
 type MetricConfig struct {
 	Granularity int    `json:"granularity"` //how we split up the threshold, ex. 120/12
 	Endpoint    string `json:"endpoint"`
+	ContentType string `json:"contentType"`
 }
 
 type AppConfig struct {
@@ -57,18 +57,23 @@ const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | 
 var info *log.Logger
 var warn *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
-var appConfig AppConfig
+var appConfig *AppConfig
+var metricSink = make(chan PublishMetric)
 var err error
 
 func main() {
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
 	flag.Parse()
 
-	appConfig, err := ParseConfig(*configFileName)
+	var err error
+	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
 		log.Printf("Cannot load configuration: [%v]", err)
 		return
 	}
+
+	aggregator := NewAggregator(metricSink)
+	go aggregator.Run()
 
 	messageConsumer := consumer.NewConsumer(appConfig.QueueConf)
 	err = messageConsumer.Consume(PublishMessageListener{}, 8)
@@ -76,13 +81,6 @@ func main() {
 		log.Printf("Cannot start listening for messages: [%v]", err.Error())
 		return
 	}
-
-	/*
-		scheduler := scheduler.NewScheduler()
-		aggregator := aggregator.NewAggregator()
-		validator := validator.NewValidator()
-	*/
-	//maybe separate the distributor so it just waits for metrics from the aggregator like a servlet?
 }
 
 func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
@@ -115,38 +113,7 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 		return nil
 	}
 
-	var publishMetrics []PublishMetric
-
-	for _, metricConf := range appConfig.MetricConf {
-
-		endpointUrl, err := url.Parse(metricConf.Endpoint)
-		if err != nil {
-			log.Printf("Cannot parse url [%v], error: [%v]", metricConf.Endpoint, err.Error())
-			continue
-		}
-
-		var publishMetric = PublishMetric{
-			eomFile.UUID,
-			false,
-			publishDate,
-			appConfig.Platform,
-			Interval{},
-			metricConf,
-			*endpointUrl,
-		}
-		publishMetrics = append(publishMetrics, publishMetric)
-	}
-
-	info.Println("Metrics to schedule: %# v", pretty.Formatter(publishMetrics))
-	//read publish timestamp (this is the moment we measure the publish from)
-	//Message-Timestamp: 2015-10-21T10:27:00.597Z
-	//TODO check if exists and not null
-	//publishDateString := msg.Headers["Message-Timestamp"]
-	//publishDate, err := time.Parse(dateLayout, publishDateString)
-
-	//scheduler.scheduleChecks(message, publishMetric)
-	//connect the scheduler with the aggregator with channels or something
-	//so when each scheduler is finished, the aggregator reads the results
+	scheduleChecks(eomFile, publishDate)
 	return nil
 }
 
