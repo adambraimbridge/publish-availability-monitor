@@ -63,11 +63,11 @@ func scheduleCheck(check PublishCheck) {
 			continue
 		case <-quitChan:
 			tickerChan.Stop()
-			break
+			//if we get here, checks were unsuccessful
+			check.Metric.publishOK = false
+			check.ResultSink <- check.Metric
+			return
 		}
 	}
 
-	//if we get here, checks were unsuccessful
-	check.Metric.publishOK = false
-	check.ResultSink <- check.Metric
 }

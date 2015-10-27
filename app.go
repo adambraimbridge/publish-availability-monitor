@@ -31,14 +31,20 @@ type MetricConfig struct {
 	Granularity int    `json:"granularity"` //how we split up the threshold, ex. 120/12
 	Endpoint    string `json:"endpoint"`
 	ContentType string `json:"contentType"`
+	Alias       string `json:"alias"`
+}
+
+type GraphiteConfig struct {
+	Host string `json:"host"`
+	Port int    `json:"port"`
 }
 
 type AppConfig struct {
-	Threshold  int                  `json:"threshold"` //pub SLA in seconds, ex. 120
-	QueueConf  consumer.QueueConfig `json:"queueConfig"`
-	MetricConf []MetricConfig       `json:"metricConfig"`
-	Platform   string               `json:"platform"`
-	//TODO feeder configs
+	Threshold    int                  `json:"threshold"` //pub SLA in seconds, ex. 120
+	QueueConf    consumer.QueueConfig `json:"queueConfig"`
+	MetricConf   []MetricConfig       `json:"metricConfig"`
+	Platform     string               `json:"platform"`
+	GraphiteConf GraphiteConfig       `json:"graphite-config"`
 }
 
 type PublishMessageListener struct{}
@@ -59,7 +65,6 @@ var warn *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var appConfig *AppConfig
 var metricSink = make(chan PublishMetric)
-var err error
 
 func main() {
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
@@ -91,7 +96,12 @@ func readMessages() {
 }
 
 func startAggregator() {
-	aggregator := NewAggregator(metricSink)
+	graphiteFeeder := NewGraphiteFeeder(appConfig.GraphiteConf.Host, appConfig.GraphiteConf.Port)
+
+	var destinations []MetricDestination
+	destinations = append(destinations, graphiteFeeder)
+
+	aggregator := NewAggregator(metricSink, destinations)
 	go aggregator.Run()
 }
 
