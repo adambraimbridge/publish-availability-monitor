@@ -1,18 +1,22 @@
 package main
 
-import "github.com/kr/pretty"
-
-type Aggregator struct {
-	publishMetricSource chan PublishMetric
+type MetricDestination interface {
+	Send(pm PublishMetric)
 }
 
-func NewAggregator(inputChannel chan PublishMetric) *Aggregator {
-	return &Aggregator{inputChannel}
+type Aggregator struct {
+	publishMetricSource       chan PublishMetric
+	publishMetricDestinations []MetricDestination
+}
+
+func NewAggregator(inputChannel chan PublishMetric, destinations []MetricDestination) *Aggregator {
+	return &Aggregator{inputChannel, destinations}
 }
 
 func (a *Aggregator) Run() {
 	for publishMetric := range a.publishMetricSource {
-		info.Printf("Received publish metric: [%# v]\n", pretty.Formatter(publishMetric))
-		//TODO forward metric to different sinks - graphite, splunk etc.
+		for _, sender := range a.publishMetricDestinations {
+			go sender.Send(publishMetric)
+		}
 	}
 }

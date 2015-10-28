@@ -5,3 +5,7 @@ Monitors publish availability and collects related metrics
 `go get github.com/Financial-Times/publish-availability-monitor`
 
 `publish-availability-monitor -config=int-config.json`
+
+# TODO
+* logging
+* document Graphite limitations (1 datapoint / second)
