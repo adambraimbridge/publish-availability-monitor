@@ -1,6 +1,7 @@
 FROM alpine
 
-ADD *.go *.json /publish-availability-monitor/
+ADD *.go /publish-availability-monitor/
+ADD config.json.template /publish-availability-monitor/config.json
 ADD startup.sh /
 
 RUN apk add --update bash \
