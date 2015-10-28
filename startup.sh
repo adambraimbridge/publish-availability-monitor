@@ -1,7 +1,8 @@
 sed -i "s QUEUE_ADDR $QUEUE_ADDR " /config.json
-sed -i "s URL1 $URL1 " /config.json
-sed -i "s URL2 $URL2 " /config.json
-sed -i "s URL3 $URL3 " /config.json
-sed -i "s URL4 $URL4 " /config.json
 
+counter=1
+for url in $(echo $URLS | tr "," "\n"); do
+	sed -i "s URL$counter $url " /config.json
+	let counter=$counter+1
+done
 ./app -config config.json
