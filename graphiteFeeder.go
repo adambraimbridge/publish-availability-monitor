@@ -18,6 +18,7 @@ const suffix = " %d %d\n"
 
 func NewGraphiteFeeder(host string, port int) *GraphiteFeeder {
 	connection, _ := net.Dial("tcp", host+":"+strconv.Itoa(port))
+	//TODO handle error
 	return &GraphiteFeeder{host, port, connection}
 }
 

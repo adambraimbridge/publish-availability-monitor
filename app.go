@@ -39,12 +39,17 @@ type GraphiteConfig struct {
 	Port int    `json:"port"`
 }
 
+type SplunkConfig struct {
+	FilePath string `json:"logFilePath"`
+}
+
 type AppConfig struct {
 	Threshold    int                  `json:"threshold"` //pub SLA in seconds, ex. 120
 	QueueConf    consumer.QueueConfig `json:"queueConfig"`
 	MetricConf   []MetricConfig       `json:"metricConfig"`
 	Platform     string               `json:"platform"`
 	GraphiteConf GraphiteConfig       `json:"graphite-config"`
+	SplunkConf   SplunkConfig         `json:"splunk-config"`
 }
 
 type PublishMessageListener struct{}
@@ -97,10 +102,12 @@ func readMessages() {
 
 func startAggregator() {
 	graphiteFeeder := NewGraphiteFeeder(appConfig.GraphiteConf.Host, appConfig.GraphiteConf.Port)
+	splunkFeeder := NewSplunkFeeder(appConfig.SplunkConf.FilePath)
 
+	//TODO handle cases where feeders are nil
 	var destinations []MetricDestination
 	destinations = append(destinations, graphiteFeeder)
-
+	destinations = append(destinations, splunkFeeder)
 	aggregator := NewAggregator(metricSink, destinations)
 	go aggregator.Run()
 }
