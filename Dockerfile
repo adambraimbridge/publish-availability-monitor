@@ -8,11 +8,11 @@ RUN apk add --update bash \
   && echo "http://dl-4.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
   && apk --update add go \
   && export GOPATH=/gopath \
-  && mkdir -p $GOPATH/src \
   && REPO_PATH="github.com/Financial-Times/publish-availability-monitor" \
-  && go get ${REPO_PATH} \
-  && mv publish-availability-monitor/* $GOPATH/src/${REPO_PATH} \
+  && mkdir -p $GOPATH/src/${REPO_PATH} \
+  && mv /publish-availability-monitor/* $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
+  && go get \
   && go test \
   && go build \
   && mv publish-availability-monitor /app \
