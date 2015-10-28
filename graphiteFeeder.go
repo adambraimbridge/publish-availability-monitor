@@ -27,13 +27,13 @@ func (gf GraphiteFeeder) Send(pm PublishMetric) {
 	duration := metricCommon + "duration" + suffix
 	status := metricCommon + "status" + suffix
 
-	_, err := fmt.Fprintf(gf.connection, duration, pm.publishInterval.upperBound, pm.publishDate.Unix())
+	_, err := fmt.Fprintf(gf.connection, duration, pm.publishInterval.upperBound, pm.publishDate.UnixNano())
 	if err != nil {
 		warn.Printf("Error sending stuff to graphite: [%v]", err.Error())
 		//TODO re-establish connection, retry
 	}
 
-	_, err = fmt.Fprintf(gf.connection, status, Btoi(pm.publishOK), pm.publishDate.Unix())
+	_, err = fmt.Fprintf(gf.connection, status, Btoi(pm.publishOK), pm.publishDate.UnixNano())
 	if err != nil {
 		warn.Printf("Error sending stuff to graphite: [%v]", err.Error())
 		//TODO re-establish connection, retry

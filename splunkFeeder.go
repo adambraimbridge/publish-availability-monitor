@@ -21,5 +21,5 @@ func NewSplunkFeeder(filePath string) *SplunkFeeder {
 }
 func (sf SplunkFeeder) Send(pm PublishMetric) {
 	sf.MetricLog.Printf("UUID=%v publishDate=%v publishOk=%v duration=%v endpoint=%v ",
-		pm.UUID, pm.publishDate.Unix(), pm.publishOK, pm.publishInterval.upperBound, pm.config.Alias)
+		pm.UUID, pm.publishDate.UnixNano(), pm.publishOK, pm.publishInterval.upperBound, pm.config.Alias)
 }
