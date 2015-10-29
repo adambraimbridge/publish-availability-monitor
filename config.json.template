@@ -1,18 +1,18 @@
 {
-    "threshold": 30,
+    "threshold": 120,
     "queueConfig": {
-        "address": "http://kafka-proxy:8080",
+        "address": "QUEUE_ADDR",
         "group": "PubMonitor",
         "topic": "NativeCmsPublicationEvents",
         "queue": "kafka"
     },
     "metricConfig": [{
-        "endpoint": "http://contentannotator-api/content/",
+        "endpoint": "URL1",
         "alias": "content",
         "granularity": 10
     },
     {
-        "endpoint": "http://com.ft.imagepublish.s3.amazonaws.com/",
+        "endpoint": "URL2",
         "granularity": 10,
         "alias": "S3",
         "contentType": "Image"
