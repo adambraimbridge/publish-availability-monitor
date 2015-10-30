@@ -91,7 +91,7 @@ func readMessages() {
 	for {
 		msgs, err := iterator.NextMessages()
 		if err != nil {
-			warn.Printf("Could not read messages: [%v]", err.Error)
+			warn.Printf("Could not read messages: [%v]", err.Error())
 			continue
 		}
 		for _, m := range msgs {

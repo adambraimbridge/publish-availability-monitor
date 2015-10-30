@@ -40,7 +40,7 @@ func scheduleCheck(check PublishCheck) {
 	//compute the actual seconds left until the SLA to compensate for the
 	//time passed between publish and the message reaching this point
 	secondsUntilSLA := publishSLA.Sub(time.Now()).Seconds()
-	info.Println("Seconds until SLA for [%v] : [%v]", check.Metric.UUID, secondsUntilSLA)
+	info.Printf("Seconds until SLA for [%v] : [%v]", check.Metric.UUID, secondsUntilSLA)
 	//used to signal the ticker to stop after the threshold duration is reached
 	quitChan := make(chan bool)
 	go func() {
