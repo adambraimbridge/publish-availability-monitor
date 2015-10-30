@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"strings"
+	"time"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/satori/go.uuid"
@@ -25,6 +26,11 @@ const expectedWebTypePrefix = "digitalList"
 const expectedFilePathSuffix = ".xml"
 
 const syntheticPrefix = "SYNTHETIC"
+
+func isMessagePastPublishSLA(date time.Time, threshold int) bool {
+	passedSLA := date.Add(time.Duration(threshold) * time.Second)
+	return time.Now().After(passedSLA)
+}
 
 func isSyntheticMessage(tid string) bool {
 	return strings.HasPrefix(tid, syntheticPrefix)
