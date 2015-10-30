@@ -12,6 +12,18 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestIsSyntheticMessage_naturalMessage(t *testing.T) {
+	if isSyntheticMessage(naturalTID) {
+		t.Error("Normal message marked as synthetic")
+	}
+}
+
+func TestIsSyntheticMessage_syntheticMessage(t *testing.T) {
+	if !isSyntheticMessage(syntheticTID) {
+		t.Error("Synthetic message marked as normal")
+	}
+}
+
 func TestIsEomfileValid_InvalidContentType(t *testing.T) {
 	if isEomfileValid(eomfileWithInvalidContentType) {
 		t.Error("Eomfile with invalid content marked as valid")
@@ -271,6 +283,8 @@ var invalidImageEomFile = EomFile{
 	"system attributes",
 }
 
+const syntheticTID = "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd"
+const naturalTID = "tid_xltcnbckvq"
 const validListAttributes = "<!DOCTYPE ObjectMetadata SYSTEM \"/SysConfig/Classify/FTDWC2/classify.dtd\"><ObjectMetadata>	<FTcom>		<DIFTcomWebType>digitalList</DIFTcomWebType></FTcom><Lists>		<Title>Editor's pick</Title><LayoutHint>standard</LayoutHint></Lists></ObjectMetadata>"
 const invalidListAttributes = "<!DOCTYPE ObjectMetadata SYSTEM \"/SysConfig/Classify/FTDWC2/classify.dtd\"><ObjectMetadata>	<FTcom>		<DIFTcomWebType>foobarList</DIFTcomWebType></FTcom><Lists>		<Title>Editor's pick</Title><LayoutHint>standard</LayoutHint></Lists></ObjectMetadata>"
 const validFileTypeAttributes = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE ObjectMetadata SYSTEM \"/SysConfig/Classify/FTStories/classify.dtd\"><ObjectMetadata><EditorialDisplayIndexing><DIBylineCopy>Kiran Stacey, Energy Correspondent</DIBylineCopy></EditorialDisplayIndexing><OutputChannels><DIFTcom><DIFTcomWebType>story</DIFTcomWebType></DIFTcom></OutputChannels><EditorialNotes><Language>English</Language><Author>staceyk</Author><ObjectLocation>/Users/staceyk/North Sea companies analysis CO 15.xml</ObjectLocation></EditorialNotes><DataFactoryIndexing><ADRIS_MetaData><IndexSuccess>yes</IndexSuccess><StartTime>Wed Oct 21 10:11:53 GMT 2015</StartTime><EndTime>Wed Oct 21 10:11:57 GMT 2015</EndTime></ADRIS_MetaData></DataFactoryIndexing></ObjectMetadata>"

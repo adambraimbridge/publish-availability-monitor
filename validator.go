@@ -24,6 +24,12 @@ const expectedWebChannel = "FTcom"
 const expectedWebTypePrefix = "digitalList"
 const expectedFilePathSuffix = ".xml"
 
+const syntheticPrefix = "SYNTHETIC"
+
+func isSyntheticMessage(tid string) bool {
+	return strings.HasPrefix(tid, syntheticPrefix)
+}
+
 func isMessageValid(message consumer.Message) bool {
 	headers := message.Headers
 	systemId := headers[systemIdKey]
