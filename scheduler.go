@@ -34,15 +34,25 @@ func scheduleChecks(eomFile EomFile, publishDate time.Time) {
 
 func scheduleCheck(check PublishCheck) {
 
-	quitChan := make(chan bool)
-	checkNr := 1
+	//the date the SLA expires for this publish event
+	publishSLA := check.Metric.publishDate.Add(time.Duration(check.Threshold) * time.Second)
 
+	//compute the actual seconds left until the SLA to compensate for the
+	//time passed between publish and the message reaching this point
+	secondsUntilSLA := publishSLA.Sub(time.Now()).Seconds()
+	info.Println("Seconds until SLA for [%v] : [%v]", check.Metric.UUID, secondsUntilSLA)
 	//used to signal the ticker to stop after the threshold duration is reached
+	quitChan := make(chan bool)
 	go func() {
-		<-time.After(time.Duration(check.Threshold) * time.Second)
+		<-time.After(time.Duration(secondsUntilSLA) * time.Second)
 		close(quitChan)
 	}()
 
+	secondsSincePublish := time.Since(check.Metric.publishDate).Seconds()
+	info.Printf("Seconds elapsed since publish for [%v] : [%v]", check.Metric.UUID, secondsSincePublish)
+	elapsedIntervals := secondsSincePublish / float64(check.CheckInterval)
+	info.Printf("Skipping first [%v] checks for [%v]", elapsedIntervals, check.Metric.UUID)
+	checkNr := int(elapsedIntervals) + 1
 	// ticker to fire once per interval
 	tickerChan := time.NewTicker(time.Duration(check.CheckInterval) * time.Second)
 	for {

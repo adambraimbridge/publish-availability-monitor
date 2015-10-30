@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 )
@@ -10,6 +11,20 @@ import (
 func TestMain(m *testing.M) {
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
 	os.Exit(m.Run())
+}
+
+func TestIsMessagePastPublishSLA_pastSLA(t *testing.T) {
+	publishDate := time.Now().Add(-(threshold + 1) * time.Second)
+	if !isMessagePastPublishSLA(publishDate, threshold) {
+		t.Error("Did not detect message past SLA")
+	}
+}
+
+func TestIsMessagePastPublishSLA_notPastSLA(t *testing.T) {
+	publishDate := time.Now()
+	if isMessagePastPublishSLA(publishDate, threshold) {
+		t.Error("Valid message marked as passed SLA")
+	}
 }
 
 func TestIsSyntheticMessage_naturalMessage(t *testing.T) {
@@ -283,6 +298,7 @@ var invalidImageEomFile = EomFile{
 	"system attributes",
 }
 
+const threshold = 120
 const syntheticTID = "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd"
 const naturalTID = "tid_xltcnbckvq"
 const validListAttributes = "<!DOCTYPE ObjectMetadata SYSTEM \"/SysConfig/Classify/FTDWC2/classify.dtd\"><ObjectMetadata>	<FTcom>		<DIFTcomWebType>digitalList</DIFTcomWebType></FTcom><Lists>		<Title>Editor's pick</Title><LayoutHint>standard</LayoutHint></Lists></ObjectMetadata>"

@@ -138,7 +138,7 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 		return nil
 	}
 
-	info.Printf("Message [%v] is VALID, scheduling checks...", tid)
+	info.Printf("Message [%v] is VALID.", tid)
 
 	publishDateString := msg.Headers["Message-Timestamp"]
 	publishDate, err := time.Parse(dateLayout, publishDateString)
@@ -146,6 +146,10 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 		log.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
 			publishDateString, tid, err.Error())
 		return nil
+	}
+
+	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
+		info.Printf("Message [%v] is past publish SLA, skipping.", tid)
 	}
 
 	scheduleChecks(eomFile, publishDate)
