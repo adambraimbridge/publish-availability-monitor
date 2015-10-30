@@ -116,7 +116,13 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 	tid := msg.Headers["X-Request-Id"]
 	info.Printf("Received message with TID [%v]", tid)
 
+	if isSyntheticMessage(tid) {
+		info.Printf("Message [%v] is INVALID: synthetic, skipping...", tid)
+		return nil
+	}
+
 	if !isMessageValid(msg) {
+		info.Printf("Message [%v] is INVALID, skipping...", tid)
 		return nil
 	}
 
