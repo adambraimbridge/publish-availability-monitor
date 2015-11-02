@@ -91,7 +91,7 @@ func readMessages() {
 	for {
 		msgs, err := iterator.NextMessages()
 		if err != nil {
-			warn.Printf("Could not read messages: [%v]", err.Error)
+			warn.Printf("Could not read messages: [%v]", err.Error())
 			continue
 		}
 		for _, m := range msgs {
@@ -152,7 +152,7 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 		info.Printf("Message [%v] is past publish SLA, skipping.", tid)
 	}
 
-	scheduleChecks(eomFile, publishDate)
+	scheduleChecks(eomFile, publishDate, tid)
 	return nil
 }
 
