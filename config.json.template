@@ -1,7 +1,7 @@
 {
     "threshold": 120,
     "queueConfig": {
-        "address": "QUEUE_ADDR",
+        "address": ["QUEUE_ADDR"],
         "group": "PubMonitor",
         "topic": "NativeCmsPublicationEvents",
         "queue": "kafka"
