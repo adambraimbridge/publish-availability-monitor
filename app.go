@@ -152,7 +152,7 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 		info.Printf("Message [%v] is past publish SLA, skipping.", tid)
 	}
 
-	scheduleChecks(eomFile, publishDate)
+	scheduleChecks(eomFile, publishDate, tid)
 	return nil
 }
 

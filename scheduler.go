@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func scheduleChecks(eomFile EomFile, publishDate time.Time) {
+func scheduleChecks(eomFile EomFile, publishDate time.Time, tid string) {
 	for _, conf := range appConfig.MetricConf {
 		endpointUrl, err := url.Parse(conf.Endpoint)
 		if err != nil {
@@ -27,7 +27,7 @@ func scheduleChecks(eomFile EomFile, publishDate time.Time) {
 		}
 
 		var checkInterval = appConfig.Threshold / conf.Granularity
-		var publishCheck = NewPublishCheck(publishMetric, appConfig.Threshold, checkInterval, metricSink)
+		var publishCheck = NewPublishCheck(publishMetric, appConfig.Threshold, checkInterval, metricSink, tid)
 		go scheduleCheck(*publishCheck)
 	}
 }
