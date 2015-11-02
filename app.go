@@ -150,6 +150,7 @@ func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
 
 	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
 		info.Printf("Message [%v] is past publish SLA, skipping.", tid)
+		return nil
 	}
 
 	scheduleChecks(eomFile, publishDate, tid)
