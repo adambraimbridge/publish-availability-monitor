@@ -101,12 +101,13 @@ func readMessages() {
 }
 
 func startAggregator() {
-	graphiteFeeder := NewGraphiteFeeder(appConfig.GraphiteConf.Host, appConfig.GraphiteConf.Port)
-	splunkFeeder := NewSplunkFeeder(appConfig.SplunkConf.FilePath)
-
-	//TODO handle cases where feeders are nil
 	var destinations []MetricDestination
-	destinations = append(destinations, graphiteFeeder)
+
+	if len(appConfig.GraphiteConf.Host) != 0 && appConfig.GraphiteConf.Port != 0 {
+		graphiteFeeder := NewGraphiteFeeder(appConfig.GraphiteConf.Host, appConfig.GraphiteConf.Port)
+		destinations = append(destinations, graphiteFeeder)
+	}
+	splunkFeeder := NewSplunkFeeder(appConfig.SplunkConf.FilePath)
 	destinations = append(destinations, splunkFeeder)
 	aggregator := NewAggregator(metricSink, destinations)
 	go aggregator.Run()
