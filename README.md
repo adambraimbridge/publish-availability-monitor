@@ -14,7 +14,6 @@ With Docker:
 
 # TODO
 * logging
-* document Graphite limitations (1 datapoint / second)
 
 # Puppet module
 If you want a new puppet module version, you have to manually increment the version in `puppet/ft-publish_availability_monitor/Modulefile` AND create a `git tag <version>` corresponding to the module version. This way Jenkins can pick up the tagged version to build & deploy to forge.

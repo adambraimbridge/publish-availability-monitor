@@ -11,7 +11,7 @@ import (
 )
 
 const image = "Image"
-const systemIdKey = "Origin-System-Id"
+const systemIDKey = "Origin-System-Id"
 const webContainer = "EOM::WebContainer"
 const compoundStory = "EOM::CompoundStory"
 
@@ -20,7 +20,7 @@ const channelXPath = "/props/productInfo/name"
 const webTypeXPath = "//ObjectMetadata/FTcom/DIFTcomWebType"
 const filePathXPath = "//ObjectMetadata/EditorialNotes/ObjectLocation"
 
-const expectedSystemId = "http://cmdb.ft.com/systems/methode-web-pub"
+const expectedSystemID = "http://cmdb.ft.com/systems/methode-web-pub"
 const expectedWebChannel = "FTcom"
 const expectedWebTypePrefix = "digitalList"
 const expectedFilePathSuffix = ".xml"
@@ -38,18 +38,18 @@ func isSyntheticMessage(tid string) bool {
 
 func isMessageValid(message consumer.Message) bool {
 	headers := message.Headers
-	systemId := headers[systemIdKey]
-	if systemId != expectedSystemId {
-		warn.Printf("Message invalid: unexpected system ID: [%v]", systemId)
+	systemID := headers[systemIDKey]
+	if systemID != expectedSystemID {
+		warn.Printf("Message invalid: unexpected system ID: [%v]", systemID)
 		return false
 	}
 	return true
 }
 
 func isEomfileValid(eomfile EomFile) bool {
-	contentUuid := eomfile.UUID
-	if !isUUIDValid(contentUuid) {
-		warn.Printf("Eomfile invalid: invalid UUID: [%v]", contentUuid)
+	contentUUID := eomfile.UUID
+	if !isUUIDValid(contentUUID) {
+		warn.Printf("Eomfile invalid: invalid UUID: [%v]", contentUUID)
 		return false
 	}
 
@@ -67,13 +67,13 @@ func isEomfileValid(eomfile EomFile) bool {
 	}
 }
 
-func isUUIDValid(contentUuid string) bool {
-	parsedUuid, err := uuid.FromString(contentUuid)
+func isUUIDValid(contentUUID string) bool {
+	parsedUUID, err := uuid.FromString(contentUUID)
 	if err != nil {
-		warn.Printf("Cannot parse UUID [%v], error: [%v]", contentUuid, err.Error())
+		warn.Printf("Cannot parse UUID [%v], error: [%v]", contentUUID, err.Error())
 		return false
 	}
-	return contentUuid == parsedUuid.String()
+	return contentUUID == parsedUUID.String()
 }
 
 func isListValid(eomfile EomFile) bool {
@@ -146,9 +146,9 @@ func hasTitle(eomfile EomFile) bool {
 		warn.Printf("Cannot decode Base64-encoded eomfile value: [%v]", err.Error())
 		return false
 	}
-	articleXml := string(decoded[:])
+	articleXML := string(decoded[:])
 
-	root, err := xmlpath.Parse(strings.NewReader(articleXml))
+	root, err := xmlpath.Parse(strings.NewReader(articleXML))
 	if err != nil {
 		warn.Printf("Cannot parse value XML of eomfile, error: [%v]", err.Error())
 		return false

@@ -12,11 +12,14 @@ import (
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 )
 
+// Interval is a simple representation of an interval of time, with a lower and
+// upper boundary
 type Interval struct {
 	lowerBound int
 	upperBound int
 }
 
+// PublishMetric holds the information about the metric we are measuring.
 type PublishMetric struct {
 	UUID            string
 	publishOK       bool      //did it meet the SLA?
@@ -27,6 +30,7 @@ type PublishMetric struct {
 	endpoint        url.URL
 }
 
+// MetricConfig is the configuration of a PublishMetric
 type MetricConfig struct {
 	Granularity int    `json:"granularity"` //how we split up the threshold, ex. 120/12
 	Endpoint    string `json:"endpoint"`
@@ -34,26 +38,21 @@ type MetricConfig struct {
 	Alias       string `json:"alias"`
 }
 
-type GraphiteConfig struct {
-	Host string `json:"host"`
-	Port int    `json:"port"`
-}
-
+// SplunkConfig holds the SplunkFeeder-specific configuration
 type SplunkConfig struct {
 	FilePath string `json:"logFilePath"`
 }
 
+// AppConfig holds the application's configuration
 type AppConfig struct {
-	Threshold    int                  `json:"threshold"` //pub SLA in seconds, ex. 120
-	QueueConf    consumer.QueueConfig `json:"queueConfig"`
-	MetricConf   []MetricConfig       `json:"metricConfig"`
-	Platform     string               `json:"platform"`
-	GraphiteConf GraphiteConfig       `json:"graphite-config"`
-	SplunkConf   SplunkConfig         `json:"splunk-config"`
+	Threshold  int                  `json:"threshold"` //pub SLA in seconds, ex. 120
+	QueueConf  consumer.QueueConfig `json:"queueConfig"`
+	MetricConf []MetricConfig       `json:"metricConfig"`
+	Platform   string               `json:"platform"`
+	SplunkConf SplunkConfig         `json:"splunk-config"`
 }
 
-type PublishMessageListener struct{}
-
+// EomFile models content as it is stored in our CMS
 type EomFile struct {
 	UUID             string `json:"uuid"`
 	Type             string `json:"type"`
@@ -95,7 +94,7 @@ func readMessages() {
 			continue
 		}
 		for _, m := range msgs {
-			go PublishMessageListener{}.OnMessage(m)
+			go handleMessage(m)
 		}
 	}
 }
@@ -103,17 +102,13 @@ func readMessages() {
 func startAggregator() {
 	var destinations []MetricDestination
 
-	if len(appConfig.GraphiteConf.Host) != 0 && appConfig.GraphiteConf.Port != 0 {
-		graphiteFeeder := NewGraphiteFeeder(appConfig.GraphiteConf.Host, appConfig.GraphiteConf.Port)
-		destinations = append(destinations, graphiteFeeder)
-	}
 	splunkFeeder := NewSplunkFeeder(appConfig.SplunkConf.FilePath)
 	destinations = append(destinations, splunkFeeder)
 	aggregator := NewAggregator(metricSink, destinations)
 	go aggregator.Run()
 }
 
-func (listener PublishMessageListener) OnMessage(msg consumer.Message) error {
+func handleMessage(msg consumer.Message) error {
 	tid := msg.Headers["X-Request-Id"]
 	info.Printf("Received message with TID [%v]", tid)
 

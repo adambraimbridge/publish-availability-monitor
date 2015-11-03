@@ -19,10 +19,6 @@
     }
     ],
     "platform": "ucs-test",
-    "graphite-config": {
-        "host": "graphite.ft.com",
-        "port": 2003
-    },
     "splunk-config": {
         "logFilePath": "pam.log"
     }

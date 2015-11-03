@@ -153,28 +153,28 @@ func TestIsMessageValid_MissingHeader(t *testing.T) {
 }
 
 func TestIsMessageValid_InvalidSystemId(t *testing.T) {
-	if isMessageValid(invalidMessageWrongSystemId) {
+	if isMessageValid(invalidMessageWrongSystemID) {
 		t.Error("Invalid Message marked as valid!")
 	}
 }
 
 var validMessage = consumer.Message{
-	map[string]string{
+	Headers: map[string]string{
 		"Origin-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
 	},
-	"body",
+	Body: "body",
 }
 var invalidMessageWrongHeader = consumer.Message{
-	map[string]string{
+	Headers: map[string]string{
 		"Foobar-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
 	},
-	"body",
+	Body: "body",
 }
-var invalidMessageWrongSystemId = consumer.Message{
-	map[string]string{
+var invalidMessageWrongSystemID = consumer.Message{
+	Headers: map[string]string{
 		"Origin-System-Id": "methode-web-foobar",
 	},
-	"body",
+	Body: "body",
 }
 var validUUID = "e28b12f7-9796-3331-b030-05082f0b8157"
 var invalidUUID = "foobar"
