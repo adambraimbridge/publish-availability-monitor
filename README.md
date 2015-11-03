@@ -1,4 +1,7 @@
 # publish-availability-monitor
+
+[![Circle CI](https://circleci.com/gh/Financial-Times/publish-availability-monitor/tree/master.svg?style=svg)](https://circleci.com/gh/Financial-Times/publish-availability-monitor/tree/master)
+
 Monitors publish availability and collects related metrics
 
 # Usage
