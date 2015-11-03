@@ -8,7 +8,7 @@ import (
 
 func scheduleChecks(eomFile EomFile, publishDate time.Time, tid string) {
 	for _, conf := range appConfig.MetricConf {
-		endpointUrl, err := url.Parse(conf.Endpoint)
+		endpointURL, err := url.Parse(conf.Endpoint)
 		if err != nil {
 			log.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
 			continue
@@ -23,7 +23,7 @@ func scheduleChecks(eomFile EomFile, publishDate time.Time, tid string) {
 			appConfig.Platform,
 			Interval{},
 			conf,
-			*endpointUrl,
+			*endpointURL,
 		}
 
 		var checkInterval = appConfig.Threshold / conf.Granularity
