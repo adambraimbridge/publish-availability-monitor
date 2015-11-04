@@ -28,6 +28,7 @@ type PublishMetric struct {
 	publishInterval Interval //the interval it was actually published in, ex. (10,20)
 	config          MetricConfig
 	endpoint        url.URL
+	tid             string
 }
 
 // MetricConfig is the configuration of a PublishMetric
@@ -130,11 +131,11 @@ func handleMessage(msg consumer.Message) error {
 	}
 
 	if !isEomfileValid(eomFile) {
-		info.Printf("Message [%v] is INVALID, skipping...", tid)
+		info.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, eomFile.UUID)
 		return nil
 	}
 
-	info.Printf("Message [%v] is VALID.", tid)
+	info.Printf("Message [%v] with UUID [%v] is VALID.", tid, eomFile.UUID)
 
 	publishDateString := msg.Headers["Message-Timestamp"]
 	publishDate, err := time.Parse(dateLayout, publishDateString)
@@ -145,7 +146,7 @@ func handleMessage(msg consumer.Message) error {
 	}
 
 	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
-		info.Printf("Message [%v] is past publish SLA, skipping.", tid)
+		info.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, eomFile.UUID)
 		return nil
 	}
 

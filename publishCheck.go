@@ -15,7 +15,6 @@ type PublishCheck struct {
 	Threshold     int
 	CheckInterval int
 	ResultSink    chan PublishMetric
-	tid           string
 }
 
 // EndpointSpecificCheck is the interface which defines a method which determines
@@ -34,8 +33,8 @@ type S3Check struct{}
 
 // NewPublishCheck returns a PublishCheck ready to perform a check for pm.UUID, at the
 // pm.endpoint.
-func NewPublishCheck(pm PublishMetric, t int, ci int, rs chan PublishMetric, tid string) *PublishCheck {
-	return &PublishCheck{pm, t, ci, rs, tid}
+func NewPublishCheck(pm PublishMetric, t int, ci int, rs chan PublishMetric) *PublishCheck {
+	return &PublishCheck{pm, t, ci, rs}
 }
 
 // DoCheck performs an availability check on a piece of content at a certain
@@ -61,11 +60,10 @@ func (pc PublishCheck) DoCheck() bool {
 		warn.Printf("No check for endpoint %s.", pc.Metric.config.Alias)
 		return false
 	}
-	return check.isCurrentOperationFinished(pc.tid, data)
+	return check.isCurrentOperationFinished(pc.Metric.tid, data)
 }
 
 func (c ContentCheck) isCurrentOperationFinished(tid string, resp []byte) bool {
-	info.Println("Content isCurrentOperationFinished() check")
 	var jsonResp map[string]interface{}
 
 	err := json.Unmarshal(resp, &jsonResp)
@@ -78,7 +76,6 @@ func (c ContentCheck) isCurrentOperationFinished(tid string, resp []byte) bool {
 }
 
 func (s S3Check) isCurrentOperationFinished(tid string, resp []byte) bool {
-	info.Println("S3 isCurrentOperationFinished() check")
 	return true
 }
 
