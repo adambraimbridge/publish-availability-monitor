@@ -29,6 +29,7 @@ type PublishMetric struct {
 	config          MetricConfig
 	endpoint        url.URL
 	tid             string
+	isMarkedDeleted bool
 }
 
 // MetricConfig is the configuration of a PublishMetric
@@ -150,7 +151,7 @@ func handleMessage(msg consumer.Message) error {
 		return nil
 	}
 
-	scheduleChecks(eomFile, publishDate, tid)
+	scheduleChecks(eomFile, publishDate, tid, isMarkedDeleted(eomFile))
 	return nil
 }
 
