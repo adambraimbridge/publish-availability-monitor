@@ -165,11 +165,13 @@ func hasTitle(eomfile EomFile) bool {
 	if len(title) > 0 {
 		return true
 	}
+	warn.Println("Title length is 0")
 	return false
 }
 
 func isImageValid(eomfile EomFile) bool {
 	if len(eomfile.Value) == 0 {
+		warn.Println("Image content length is 0")
 		return false
 	}
 	return true
