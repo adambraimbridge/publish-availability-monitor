@@ -20,7 +20,7 @@ type PublishCheck struct {
 // EndpointSpecificCheck is the interface which defines a method which determines
 // the state of the operation we are currently checking.
 type EndpointSpecificCheck interface {
-	isCurrentOperationFinished(ourTid string, resp []byte) bool
+	isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool
 }
 
 // ContentCheck implements the EndpointSpecificCheck interface to check operation
@@ -44,14 +44,7 @@ func (pc PublishCheck) DoCheck() bool {
 	info.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
 	resp, err := http.Get(pc.Metric.endpoint.String() + pc.Metric.UUID)
 
-	if err != nil || resp.StatusCode != 200 {
-		return false
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
 	if err != nil {
-		warn.Printf("Cannot read response: [%s]", err.Error())
 		return false
 	}
 
@@ -60,23 +53,46 @@ func (pc PublishCheck) DoCheck() bool {
 		warn.Printf("No check for endpoint %s.", pc.Metric.config.Alias)
 		return false
 	}
-	return check.isCurrentOperationFinished(pc.Metric.tid, data)
+
+	return check.isCurrentOperationFinished(pc, resp)
 }
 
-func (c ContentCheck) isCurrentOperationFinished(tid string, resp []byte) bool {
+func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool {
+	// if the article was marked as deleted, operation is finished when the
+	// article cannot be found anymore
+	if pc.Metric.isMarkedDeleted {
+		info.Printf("[%v]Marked deleted, got 404", pc.Metric.UUID)
+		return response.StatusCode == 404
+	}
+
+	// if not marked deleted, operation isn't finished until status is 200
+	if response.StatusCode != 200 {
+		return false
+	}
+
+	info.Printf("[%v]Not marked as deleted, got 200, checking PR", pc.Metric.UUID)
+	// if status is 200, we check the publishReference
+	// this way we can handle updates
+	data, err := ioutil.ReadAll(response.Body)
+	defer response.Body.Close()
+	if err != nil {
+		warn.Printf("Cannot read response: [%s]", err.Error())
+		return false
+	}
+
 	var jsonResp map[string]interface{}
 
-	err := json.Unmarshal(resp, &jsonResp)
+	err = json.Unmarshal(data, &jsonResp)
 	if err != nil {
 		warn.Printf("Cannot unmarshal JSON response: [%s]", err.Error())
 		return false
 	}
 
-	return jsonResp["publishReference"] == tid
+	return jsonResp["publishReference"] == pc.Metric.tid
 }
 
-func (s S3Check) isCurrentOperationFinished(tid string, resp []byte) bool {
-	return true
+func (s S3Check) isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool {
+	return response.StatusCode == 200
 }
 
 //key is the endpoint alias from the config
