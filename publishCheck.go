@@ -61,7 +61,7 @@ func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http
 	// if the article was marked as deleted, operation is finished when the
 	// article cannot be found anymore
 	if pc.Metric.isMarkedDeleted {
-		info.Printf("[%v]Marked deleted, got 404", pc.Metric.UUID)
+		info.Printf("[%v]Marked deleted, status code [%v]", pc.Metric.UUID, response.StatusCode)
 		return response.StatusCode == 404
 	}
 
