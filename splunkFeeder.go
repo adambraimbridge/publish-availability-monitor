@@ -13,13 +13,8 @@ type SplunkFeeder struct {
 
 // NewSplunkFeeder returns a SplunkFeeder which will write the PublishMetrics to the file at filePath.
 // If the file exists, it will be appended to.
-func NewSplunkFeeder(filePath string) *SplunkFeeder {
-	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		log.Printf("Cannot open/create file [%v] : [%v]", filePath, err.Error())
-		return nil
-	}
-	logger := log.New(file, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.LUTC)
+func NewSplunkFeeder(logPrefix string) *SplunkFeeder {
+	logger := log.New(os.Stdout, logPrefix, log.Ldate|log.Ltime|log.Lmicroseconds|log.LUTC)
 	return &SplunkFeeder{logger}
 
 }

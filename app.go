@@ -42,7 +42,7 @@ type MetricConfig struct {
 
 // SplunkConfig holds the SplunkFeeder-specific configuration
 type SplunkConfig struct {
-	FilePath string `json:"logFilePath"`
+	LogPrefix string `json:"logPrefix"`
 }
 
 // AppConfig holds the application's configuration
@@ -104,7 +104,7 @@ func readMessages() {
 func startAggregator() {
 	var destinations []MetricDestination
 
-	splunkFeeder := NewSplunkFeeder(appConfig.SplunkConf.FilePath)
+	splunkFeeder := NewSplunkFeeder(appConfig.SplunkConf.LogPrefix)
 	destinations = append(destinations, splunkFeeder)
 	aggregator := NewAggregator(metricSink, destinations)
 	go aggregator.Run()
