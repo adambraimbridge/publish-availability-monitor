@@ -1,3 +1,5 @@
 *.exe*
 *-config.json
 *.log
+*.html
+*coverage.*

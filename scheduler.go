@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func scheduleChecks(eomFile EomFile, publishDate time.Time, tid string) {
+func scheduleChecks(eomFile EomFile, publishDate time.Time, tid string, isMarkedDeleted bool) {
 	for _, conf := range appConfig.MetricConf {
 		endpointURL, err := url.Parse(conf.Endpoint)
 		if err != nil {
@@ -25,6 +25,7 @@ func scheduleChecks(eomFile EomFile, publishDate time.Time, tid string) {
 			conf,
 			*endpointURL,
 			tid,
+			isMarkedDeleted,
 		}
 
 		var checkInterval = appConfig.Threshold / conf.Granularity
