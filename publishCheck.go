@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 )
@@ -43,6 +44,7 @@ func NewPublishCheck(pm PublishMetric, t int, ci int, rs chan PublishMetric) *Pu
 func (pc PublishCheck) DoCheck() bool {
 	info.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
 	resp, err := http.Get(pc.Metric.endpoint.String() + pc.Metric.UUID)
+	defer cleanupConnection(resp)
 
 	if err != nil {
 		return false
@@ -57,6 +59,11 @@ func (pc PublishCheck) DoCheck() bool {
 	return check.isCurrentOperationFinished(pc, resp)
 }
 
+func cleanupConnection(response *http.Response) {
+	info.Println("Cleaning up connection...")
+	io.Copy(ioutil.Discard, response.Body)
+	response.Body.Close()
+}
 func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool {
 	// if the article was marked as deleted, operation is finished when the
 	// article cannot be found anymore
@@ -74,7 +81,6 @@ func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http
 	// if status is 200, we check the publishReference
 	// this way we can handle updates
 	data, err := ioutil.ReadAll(response.Body)
-	defer response.Body.Close()
 	if err != nil {
 		warn.Printf("Cannot read response: [%s]", err.Error())
 		return false
