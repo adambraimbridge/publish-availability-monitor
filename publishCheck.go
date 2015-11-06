@@ -43,6 +43,7 @@ func NewPublishCheck(pm PublishMetric, t int, ci int, rs chan PublishMetric) *Pu
 func (pc PublishCheck) DoCheck() bool {
 	info.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
 	resp, err := http.Get(pc.Metric.endpoint.String() + pc.Metric.UUID)
+	defer resp.Body.Close()
 
 	if err != nil {
 		return false
@@ -74,7 +75,6 @@ func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http
 	// if status is 200, we check the publishReference
 	// this way we can handle updates
 	data, err := ioutil.ReadAll(response.Body)
-	defer response.Body.Close()
 	if err != nil {
 		warn.Printf("Cannot read response: [%s]", err.Error())
 		return false
