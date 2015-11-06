@@ -16,12 +16,26 @@ func TestIsMarkedDeleted_False(t *testing.T) {
 	}
 }
 
+func TestIsMarkedDeleted_Image(t *testing.T) {
+	if isMarkedDeleted(imageEomFile) {
+		t.Error("Expected False, the story IS NOT marked deleted")
+	}
+}
+
 var storyMarkedDeletedTrue = EomFile{
 	UUID,
 	"EOM::CompoundStory",
 	content,
 	attributesMarkedDeletedTrue,
 	systemAttributes,
+}
+
+var imageEomFile = EomFile{
+	UUID,
+	"Image",
+	"image bytes",
+	"fooAttributes",
+	"barsystemAttributes",
 }
 
 var storyMarkedDeletedFalse = EomFile{

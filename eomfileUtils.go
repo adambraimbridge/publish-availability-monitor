@@ -7,6 +7,9 @@ import (
 )
 
 func isMarkedDeleted(eomFile EomFile) bool {
+	if eomFile.Type == "Image" {
+		return false
+	}
 	attributes := eomFile.Attributes
 	markDeletedFlagXPath := "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMarkDeleted"
 	path := xmlpath.MustCompile(markDeletedFlagXPath)
