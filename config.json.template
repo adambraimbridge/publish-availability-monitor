@@ -1,25 +1,20 @@
 {
-    "threshold": 120,
-    "queueConfig": {
-        "address": ["QUEUE_ADDR"],
-        "group": "PubMonitor",
-        "topic": "NativeCmsPublicationEvents",
-        "queue": "kafka"
-    },
-    "metricConfig": [{
-        "endpoint": "URL1",
-        "alias": "content",
-        "granularity": 10
-    },
-    {
-        "endpoint": "URL2",
-        "granularity": 10,
-        "alias": "S3",
-        "contentType": "Image"
-    }
-    ],
-    "platform": "ucs-test",
-    "splunk-config": {
-        "logFilePath": "pam.log"
-    }
+	"threshold": 120,
+	"queueConfig": {
+		"address": ["QUEUE_ADDR"],
+		"group": "PubMonitor",
+		"topic": "NativeCmsPublicationEvents",
+		"queue": "kafka"
+	},
+	{
+		"endpoint": "URL1",
+		"granularity": 40,
+		"alias": "S3",
+		"contentType": "Image"
+	}
+	],
+	"platform": "ENVIRONMENT",
+	"splunk-config": {
+		"logPrefix": "[splunkMetrics] "
+	}
 }
