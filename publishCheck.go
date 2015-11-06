@@ -97,6 +97,7 @@ func (s S3Check) isCurrentOperationFinished(pc PublishCheck, response *http.Resp
 
 //key is the endpoint alias from the config
 var endpointSpecificChecks = map[string]EndpointSpecificCheck{
-	"content": ContentCheck{},
-	"S3":      S3Check{},
+	"content":         ContentCheck{},
+	"S3":              S3Check{},
+	"enrichedContent": ContentCheck{},
 }
