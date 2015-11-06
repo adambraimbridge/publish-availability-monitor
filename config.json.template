@@ -6,7 +6,7 @@
 		"topic": "NativeCmsPublicationEvents",
 		"queue": "kafka"
 	},
-	{
+	metricConfig: [{
 		"endpoint": "URL1",
 		"granularity": 40,
 		"alias": "S3",
