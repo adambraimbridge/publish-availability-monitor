@@ -100,4 +100,5 @@ var endpointSpecificChecks = map[string]EndpointSpecificCheck{
 	"content":         ContentCheck{},
 	"S3":              S3Check{},
 	"enrichedContent": ContentCheck{},
+	"lists":           ContentCheck{},
 }
