@@ -61,7 +61,7 @@ func (pc PublishCheck) DoCheck() bool {
 func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool {
 	// if the article was marked as deleted, operation is finished when the
 	// article cannot be found anymore
-	if pc.Metric.isMarkedDeleted {
+	if contentCanBeDeleted(pc.Metric.config.ContentType) && pc.Metric.isMarkedDeleted {
 		info.Printf("[%v]Marked deleted, status code [%v]", pc.Metric.UUID, response.StatusCode)
 		return response.StatusCode == 404
 	}
@@ -91,13 +91,16 @@ func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http
 	return jsonResp["publishReference"] == pc.Metric.tid
 }
 
+func contentCanBeDeleted(contentType string) bool {
+	return contentType != "Image"
+}
+
 func (s S3Check) isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool {
 	return response.StatusCode == 200
 }
 
 //key is the endpoint alias from the config
 var endpointSpecificChecks = map[string]EndpointSpecificCheck{
-	"content":         ContentCheck{},
-	"S3":              S3Check{},
-	"enrichedContent": ContentCheck{},
+	"content": ContentCheck{},
+	"S3":      S3Check{},
 }
