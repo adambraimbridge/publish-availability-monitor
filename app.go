@@ -34,10 +34,10 @@ type PublishMetric struct {
 
 // MetricConfig is the configuration of a PublishMetric
 type MetricConfig struct {
-	Granularity int    `json:"granularity"` //how we split up the threshold, ex. 120/12
-	Endpoint    string `json:"endpoint"`
-	ContentType string `json:"contentType"`
-	Alias       string `json:"alias"`
+	Granularity int      `json:"granularity"` //how we split up the threshold, ex. 120/12
+	Endpoint    string   `json:"endpoint"`
+	ContentType []string `json:"contentType"` //list of valid eom types for this metric
+	Alias       string   `json:"alias"`
 }
 
 // SplunkConfig holds the SplunkFeeder-specific configuration

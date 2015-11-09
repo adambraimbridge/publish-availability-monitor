@@ -15,7 +15,7 @@
         "endpoint": "http://com.ft.imagepublish.s3.amazonaws.com/",
         "granularity": 10,
         "alias": "S3",
-        "contentType": "Image"
+        "contentType": ["Image"]
     }
     ],
     "platform": "ucs-test",

@@ -13,7 +13,7 @@ func scheduleChecks(eomFile EomFile, publishDate time.Time, tid string, isMarked
 			log.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
 			continue
 		}
-		if (exclusiveType[eomFile.Type] || conf.ContentType != "") && conf.ContentType != eomFile.Type {
+		if !validType(conf.ContentType, eomFile.Type) {
 			continue
 		}
 
@@ -86,6 +86,14 @@ func scheduleCheck(check PublishCheck) {
 		}
 	}
 
+}
+func validType(validTypes []string, eomType string) bool {
+	for _, t := range validTypes {
+		if t == eomType {
+			return true
+		}
+	}
+	return false
 }
 
 //contains eom types which exclude metrics with different contentTypes
