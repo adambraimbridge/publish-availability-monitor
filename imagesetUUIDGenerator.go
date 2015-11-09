@@ -9,6 +9,8 @@ import (
 
 var magic = toBitSet(NewNameUUIDFromBytes([]byte("imageset")).lsb)
 
+// GenerateImageSetUUID generated the image set UUID corresponding to the given
+// image UUID
 func GenerateImageSetUUID(imageUUID UUID) (UUID, error) {
 	uuidBits := toBitSet(imageUUID.lsb)
 	uuidBits.InPlaceSymmetricDifference(&magic) //XOR

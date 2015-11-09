@@ -7,11 +7,16 @@ import (
 	"strings"
 )
 
+// UUID is modeled after java.util.UUID
+// Holds the most significant and least significant bits of a UUID
 type UUID struct {
 	msb uint64
 	lsb uint64
 }
 
+// NewNameUUIDFromBytes creates a type 3 - name based - UUID
+// based on the specified byte array.
+// Corresponds to java.util.UUID#nameUUIDFromBytes
 func NewNameUUIDFromBytes(bytes []byte) *UUID {
 	md5Hash := md5.Sum(bytes)
 	md5Hash[6] &= 0x0f /* clear version        */
@@ -32,25 +37,35 @@ func NewNameUUIDFromBytes(bytes []byte) *UUID {
 	return &UUID{msb, lsb}
 }
 
+// NewUUIDFromString creates a UUID from the standard string representation
+// Corresponds to java.util.UUID#fromString
 func NewUUIDFromString(uuidString string) (*UUID, error) {
 	components := strings.Split(uuidString, "-")
 	if len(components) != 5 {
 		return &UUID{0, 0}, errors.New("Invalid UUID string")
 	}
 
-	msb := hexToInt(components[0])
-	msb <<= 16
-	msb |= hexToInt(components[1])
-	msb <<= 16
-	msb |= hexToInt(components[2])
+	intComponents, err := hexToInt(components)
 
-	lsb := hexToInt(components[3])
+	if err != nil {
+		return &UUID{0, 0}, err
+	}
+
+	msb := intComponents[0]
+	msb <<= 16
+	msb |= intComponents[1]
+	msb <<= 16
+	msb |= intComponents[2]
+
+	lsb := intComponents[3]
 	lsb <<= 48
-	lsb |= hexToInt(components[4])
+	lsb |= intComponents[4]
 
 	return &UUID{msb, lsb}, nil
 }
 
+// String returns a string representing this UUID.
+// Corresponds to java.util.UUID#toString
 func (uuid *UUID) String() string {
 	parts := make([]string, 5)
 	parts[0] = digits(uuid.msb>>32, 8)
@@ -62,16 +77,23 @@ func (uuid *UUID) String() string {
 	return strings.Join(parts, "-")
 }
 
+// Corresponds to java.util.UUID#digits
 func digits(val uint64, digits uint) string {
 	hi := 1 << (digits * 4)
 	result := uint64(hi) | (val & (uint64(hi) - uint64(1)))
 	return strconv.FormatInt(int64(result), 16)[1:]
 }
 
-func hexToInt(hexString string) uint64 {
-	result, err := strconv.ParseUint(hexString, 16, 0)
-	if err != nil {
-		//TODO how and where to handle this...
+func hexToInt(hexStrings []string) ([]uint64, error) {
+	ints := make([]uint64, len(hexStrings))
+
+	for i, hexString := range hexStrings {
+		result, err := strconv.ParseUint(hexString, 16, 0)
+		if err != nil {
+			return nil, errors.New("Errors converting hex string: [" + hexString + "].")
+		}
+		ints[i] = result
 	}
-	return result
+
+	return ints, nil
 }
