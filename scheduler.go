@@ -61,6 +61,16 @@ func scheduleCheck(check PublishCheck) {
 	// ticker to fire once per interval
 	tickerChan := time.NewTicker(time.Duration(check.CheckInterval) * time.Second)
 	for {
+		select {
+		case <-tickerChan.C:
+			continue
+		case <-quitChan:
+			tickerChan.Stop()
+			//if we get here, checks were unsuccessful
+			check.Metric.publishOK = false
+			check.ResultSink <- check.Metric
+			return
+		}
 		if check.DoCheck() {
 			tickerChan.Stop()
 			check.Metric.publishOK = true
@@ -73,16 +83,7 @@ func scheduleCheck(check PublishCheck) {
 			return
 		}
 		checkNr++
-		select {
-		case <-tickerChan.C:
-			continue
-		case <-quitChan:
-			tickerChan.Stop()
-			//if we get here, checks were unsuccessful
-			check.Metric.publishOK = false
-			check.ResultSink <- check.Metric
-			return
-		}
+
 	}
 
 }
