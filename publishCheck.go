@@ -100,7 +100,7 @@ func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http
 	return jsonResp["publishReference"] == pc.Metric.tid
 }
 
-func (s ContentCheck) buildURL(pm PublishMetric) string {
+func (c ContentCheck) buildURL(pm PublishMetric) string {
 	return pm.endpoint.String() + pm.UUID
 }
 

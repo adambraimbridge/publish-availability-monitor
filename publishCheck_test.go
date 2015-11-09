@@ -88,7 +88,7 @@ func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseContainsUUID_Fini
 					{
 						type: "http://www.ft.com/thing/ThingChangeType/UPDATE",
 						id: "http://www.ft.com/thing/%s",
-						apiUrl: "http://api.ft.com/content/%s"
+						apiUrl: "http://api.ft.com/content/sameuuidhere"
 					},
 				],
 			links: [
@@ -98,6 +98,7 @@ func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseContainsUUID_Fini
 					}
 			]
 		}`, testUUID)
+
 	if !notificationsCheck.isCurrentOperationFinished(buildPublishCheck(true, "tid", testUUID, "addr"), buildResponse(200, testResponse)) {
 		t.Error("Expected success")
 	}
@@ -124,6 +125,7 @@ func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseDoesNotContainUUI
 					}
 			]
 		}`)
+
 	if notificationsCheck.isCurrentOperationFinished(buildPublishCheck(true, "tid", testUUID, "addr"), buildResponse(200, testResponse)) {
 		t.Error("Expected failure")
 	}
