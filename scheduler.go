@@ -13,7 +13,7 @@ func scheduleChecks(eomFile EomFile, publishDate time.Time, tid string, isMarked
 			log.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
 			continue
 		}
-		if !validType(conf.ContentType, eomFile.Type) {
+		if !validType(conf.ContentTypes, eomFile.Type) {
 			continue
 		}
 

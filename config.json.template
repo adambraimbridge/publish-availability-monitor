@@ -10,7 +10,7 @@
 		"endpoint": "URL1",
 		"granularity": 40,
 		"alias": "S3",
-		"contentType": ["Image"]
+		"contentTypes": ["Image"]
 	}
 	],
 	"platform": "ENVIRONMENT",
