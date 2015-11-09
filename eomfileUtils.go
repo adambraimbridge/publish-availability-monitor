@@ -7,7 +7,7 @@ import (
 )
 
 func isMarkedDeleted(eomFile EomFile) bool {
-	if eomFile.Type == "Image" {
+	if eomFile.Type == "Image" || eomFile.Type == "EOM::WebContainer" {
 		return false
 	}
 	attributes := eomFile.Attributes
