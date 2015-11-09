@@ -95,8 +95,3 @@ func validType(validTypes []string, eomType string) bool {
 	}
 	return false
 }
-
-//contains eom types which exclude metrics with different contentTypes
-var exclusiveType = map[string]bool{
-	"EOM::WebContainer": true,
-}
