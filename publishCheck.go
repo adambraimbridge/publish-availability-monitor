@@ -52,6 +52,11 @@ func (pc PublishCheck) DoCheck() bool {
 	info.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
 	check := endpointSpecificChecks[pc.Metric.config.Alias]
 
+	//TODO remove this after the notification service gets rewritten
+	if pc.Metric.config.Alias == "notifications" {
+		time.Sleep(120 * time.Second)
+	}
+
 	resp, err := http.Get(check.buildURL(pc.Metric))
 	defer resp.Body.Close()
 
