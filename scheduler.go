@@ -63,7 +63,7 @@ func scheduleCheck(check PublishCheck) {
 	for {
 		select {
 		case <-tickerChan.C:
-			//continue
+			continue
 		case <-quitChan:
 			tickerChan.Stop()
 			//if we get here, checks were unsuccessful
