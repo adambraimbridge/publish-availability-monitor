@@ -17,7 +17,7 @@ class publish_availability_monitor::monitoring {
   file { '/usr/lib64/nagios/plugins/check_http_json.py':
     ensure          => 'present',
     mode            => 0755,
-    source          => 'puppet:///modules/nativerw/check_http_json.py',
+    source          => 'puppet:///modules/$module_name/check_http_json.py',
   }
 
   file { $config_file:
