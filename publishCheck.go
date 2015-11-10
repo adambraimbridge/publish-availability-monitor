@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"strings"
+	"time"
 )
 
 // PublishCheck performs an availability  check on a piece of content, at a
@@ -17,10 +20,11 @@ type PublishCheck struct {
 	ResultSink    chan PublishMetric
 }
 
-// EndpointSpecificCheck is the interface which defines a method which determines
-// the state of the operation we are currently checking.
+// EndpointSpecificCheck is the interface which defines the URL building logic and a method
+// which determines the state of the operation we are currently checking.
 type EndpointSpecificCheck interface {
-	isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool
+	buildURL(pm PublishMetric) string
+	isCurrentOperationFinished(pm PublishMetric, response *http.Response) bool
 }
 
 // ContentCheck implements the EndpointSpecificCheck interface to check operation
@@ -30,6 +34,10 @@ type ContentCheck struct{}
 // S3Check implements the EndpointSpecificCheck interface to check operation
 // status for the S3 endpoint.
 type S3Check struct{}
+
+// NotificationsCheck implements the EndpointSpecificCheck interface to build the endpoint URL and
+// to check the operation is present in the notification feed
+type NotificationsCheck struct{}
 
 // NewPublishCheck returns a PublishCheck ready to perform a check for pm.UUID, at the
 // pm.endpoint.
@@ -42,27 +50,31 @@ func NewPublishCheck(pm PublishMetric, t int, ci int, rs chan PublishMetric) *Pu
 // Returns true if the content is available at the endpoint, false otherwise.
 func (pc PublishCheck) DoCheck() bool {
 	info.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
-	resp, err := http.Get(pc.Metric.endpoint.String() + pc.Metric.UUID)
-	defer resp.Body.Close()
-
-	if err != nil {
-		return false
-	}
-
 	check := endpointSpecificChecks[pc.Metric.config.Alias]
 	if check == nil {
 		warn.Printf("No check for endpoint %s.", pc.Metric.config.Alias)
 		return false
 	}
 
-	return check.isCurrentOperationFinished(pc, resp)
+	//TODO remove this after the notification service gets rewritten
+	if pc.Metric.config.Alias == "notifications" {
+		time.Sleep(120*time.Second - time.Since(pc.Metric.publishDate))
+	}
+
+	resp, err := http.Get(check.buildURL(pc.Metric))
+	defer resp.Body.Close()
+	if err != nil {
+		return false
+	}
+
+	return check.isCurrentOperationFinished(pc.Metric, resp)
 }
 
-func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool {
+func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric, response *http.Response) bool {
 	// if the article was marked as deleted, operation is finished when the
 	// article cannot be found anymore
-	if pc.Metric.isMarkedDeleted {
-		info.Printf("[%v]Marked deleted, status code [%v]", pc.Metric.UUID, response.StatusCode)
+	if pm.isMarkedDeleted {
+		info.Printf("[%v]Marked deleted, status code [%v]", pm.UUID, response.StatusCode)
 		return response.StatusCode == 404
 	}
 
@@ -71,7 +83,7 @@ func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http
 		return false
 	}
 
-	info.Printf("[%v]Not marked as deleted, got 200, checking PR", pc.Metric.UUID)
+	info.Printf("[%v]Not marked as deleted, got 200, checking PR", pm.UUID)
 	// if status is 200, we check the publishReference
 	// this way we can handle updates
 	data, err := ioutil.ReadAll(response.Body)
@@ -88,11 +100,43 @@ func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http
 		return false
 	}
 
-	return jsonResp["publishReference"] == pc.Metric.tid
+	return jsonResp["publishReference"] == pm.tid
 }
 
-func (s S3Check) isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool {
+func (c ContentCheck) buildURL(pm PublishMetric) string {
+	return pm.endpoint.String() + pm.UUID
+}
+
+func (s S3Check) isCurrentOperationFinished(pm PublishMetric, response *http.Response) bool {
 	return response.StatusCode == 200
+}
+
+func (s S3Check) buildURL(pm PublishMetric) string {
+	return pm.endpoint.String() + pm.UUID
+}
+
+func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric, response *http.Response) bool {
+	if response.StatusCode != 200 {
+		warn.Printf("/notifications endpoint status: [%d]", response.StatusCode)
+		return false
+	}
+
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		warn.Printf("Cannot read response: [%s]", err.Error())
+		return false
+	}
+
+	return strings.Contains(string(data), pm.UUID)
+}
+
+func (n NotificationsCheck) buildURL(pm PublishMetric) string {
+	base := pm.endpoint.String()
+	queryParam := url.Values{}
+	//e.g. 2015-07-23T00:00:00.000Z
+	since := pm.publishDate.Format(time.RFC3339Nano)
+	queryParam.Add("since", since)
+	return base + "?" + queryParam.Encode()
 }
 
 //key is the endpoint alias from the config
@@ -101,4 +145,5 @@ var endpointSpecificChecks = map[string]EndpointSpecificCheck{
 	"S3":              S3Check{},
 	"enrichedContent": ContentCheck{},
 	"lists":           ContentCheck{},
+	"notifications":   NotificationsCheck{},
 }
