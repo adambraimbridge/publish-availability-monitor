@@ -9,13 +9,14 @@
     "metricConfig": [{
         "endpoint": "http://contentannotator-api/content/",
         "alias": "content",
-        "granularity": 10
+        "granularity": 10,
+        "contentTypes": ["EOM::CompoundStory"]
     },
     {
         "endpoint": "http://com.ft.imagepublish.s3.amazonaws.com/",
         "granularity": 10,
         "alias": "S3",
-        "contentType": "Image"
+        "contentTypes": ["Image"]
     }
     ],
     "platform": "ucs-test",

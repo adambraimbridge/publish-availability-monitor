@@ -18,7 +18,13 @@ func TestIsMarkedDeleted_False(t *testing.T) {
 
 func TestIsMarkedDeleted_Image(t *testing.T) {
 	if isMarkedDeleted(imageEomFile) {
-		t.Error("Expected False, the story IS NOT marked deleted")
+		t.Error("Expected False, the image IS NOT marked deleted")
+	}
+}
+
+func TestIsMarkedDeleted_WebContainer(t *testing.T) {
+	if isMarkedDeleted(webContainerEomFile) {
+		t.Error("Expected False, the webContainer IS NOT marked deleted")
 	}
 }
 
@@ -44,6 +50,14 @@ var storyMarkedDeletedFalse = EomFile{
 	content,
 	attributesMarkedDeletedFalse,
 	systemAttributes,
+}
+
+var webContainerEomFile = EomFile{
+	UUIDString,
+	"EOM::WebContainer",
+	"list bytes",
+	"fooAttributes",
+	"barSystemAttributes",
 }
 
 const UUIDString = "e28b12f7-9796-3331-b030-05082f0b8157"
