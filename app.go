@@ -3,13 +3,14 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/gorilla/mux"
 	"io"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
-
-	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 )
 
 // Interval is a simple representation of an interval of time, with a lower and
@@ -83,8 +84,22 @@ func main() {
 		return
 	}
 
+	go enableHealthchecks()
 	startAggregator()
 	readMessages()
+}
+
+func enableHealthchecks() {
+
+	healthcheck := &Healthcheck{http.Client{}, *appConfig}
+	router := mux.NewRouter()
+	router.HandleFunc("/__health", healthcheck.CheckHealth())
+	router.HandleFunc("/__gtg", healthcheck.Gtg)
+	http.Handle("/", router)
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Panicf("Couldn't set up HTTP listener: %+v\n", err)
+	}
 }
 
 func readMessages() {
