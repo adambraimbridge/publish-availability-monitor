@@ -12,14 +12,14 @@ import (
 
 func TestIsCurrentOperationFinished_S3Check_Finished(t *testing.T) {
 	s3Check := &S3Check{}
-	if !s3Check.isCurrentOperationFinished(PublishCheck{}, &http.Response{StatusCode: 200}) {
+	if !s3Check.isCurrentOperationFinished(PublishMetric{}, &http.Response{StatusCode: 200}) {
 		t.Errorf("Expected: true. Actual: false")
 	}
 }
 
 func TestIsCurrentOperationFinished_S3Check_NotFinished(t *testing.T) {
 	s3Check := &S3Check{}
-	if s3Check.isCurrentOperationFinished(PublishCheck{}, &http.Response{StatusCode: 404}) {
+	if s3Check.isCurrentOperationFinished(PublishMetric{}, &http.Response{StatusCode: 404}) {
 		t.Errorf("Expected: false. Actual: True")
 	}
 }
@@ -28,29 +28,29 @@ func TestIsCurrentOperationFinished_ContentCheck_InvalidContent(t *testing.T) {
 	contentCheck := &ContentCheck{}
 	testResponse := `{ "uuid" : "1234-1234"`
 
-	if contentCheck.isCurrentOperationFinished(buildPublishCheck(false, "tid", "uuid", "addr", time.Time{}), buildResponse(200, testResponse)) {
+	if contentCheck.isCurrentOperationFinished(PublishMetric{}, buildResponse(200, testResponse)) {
 		t.Errorf("Expected error.")
 	}
 }
 
-func TestIsCurrentOperationFinished_ContentCheck_CurrentOperation(t *testing.T) {
+func TestIsCurrentOperationFinished_ContentCheck_Finished(t *testing.T) {
 	contentCheck := &ContentCheck{}
 
 	currentTid := "tid_1234"
 	testResponse := fmt.Sprintf(`{ "uuid" : "1234-1234", "publishReference" : "%s"}`, currentTid)
 
-	if !contentCheck.isCurrentOperationFinished(buildPublishCheck(false, currentTid, "uuid", "addr", time.Time{}), buildResponse(200, testResponse)) {
+	if !contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build(), buildResponse(200, testResponse)) {
 		t.Error("Expected success.")
 	}
 }
 
-func TestIsCurrentOperationFinished_ContentCheck_NotCurrentOperation(t *testing.T) {
+func TestIsCurrentOperationFinished_ContentCheck_NotFinished(t *testing.T) {
 	contentCheck := &ContentCheck{}
 
 	currentTid := "tid_1234"
 	testResponse := `{ "uuid" : "1234-1234", "publishReference" : "tid_1235"}`
 	fmt.Println(testResponse)
-	if contentCheck.isCurrentOperationFinished(buildPublishCheck(false, currentTid, "uuid", "addr", time.Time{}), buildResponse(200, testResponse)) {
+	if contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build(), buildResponse(200, testResponse)) {
 		t.Error("Expected failure.")
 	}
 }
@@ -61,7 +61,7 @@ func TestIsCurrentOperationFinished_ContentCheck_MarkedDeleted_Finished(t *testi
 	currentTid := "tid_1234"
 	testResponse := fmt.Sprintf(`{ "uuid" : "1234-1234", "publishReference" : "%s"}`, currentTid)
 
-	if !contentCheck.isCurrentOperationFinished(buildPublishCheck(true, currentTid, "uuid", "addr", time.Time{}), buildResponse(404, testResponse)) {
+	if !contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build(), buildResponse(404, testResponse)) {
 		t.Error("Expected success.")
 	}
 }
@@ -72,7 +72,7 @@ func TestIsCurrentOperationFinished_ContentCheck_MarkedDeleted_NotFinished(t *te
 	currentTid := "tid_1234"
 	testResponse := fmt.Sprintf(`{ "uuid" : "1234-1234", "publishReference" : "%s"}`, currentTid)
 
-	if contentCheck.isCurrentOperationFinished(buildPublishCheck(true, currentTid, "uuid", "addr", time.Time{}), buildResponse(200, testResponse)) {
+	if contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build(), buildResponse(200, testResponse)) {
 		t.Error("Expected failure.")
 	}
 }
@@ -99,7 +99,7 @@ func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseContainsUUID_Fini
 			]
 		}`, testUUID)
 
-	if !notificationsCheck.isCurrentOperationFinished(buildPublishCheck(true, "tid", testUUID, "addr", time.Time{}), buildResponse(200, testResponse)) {
+	if !notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withUUID(testUUID).build(), buildResponse(200, testResponse)) {
 		t.Error("Expected success")
 	}
 }
@@ -126,7 +126,7 @@ func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseDoesNotContainUUI
 			]
 		}`)
 
-	if notificationsCheck.isCurrentOperationFinished(buildPublishCheck(true, "tid", testUUID, "addr", time.Time{}), buildResponse(200, testResponse)) {
+	if notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withUUID(testUUID).build(), buildResponse(200, testResponse)) {
 		t.Error("Expected failure")
 	}
 }
@@ -138,7 +138,7 @@ func TestBuildURL_NotificationsCheck(test *testing.T) {
 		test.Errorf("Error in test data: [%v]", err)
 	}
 
-	pm := buildPublishMetric(false, "tid", "uuid", "http://notifications-endpoint:8080/content/notifications", publishDate)
+	pm := newPublishMetricBuilder().withEndpoint("http://notifications-endpoint:8080/content/notifications").withPublishDate(publishDate).build()
 
 	builtURL, err := url.Parse(nc.buildURL(pm))
 	if err != nil {
@@ -169,12 +169,12 @@ func TestBuildURL_S3Check_And_ContentCheck(test *testing.T) {
 	}{
 		{
 			&S3Check{},
-			buildPublishMetric(false, "tid", "1234-1234", "https://s3-image-check/test/", time.Time{}),
+			newPublishMetricBuilder().withUUID("1234-1234").withEndpoint("https://s3-image-check/test/").build(),
 			"https://s3-image-check/test/1234-1234",
 		},
 		{
 			&ContentCheck{},
-			buildPublishMetric(false, "tid", "4321-1234", "http://content-check/content-read/", time.Time{}),
+			newPublishMetricBuilder().withUUID("4321-1234").withEndpoint("http://content-check/content-read/").build(),
 			"http://content-check/content-read/4321-1234",
 		},
 	}
@@ -188,21 +188,62 @@ func TestBuildURL_S3Check_And_ContentCheck(test *testing.T) {
 
 }
 
-func buildPublishMetric(isMarkedDeleted bool, tid, uuid, addr string, publishDate time.Time) PublishMetric {
-	e, _ := url.Parse(addr)
+type publishMetricBuilder interface {
+	withUUID(string) publishMetricBuilder
+	withEndpoint(string) publishMetricBuilder
+	withTID(string) publishMetricBuilder
+	withMarkedDeleted(bool) publishMetricBuilder
+	withPublishDate(time.Time) publishMetricBuilder
+	build() PublishMetric
+}
+
+//PublishMetricBuilder implementation
+type pmBuilder struct {
+	UUID          string
+	endpoint      url.URL
+	tid           string
+	markedDeleted bool
+	publishDate   time.Time
+}
+
+func (b *pmBuilder) withUUID(uuid string) publishMetricBuilder {
+	b.UUID = uuid
+	return b
+}
+
+func (b *pmBuilder) withEndpoint(endpoint string) publishMetricBuilder {
+	e, _ := url.Parse(endpoint)
+	b.endpoint = *e
+	return b
+}
+
+func (b *pmBuilder) withTID(tid string) publishMetricBuilder {
+	b.tid = tid
+	return b
+}
+
+func (b *pmBuilder) withMarkedDeleted(markedDeleted bool) publishMetricBuilder {
+	b.markedDeleted = markedDeleted
+	return b
+}
+
+func (b *pmBuilder) withPublishDate(publishDate time.Time) publishMetricBuilder {
+	b.publishDate = publishDate
+	return b
+}
+
+func (b *pmBuilder) build() PublishMetric {
 	return PublishMetric{
-		UUID:            uuid,
-		endpoint:        *e,
-		tid:             tid,
-		isMarkedDeleted: isMarkedDeleted,
-		publishDate:     publishDate,
+		UUID:            b.UUID,
+		endpoint:        b.endpoint,
+		tid:             b.tid,
+		isMarkedDeleted: b.markedDeleted,
+		publishDate:     b.publishDate,
 	}
 }
 
-func buildPublishCheck(isMarkedDeleted bool, tid, uuid, endpoint string, publishDate time.Time) PublishCheck {
-	return PublishCheck{
-		Metric: buildPublishMetric(isMarkedDeleted, tid, uuid, endpoint, publishDate),
-	}
+func newPublishMetricBuilder() publishMetricBuilder {
+	return &pmBuilder{}
 }
 
 func buildResponse(statusCode int, content string) *http.Response {

@@ -24,7 +24,7 @@ type PublishCheck struct {
 // which determines the state of the operation we are currently checking.
 type EndpointSpecificCheck interface {
 	buildURL(pm PublishMetric) string
-	isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool
+	isCurrentOperationFinished(pm PublishMetric, response *http.Response) bool
 }
 
 // ContentCheck implements the EndpointSpecificCheck interface to check operation
@@ -69,14 +69,14 @@ func (pc PublishCheck) DoCheck() bool {
 		return false
 	}
 
-	return check.isCurrentOperationFinished(pc, resp)
+	return check.isCurrentOperationFinished(pc.Metric, resp)
 }
 
-func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool {
+func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric, response *http.Response) bool {
 	// if the article was marked as deleted, operation is finished when the
 	// article cannot be found anymore
-	if pc.Metric.isMarkedDeleted {
-		info.Printf("[%v]Marked deleted, status code [%v]", pc.Metric.UUID, response.StatusCode)
+	if pm.isMarkedDeleted {
+		info.Printf("[%v]Marked deleted, status code [%v]", pm.UUID, response.StatusCode)
 		return response.StatusCode == 404
 	}
 
@@ -85,7 +85,7 @@ func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http
 		return false
 	}
 
-	info.Printf("[%v]Not marked as deleted, got 200, checking PR", pc.Metric.UUID)
+	info.Printf("[%v]Not marked as deleted, got 200, checking PR", pm.UUID)
 	// if status is 200, we check the publishReference
 	// this way we can handle updates
 	data, err := ioutil.ReadAll(response.Body)
@@ -102,14 +102,14 @@ func (c ContentCheck) isCurrentOperationFinished(pc PublishCheck, response *http
 		return false
 	}
 
-	return jsonResp["publishReference"] == pc.Metric.tid
+	return jsonResp["publishReference"] == pm.tid
 }
 
 func (c ContentCheck) buildURL(pm PublishMetric) string {
 	return pm.endpoint.String() + pm.UUID
 }
 
-func (s S3Check) isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool {
+func (s S3Check) isCurrentOperationFinished(pm PublishMetric, response *http.Response) bool {
 	return response.StatusCode == 200
 }
 
@@ -117,7 +117,7 @@ func (s S3Check) buildURL(pm PublishMetric) string {
 	return pm.endpoint.String() + pm.UUID
 }
 
-func (n NotificationsCheck) isCurrentOperationFinished(pc PublishCheck, response *http.Response) bool {
+func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric, response *http.Response) bool {
 	if response.StatusCode != 200 {
 		warn.Printf("/notifications endpoint status: [%d]", response.StatusCode)
 		return false
@@ -129,7 +129,7 @@ func (n NotificationsCheck) isCurrentOperationFinished(pc PublishCheck, response
 		return false
 	}
 
-	return strings.Contains(string(data), pc.Metric.UUID)
+	return strings.Contains(string(data), pm.UUID)
 }
 
 func (n NotificationsCheck) buildURL(pm PublishMetric) string {
