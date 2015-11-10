@@ -152,7 +152,39 @@ func handleMessage(msg consumer.Message) error {
 	}
 
 	scheduleChecks(eomFile, publishDate, tid, isMarkedDeleted(eomFile))
+
+	// for images we need to check their corresponding image sets
+	// the image sets don't have messages of their own so we need to create one
+	if eomFile.Type == "Image" {
+		imageSetEomFile := spawnImageSet(eomFile)
+		if imageSetEomFile.UUID != "" {
+			scheduleChecks(imageSetEomFile, publishDate, tid, false)
+		}
+	}
+
 	return nil
+}
+
+func spawnImageSet(imageEomFile EomFile) EomFile {
+	imageSetEomFile := imageEomFile
+	imageSetEomFile.Type = "ImageSet"
+
+	imageUUID, err := NewUUIDFromString(imageEomFile.UUID)
+	if err != nil {
+		warn.Printf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
+			imageEomFile.UUID, err.Error())
+		return EomFile{}
+	}
+
+	imageSetUUID, err := GenerateImageSetUUID(*imageUUID)
+	if err != nil {
+		warn.Printf("Cannot generate image set UUID: [%v], skipping image set check",
+			err.Error())
+		return EomFile{}
+	}
+
+	imageSetEomFile.UUID = imageSetUUID.String()
+	return imageSetEomFile
 }
 
 func initLogs(infoHandle io.Writer, warnHandle io.Writer, panicHandle io.Writer) {
