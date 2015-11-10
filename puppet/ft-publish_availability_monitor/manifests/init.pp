@@ -7,6 +7,7 @@ class publish_availability_monitor {
   $config_file = "/etc/$binary_name.json"
 
   class { 'common_pp_up': }
+  class { "${module_name}::monitoring": }
   class { "${module_name}::supervisord": }
 
   user { $binary_name:
