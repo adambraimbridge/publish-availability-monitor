@@ -51,21 +51,19 @@ func NewPublishCheck(pm PublishMetric, t int, ci int, rs chan PublishMetric) *Pu
 func (pc PublishCheck) DoCheck() bool {
 	info.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
 	check := endpointSpecificChecks[pc.Metric.config.Alias]
+	if check == nil {
+		warn.Printf("No check for endpoint %s.", pc.Metric.config.Alias)
+		return false
+	}
 
 	//TODO remove this after the notification service gets rewritten
 	if pc.Metric.config.Alias == "notifications" {
-		time.Sleep((120 - time.Since(pc.Metric.publishDate)) * time.Second)
+		time.Sleep(120*time.Second - time.Since(pc.Metric.publishDate))
 	}
 
 	resp, err := http.Get(check.buildURL(pc.Metric))
 	defer resp.Body.Close()
-
 	if err != nil {
-		return false
-	}
-
-	if check == nil {
-		warn.Printf("No check for endpoint %s.", pc.Metric.config.Alias)
 		return false
 	}
 
@@ -147,4 +145,5 @@ var endpointSpecificChecks = map[string]EndpointSpecificCheck{
 	"S3":              S3Check{},
 	"enrichedContent": ContentCheck{},
 	"lists":           ContentCheck{},
+	"notifications":   NotificationsCheck{},
 }
