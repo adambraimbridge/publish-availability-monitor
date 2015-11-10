@@ -54,7 +54,7 @@ func (pc PublishCheck) DoCheck() bool {
 
 	//TODO remove this after the notification service gets rewritten
 	if pc.Metric.config.Alias == "notifications" {
-		time.Sleep(120 * time.Second)
+		time.Sleep((120 - time.Since(pc.Metric.publishDate)) * time.Second)
 	}
 
 	resp, err := http.Get(check.buildURL(pc.Metric))
@@ -135,8 +135,8 @@ func (n NotificationsCheck) isCurrentOperationFinished(pc PublishCheck, response
 func (n NotificationsCheck) buildURL(pm PublishMetric) string {
 	base := pm.endpoint.String()
 	queryParam := url.Values{}
-	//e.g. since=2015-07-23T00:00:00.000Z
-	since := time.Now().Add(-2 * time.Minute).Format(time.RFC3339)
+	//e.g. 2015-07-23T00:00:00.000Z
+	since := pm.publishDate.Format(time.RFC3339Nano)
 	queryParam.Add("since", since)
 	return base + "?" + queryParam.Encode()
 }
