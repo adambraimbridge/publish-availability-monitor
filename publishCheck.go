@@ -61,7 +61,10 @@ func (pc PublishCheck) DoCheck() bool {
 		time.Sleep(120*time.Second - time.Since(pc.Metric.publishDate))
 	}
 
-	resp, err := http.Get(check.buildURL(pc.Metric))
+	url := check.buildURL(pc.Metric)
+	// logging URL to catch a case where the URL is possibly invalid
+	info.Printf("Generated URL: [%v]", url)
+	resp, err := http.Get(url)
 	defer resp.Body.Close()
 	if err != nil {
 		return false
@@ -108,7 +111,23 @@ func (c ContentCheck) buildURL(pm PublishMetric) string {
 }
 
 func (s S3Check) isCurrentOperationFinished(pm PublishMetric, response *http.Response) bool {
-	return response.StatusCode == 200
+	if response.StatusCode != 200 {
+		return false
+	}
+
+	// we have to check if the body is null because of an issue where the image is
+	// uploaded to S3, but body is empty - in this case, we get 200 back but empty body
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		warn.Printf("Cannot read response: [%s]", err.Error())
+		return false
+	}
+
+	if len(data) == 0 {
+		warn.Printf("Image [%v] body is empty!", pm.UUID)
+		return false
+	}
+	return true
 }
 
 func (s S3Check) buildURL(pm PublishMetric) string {
