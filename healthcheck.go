@@ -4,21 +4,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Financial-Times/go-fthealth"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/Financial-Times/go-fthealth"
 )
 
+// Healthcheck offers methods to measure application health.
 type Healthcheck struct {
 	client http.Client
 	config AppConfig
 }
 
-func (h *Healthcheck) CheckHealth() func(w http.ResponseWriter, r *http.Request) {
+func (h *Healthcheck) checkHealth() func(w http.ResponseWriter, r *http.Request) {
 	return fthealth.HandlerParallel("Dependent services healthcheck", "Checks if all the dependent services are reachable and healthy.", h.messageQueueProxyReachable())
 }
 
-func (h *Healthcheck) Gtg(writer http.ResponseWriter, req *http.Request) {
+func (h *Healthcheck) gtg(writer http.ResponseWriter, req *http.Request) {
 	healthChecks := []func() error{h.checkAggregateMessageQueueProxiesReachable}
 
 	for _, hCheck := range healthChecks {
@@ -49,9 +51,8 @@ func (h *Healthcheck) checkAggregateMessageQueueProxiesReachable() error {
 		error := h.checkMessageQueueProxyReachable(addresses[i])
 		if error == nil {
 			return nil
-		} else {
-			errMsg = errMsg + fmt.Sprintf("For %s there is an error %v \n", addresses[i], error.Error())
 		}
+		errMsg = errMsg + fmt.Sprintf("For %s there is an error %v \n", addresses[i], error.Error())
 	}
 
 	return errors.New(errMsg)
@@ -95,7 +96,7 @@ func checkIfTopicIsPresent(body []byte, searchedTopic string) error {
 
 	err := json.Unmarshal(body, &topics)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error occured and topic could not be found. %v", err.Error()))
+		return fmt.Errorf("Error occured and topic could not be found. %v", err.Error())
 	}
 
 	for _, topic := range topics {

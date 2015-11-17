@@ -3,14 +3,15 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/gorilla/mux"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/gorilla/mux"
 )
 
 // Interval is a simple representation of an interval of time, with a lower and
@@ -93,8 +94,8 @@ func enableHealthchecks() {
 
 	healthcheck := &Healthcheck{http.Client{}, *appConfig}
 	router := mux.NewRouter()
-	router.HandleFunc("/__health", healthcheck.CheckHealth())
-	router.HandleFunc("/__gtg", healthcheck.Gtg)
+	router.HandleFunc("/__health", healthcheck.checkHealth())
+	router.HandleFunc("/__gtg", healthcheck.gtg)
 	http.Handle("/", router)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
