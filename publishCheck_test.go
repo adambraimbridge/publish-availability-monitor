@@ -12,14 +12,21 @@ import (
 
 func TestIsCurrentOperationFinished_S3Check_Finished(t *testing.T) {
 	s3Check := &S3Check{}
-	if !s3Check.isCurrentOperationFinished(PublishMetric{}, &http.Response{StatusCode: 200}) {
+	if !s3Check.isCurrentOperationFinished(PublishMetric{}, buildResponse(200, "imagebytes")) {
 		t.Errorf("Expected: true. Actual: false")
+	}
+}
+
+func TestIsCurrentOperationFinished_S3Check_Empty(t *testing.T) {
+	s3Check := &S3Check{}
+	if s3Check.isCurrentOperationFinished(PublishMetric{}, buildResponse(200, "")) {
+		t.Errorf("Expected: false. Actual: true")
 	}
 }
 
 func TestIsCurrentOperationFinished_S3Check_NotFinished(t *testing.T) {
 	s3Check := &S3Check{}
-	if s3Check.isCurrentOperationFinished(PublishMetric{}, &http.Response{StatusCode: 404}) {
+	if s3Check.isCurrentOperationFinished(PublishMetric{}, buildResponse(404, "")) {
 		t.Errorf("Expected: false. Actual: True")
 	}
 }
