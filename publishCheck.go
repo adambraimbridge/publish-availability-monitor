@@ -62,13 +62,12 @@ func (pc PublishCheck) DoCheck() bool {
 	}
 
 	url := check.buildURL(pc.Metric)
-	// logging URL to catch a case where the URL is possibly invalid
-	info.Printf("Generated URL: [%v]", url)
 	resp, err := http.Get(url)
-	defer resp.Body.Close()
 	if err != nil {
+		warn.Printf("Error calling URL: [%v] : [%v]", url, err.Error())
 		return false
 	}
+	defer resp.Body.Close()
 
 	return check.isCurrentOperationFinished(pc.Metric, resp)
 }
