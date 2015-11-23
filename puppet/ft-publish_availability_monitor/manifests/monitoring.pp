@@ -44,7 +44,7 @@ class publish_availability_monitor::monitoring {
     check_interval      => 1,
     action_url          => $action_url,
     notes_url           => $action_url,
-    notes               => "",
+    notes               => "Check that the message queue consumer is reachable.",
     service_description => "Check that the message queue consumer is reachable.",
     display_name        => "${hostname}_check_http_json",
     tag                 => $content_platform_nagios::client::tags_to_apply,
