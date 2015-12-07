@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -54,11 +53,6 @@ func (pc PublishCheck) DoCheck() bool {
 	if check == nil {
 		warn.Printf("No check for endpoint %s.", pc.Metric.config.Alias)
 		return false
-	}
-
-	//TODO remove this after the notification service gets rewritten
-	if pc.Metric.config.Alias == "notifications" {
-		time.Sleep(120*time.Second - time.Since(pc.Metric.publishDate))
 	}
 
 	url := check.buildURL(pc.Metric)
@@ -133,19 +127,34 @@ func (s S3Check) buildURL(pm PublishMetric) string {
 	return pm.endpoint.String() + pm.UUID
 }
 
+//ignore unused fields (e.g. requestUrl, links)
+type notificationsContent struct {
+	Notifications []notifications
+}
+
+//ignore unused fields (e.g. type, id, apiUrl)
+type notifications struct {
+	PublishReference string
+}
+
 func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric, response *http.Response) bool {
 	if response.StatusCode != 200 {
 		warn.Printf("/notifications endpoint status: [%d]", response.StatusCode)
 		return false
 	}
 
-	data, err := ioutil.ReadAll(response.Body)
+	var notifications notificationsContent
+	err := json.NewDecoder(response.Body).Decode(&notifications)
 	if err != nil {
-		warn.Printf("Cannot read response: [%s]", err.Error())
+		warn.Printf("Cannot decode json response: [%s]", err.Error())
 		return false
 	}
-
-	return strings.Contains(string(data), pm.UUID)
+	for _, n := range notifications.Notifications {
+		if n.PublishReference == pm.tid {
+			return true
+		}
+	}
+	return false
 }
 
 func (n NotificationsCheck) buildURL(pm PublishMetric) string {

@@ -84,56 +84,56 @@ func TestIsCurrentOperationFinished_ContentCheck_MarkedDeleted_NotFinished(t *te
 	}
 }
 
-func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseContainsUUID_Finished(t *testing.T) {
+func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseContainsTID_Finished(t *testing.T) {
 	notificationsCheck := &NotificationsCheck{}
 
-	testUUID := "1234-4321"
+	testTID := "tid_0123wxyz"
 	testResponse := fmt.Sprintf(
 		`{ 
-			requestUrl: "http://api.ft.com/content/notifications?since=2015-11-09T00:00:00.000Z",
-			notifications: [
+			"requestUrl": "http://api.ft.com/content/notifications?since=2015-11-09T00:00:00.000Z",
+			"notifications": [
 					{
-						type: "http://www.ft.com/thing/ThingChangeType/UPDATE",
-						id: "http://www.ft.com/thing/%s",
-						apiUrl: "http://api.ft.com/content/sameuuidhere"
-					},
+						"type": "http://www.ft.com/thing/ThingChangeType/UPDATE",
+						"id": "http://www.ft.com/thing/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"apiUrl": "http://api.ft.com/content/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"publishReference": "%s"
+					}
 				],
-			links: [
+			"links": [
 					{
-						href: "http://api.ft.com/content/notifications?since=2015-11-09T14:09:08.705Z",
-						rel: "next"
+						"href": "http://api.ft.com/content/notifications?since=2015-11-09T14:09:08.705Z",
+						"rel": "next"
 					}
 			]
-		}`, testUUID)
+		}`, testTID)
 
-	if !notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withUUID(testUUID).build(), buildResponse(200, testResponse)) {
+	if !notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(testTID).build(), buildResponse(200, testResponse)) {
 		t.Error("Expected success")
 	}
 }
 
-func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseDoesNotContainUUID_NotFinished(t *testing.T) {
+func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseDoesNotContainTID_NotFinished(t *testing.T) {
 	notificationsCheck := &NotificationsCheck{}
 
-	testUUID := "1234-4321"
-	testResponse := fmt.Sprint(
-		`{ 
-			requestUrl: "http://api.ft.com/content/notifications?since=2015-11-09T00:00:00.000Z",
-			notifications: [
+	testResponse := `{ 
+			"requestUrl": "http://api.ft.com/content/notifications?since=2015-11-09T00:00:00.000Z",
+			"notifications": [
 					{
-						type: "http://www.ft.com/thing/ThingChangeType/UPDATE",
-						id: "http://www.ft.com/thing/1cb14245-5185-4ed5-9188-4d2a86085599",
-						apiUrl: "http://api.ft.com/content/1cb14245-5185-4ed5-9188-4d2a86085599"
-					},
+						"type": "http://www.ft.com/thing/ThingChangeType/UPDATE",
+						"id": "http://www.ft.com/thing/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"apiUrl": "http://api.ft.com/content/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"publishReference": "tid_0123wxyz"
+					}
 				],
-			links: [
+			"links": [
 					{
-						href: "http://api.ft.com/content/notifications?since=2015-11-09T14:09:08.705Z",
-						rel: "next"
+						"href": "http://api.ft.com/content/notifications?since=2015-11-09T14:09:08.705Z",
+						"rel": "next"
 					}
 			]
-		}`)
+		}`
 
-	if notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withUUID(testUUID).build(), buildResponse(200, testResponse)) {
+	if notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withUUID("tid_0123wxyZ").build(), buildResponse(200, testResponse)) {
 		t.Error("Expected failure")
 	}
 }
