@@ -50,7 +50,7 @@ type httpCaller interface {
 // Default implementation of httpCaller
 type defaultHTTPCaller struct{}
 
-// Abstracts http GET calls using the default http client
+// Performs http GET calls using the default http client
 func (c defaultHTTPCaller) doCall(url string) (resp *http.Response, err error) {
 	return http.Get(url)
 }
@@ -77,7 +77,7 @@ func init() {
 }
 
 // DoCheck performs an availability check on a piece of content at a certain
-// endpoint, applying endoint-specific processing.
+// endpoint, applying endpoint-specific processing.
 // Returns true if the content is available at the endpoint, false otherwise.
 func (pc PublishCheck) DoCheck() bool {
 	info.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
@@ -159,44 +159,41 @@ func (s S3Check) isCurrentOperationFinished(pm PublishMetric) bool {
 	return true
 }
 
-//ignore unused field (e.g. requestUrl)
+// ignore unused field (e.g. requestUrl)
 type notificationsContent struct {
 	Notifications []notifications
 	Links         []link
 }
 
-//ignore unused fields (e.g. type, id, apiUrl)
+// ignore unused fields (e.g. type, id, apiUrl)
 type notifications struct {
 	PublishReference string
 }
 
-//ignore unused field (e.g. rel)
+// ignore unused field (e.g. rel)
 type link struct {
 	Href string
 }
 
 func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric) bool {
 	notificationsURL := buildNotificationsURL(pm)
+	var err error
 	for {
 		finished, nextNotificationsURL := n.checkBatchOfNotifications(notificationsURL, pm.tid)
 		if finished || nextNotificationsURL == "" {
 			return finished
 		}
 		//replace nextNotificationsURL host, as by default it's the API gateway host
-		currentNotificationsPageURLValue, _ := url.Parse(notificationsURL) //pretty sure there is no error here
-		nextNotificationsPageURLValue, err := url.Parse(nextNotificationsURL)
+		notificationsURL, err = adjustNextNotificationsURL(notificationsURL, nextNotificationsURL)
 		if err != nil {
-			warn.Printf("Cannot parse next notifications page URL: [%s].", nextNotificationsURL)
 			return false
 		}
-		nextNotificationsPageURLValue.Host = currentNotificationsPageURLValue.Host
-		notificationsURL = nextNotificationsPageURLValue.String()
 	}
 }
 
-//Check the notification content with the provided publishReference from the batch of notifications from the provided URL.
-//Returns the status of the check and the URL for the next batch of notifications (if it is appropriate).
-//Note: the next notifications URL has the host set to the API gateway host, as returned by the notifications service.
+// Check the notification content with the provided publishReference from the batch of notifications from the provided URL.
+// Returns the status of the check and the URL for the next batch of notifications (if it is applicable).
+// Note: the next notifications URL has the host set to the API gateway host, as returned by the notifications service.
 func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL, publishReference string) (bool, string) {
 	resp, err := n.httpCaller.doCall(notificationsURL)
 	if err != nil {
@@ -235,4 +232,20 @@ func buildNotificationsURL(pm PublishMetric) string {
 	since := pm.publishDate.Format(time.RFC3339Nano)
 	queryParam.Add("since", since)
 	return base + "?" + queryParam.Encode()
+}
+
+// Replace next URL host with current URL's host
+func adjustNextNotificationsURL(current, next string) (string, error) {
+	currentNotificationsURLValue, err := url.Parse(current)
+	if err != nil {
+		warn.Printf("Cannot parse current notifications URL: [%s].", current)
+		return "", err
+	}
+	nextNotificationsURLValue, err := url.Parse(next)
+	if err != nil {
+		warn.Printf("Cannot parse next notifications URL: [%s].", next)
+		return "", err
+	}
+	nextNotificationsURLValue.Host = currentNotificationsURLValue.Host
+	return nextNotificationsURLValue.String(), nil
 }

@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-
 func TestCheckBatchOfNotifications_ResponseBatchOfNotificationsIsEmpty_NotFinished(t *testing.T) {
 	testResponse := `{
 			"requestUrl": "http://api.ft.com/content/notifications?since=2015-11-09T14:09:08.705Z",
@@ -186,6 +185,22 @@ func TestIsCurrentOperationFinished_FirstBatchOfNotificationsDoesNotContainTIDBu
 	}
 
 	if !notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTID).build()) {
+		t.Error("Expected success")
+	}
+}
+
+func TestAdjustNextNotificationsURL_CurrentHostAndPortDiffers_Success(t *testing.T) {
+	current := "http://ftapp14927-lvpr-uk-int:8080/content/notifications?since=2015-12-15T00:00:00.000Z"
+	next := "http://int.api.ft.com/content/notifications?since=2015-12-15T11:53:17.508Z"
+
+	expected := "http://ftapp14927-lvpr-uk-int:8080/content/notifications?since=2015-12-15T11:53:17.508Z"
+
+	actual, err := adjustNextNotificationsURL(current, next)
+	if err != nil {
+		t.Errorf("Expected success. Found error: [%v]", err)
+	}
+
+	if actual != expected {
 		t.Error("Expected success")
 	}
 }
