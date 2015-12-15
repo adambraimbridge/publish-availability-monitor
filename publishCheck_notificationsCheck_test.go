@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"testing"
+	"time"
 )
 
 func TestCheckBatchOfNotifications_ResponseBatchOfNotificationsIsEmpty_NotFinished(t *testing.T) {
@@ -186,6 +188,24 @@ func TestIsCurrentOperationFinished_FirstBatchOfNotificationsDoesNotContainTIDBu
 
 	if !notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTID).build()) {
 		t.Error("Expected success")
+	}
+}
+
+func TestNotificationsBuildURL_Success(test *testing.T) {
+	publishDate, err := time.Parse(time.RFC3339Nano, "2015-10-21T14:22:06.271Z")
+	if err != nil {
+		test.Errorf("Test data error: [%v]", err)
+	}
+	pm := newPublishMetricBuilder().withEndpoint("http://notifications-endpoint:8080/content/notifications").withPublishDate(publishDate).build()
+
+	expected := "http://notifications-endpoint:8080/content/notifications?since=2015-10-21T14:22:06.271Z"
+
+	actual, err := url.QueryUnescape(buildNotificationsURL(pm))
+	if err != nil {
+		test.Errorf("Expected success. Found error: [%v]", err)
+	}
+	if actual != expected {
+		test.Errorf("Expected success.\nActual: [%s]\nExpected: [%s]", actual, expected)
 	}
 }
 

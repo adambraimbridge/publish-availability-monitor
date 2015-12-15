@@ -96,35 +96,6 @@ func TestIsCurrentOperationFinished_ContentCheck_MarkedDeleted_NotFinished(t *te
 	}
 }
 
-func TestNotificationsBuildURL_SinceQueryParamsCorrectlyParsed(test *testing.T) {
-	publishDate, err := time.Parse(time.RFC3339Nano, "2015-10-21T14:22:06.270Z")
-	if err != nil {
-		test.Errorf("Error in test data: [%v]", err)
-	}
-
-	pm := newPublishMetricBuilder().withEndpoint("http://notifications-endpoint:8080/content/notifications").withPublishDate(publishDate).build()
-
-	builtURL, err := url.Parse(buildNotificationsURL(pm))
-	if err != nil {
-		test.Errorf("Cannot parse built URL: [%s].", err.Error())
-	}
-
-	queryParams := builtURL.Query()
-	since := queryParams.Get("since")
-	if since == "" {
-		test.Errorf("Missing 'since' query parameter.")
-	}
-
-	t, err := time.Parse(time.RFC3339Nano, since)
-	if err != nil {
-		test.Errorf("Cannot parse param value: [%s]. Error: [%s]", since, err.Error())
-	}
-
-	if !t.Equal(publishDate) {
-		test.Errorf("Expected timestamp: [%v]. Actual: [%v].", publishDate, t)
-	}
-}
-
 type publishMetricBuilder interface {
 	withUUID(string) publishMetricBuilder
 	withEndpoint(string) publishMetricBuilder
