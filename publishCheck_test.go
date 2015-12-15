@@ -11,85 +11,148 @@ import (
 )
 
 func TestIsCurrentOperationFinished_S3Check_Finished(t *testing.T) {
-	s3Check := &S3Check{}
-	if !s3Check.isCurrentOperationFinished(PublishMetric{}, buildResponse(200, "imagebytes")) {
+	s3Check := &S3Check{
+		mockHTTPCaller(buildResponse(200, "imagebytes")),
+	}
+	if !s3Check.isCurrentOperationFinished(PublishMetric{}) {
 		t.Errorf("Expected: true. Actual: false")
 	}
 }
 
 func TestIsCurrentOperationFinished_S3Check_Empty(t *testing.T) {
-	s3Check := &S3Check{}
-	if s3Check.isCurrentOperationFinished(PublishMetric{}, buildResponse(200, "")) {
+	s3Check := &S3Check{
+		mockHTTPCaller(buildResponse(200, "")),
+	}
+	if s3Check.isCurrentOperationFinished(PublishMetric{}) {
 		t.Errorf("Expected: false. Actual: true")
 	}
 }
 
 func TestIsCurrentOperationFinished_S3Check_NotFinished(t *testing.T) {
-	s3Check := &S3Check{}
-	if s3Check.isCurrentOperationFinished(PublishMetric{}, buildResponse(404, "")) {
+	s3Check := &S3Check{
+		mockHTTPCaller(buildResponse(404, "")),
+	}
+	if s3Check.isCurrentOperationFinished(PublishMetric{}) {
 		t.Errorf("Expected: false. Actual: True")
 	}
 }
 
 func TestIsCurrentOperationFinished_ContentCheck_InvalidContent(t *testing.T) {
-	contentCheck := &ContentCheck{}
 	testResponse := `{ "uuid" : "1234-1234"`
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
 
-	if contentCheck.isCurrentOperationFinished(PublishMetric{}, buildResponse(200, testResponse)) {
+	if contentCheck.isCurrentOperationFinished(PublishMetric{}) {
 		t.Errorf("Expected error.")
 	}
 }
 
 func TestIsCurrentOperationFinished_ContentCheck_Finished(t *testing.T) {
-	contentCheck := &ContentCheck{}
-
 	currentTid := "tid_1234"
 	testResponse := fmt.Sprintf(`{ "uuid" : "1234-1234", "publishReference" : "%s"}`, currentTid)
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
 
-	if !contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build(), buildResponse(200, testResponse)) {
+	if !contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build()) {
 		t.Error("Expected success.")
 	}
 }
 
 func TestIsCurrentOperationFinished_ContentCheck_NotFinished(t *testing.T) {
-	contentCheck := &ContentCheck{}
-
 	currentTid := "tid_1234"
 	testResponse := `{ "uuid" : "1234-1234", "publishReference" : "tid_1235"}`
-	fmt.Println(testResponse)
-	if contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build(), buildResponse(200, testResponse)) {
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
+
+	if contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build()) {
 		t.Error("Expected failure.")
 	}
 }
 
 func TestIsCurrentOperationFinished_ContentCheck_MarkedDeleted_Finished(t *testing.T) {
-	contentCheck := &ContentCheck{}
-
 	currentTid := "tid_1234"
 	testResponse := fmt.Sprintf(`{ "uuid" : "1234-1234", "publishReference" : "%s"}`, currentTid)
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(404, testResponse)),
+	}
 
-	if !contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build(), buildResponse(404, testResponse)) {
+	if !contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build()) {
 		t.Error("Expected success.")
 	}
 }
 
 func TestIsCurrentOperationFinished_ContentCheck_MarkedDeleted_NotFinished(t *testing.T) {
-	contentCheck := &ContentCheck{}
-
 	currentTid := "tid_1234"
 	testResponse := fmt.Sprintf(`{ "uuid" : "1234-1234", "publishReference" : "%s"}`, currentTid)
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
 
-	if contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build(), buildResponse(200, testResponse)) {
+	if contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build()) {
 		t.Error("Expected failure.")
 	}
 }
 
-func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseContainsTID_Finished(t *testing.T) {
-	notificationsCheck := &NotificationsCheck{}
+func TestDoSingleNotificationsPageCheck_ResponseDoesNotContainTID_NotFinished(t *testing.T) {
+	testResponse := `{
+			"requestUrl": "http://api.ft.com/content/notifications?since=2015-11-09T00:00:00.000Z",
+			"notifications": [
+					{
+						"type": "http://www.ft.com/thing/ThingChangeType/UPDATE",
+						"id": "http://www.ft.com/thing/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"apiUrl": "http://api.ft.com/content/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"publishReference": "tid_0123wxyz"
+					}
+				],
+			"links": [
+					{
+						"href": "http://api.ft.com/content/notifications?since=2015-11-09T14:09:08.705Z",
+						"rel": "next"
+					}
+			]
+		}`
+	notificationsCheck := &NotificationsCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
+	if finished, _ := notificationsCheck.checkBatchOfNotifications("dummy-url", "tid_0123wxyZ"); finished {
+		t.Error("Expected failure")
+	}
+}
 
+func TestDoSingleNotificationsPageCheck_ResponseDoesContainTID_Finished(t *testing.T) {
+	currentTID := "tid_0123wxyZ"
+	testResponse := fmt.Sprintf(`{
+			"requestUrl": "http://api.ft.com/content/notifications?since=2015-11-09T00:00:00.000Z",
+			"notifications": [
+					{
+						"type": "http://www.ft.com/thing/ThingChangeType/UPDATE",
+						"id": "http://www.ft.com/thing/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"apiUrl": "http://api.ft.com/content/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"publishReference": "%s"
+					}
+				],
+			"links": [
+					{
+						"href": "http://api.ft.com/content/notifications?since=2015-11-09T14:09:08.705Z",
+						"rel": "next"
+					}
+			]
+		}`, currentTID)
+	notificationsCheck := &NotificationsCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
+	if finished, _ := notificationsCheck.checkBatchOfNotifications("dummy-url", currentTID); !finished {
+		t.Error("Expected success")
+	}
+}
+
+func TestIsCurrentOperationFinished_NotificationsCheck_FirstNotificationsPageContainsTID_Finished(t *testing.T) {
 	testTID := "tid_0123wxyz"
 	testResponse := fmt.Sprintf(
-		`{ 
+		`{
 			"requestUrl": "http://api.ft.com/content/notifications?since=2015-11-09T00:00:00.000Z",
 			"notifications": [
 					{
@@ -107,15 +170,17 @@ func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseContainsTID_Finis
 			]
 		}`, testTID)
 
-	if !notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(testTID).build(), buildResponse(200, testResponse)) {
+	notificationsCheck := &NotificationsCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
+
+	if !notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(testTID).build()) {
 		t.Error("Expected success")
 	}
 }
 
-func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseDoesNotContainTID_NotFinished(t *testing.T) {
-	notificationsCheck := &NotificationsCheck{}
-
-	testResponse := `{ 
+func TestIsCurrentOperationFinished_NotificationsCheck_FirstNotificationsPageDoesNotContainTIDSecondIsEmptyList_NotFinished(t *testing.T) {
+	testResponse1 := `{
 			"requestUrl": "http://api.ft.com/content/notifications?since=2015-11-09T00:00:00.000Z",
 			"notifications": [
 					{
@@ -132,14 +197,71 @@ func TestIsCurrentOperaitonFinished_NotificationsCheck_ResponseDoesNotContainTID
 					}
 			]
 		}`
-
-	if notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withUUID("tid_0123wxyZ").build(), buildResponse(200, testResponse)) {
+	testResponse2 := `{
+			"requestUrl": "http://api.ft.com/content/notifications?since=2015-11-09T14:09:08.705Z",
+			"notifications": [],
+			"links": [
+					{
+						"href": "http://api.ft.com/content/notifications?since=2015-11-09T14:09:08.705Z",
+						"rel": "next"
+					}
+			]
+		}`
+	notificationsCheck := &NotificationsCheck{
+		mockHTTPCaller(buildResponse(200, testResponse1), buildResponse(200, testResponse2)),
+	}
+	if notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID("tid_0123wxyZ").build()) {
 		t.Error("Expected failure")
 	}
 }
-func TestBuildURL_NotificationsCheck(test *testing.T) {
-	nc := &NotificationsCheck{}
 
+func TestIsCurrentOperationFinished_NotificationsCheck_FirstPageDoesNotContainTIDButSecondDoes_Finished(t *testing.T) {
+	currentTID := "tid_0123wxyZ"
+	testResponse1 := `{
+			"requestUrl": "http://api.ft.com/content/notifications?since=2015-11-09T00:00:00.000Z",
+			"notifications": [
+					{
+						"type": "http://www.ft.com/thing/ThingChangeType/UPDATE",
+						"id": "http://www.ft.com/thing/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"apiUrl": "http://api.ft.com/content/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"publishReference": "tid_0123wxyz"
+					}
+				],
+			"links": [
+					{
+						"href": "http://api.ft.com/content/notifications?since=2015-11-09T14:09:08.705Z",
+						"rel": "next"
+					}
+			]
+		}`
+	testResponse2 := fmt.Sprintf(`{
+			"requestUrl": "http://api.ft.com/content/notifications?since=2015-11-09T14:09:08.705Z",
+			"notifications": [
+					{
+						"type": "http://www.ft.com/thing/ThingChangeType/UPDATE",
+						"id": "http://www.ft.com/thing/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"apiUrl": "http://api.ft.com/content/1cb14245-5185-4ed5-9188-4d2a86085599",
+						"publishReference": "%s"
+					}
+			],
+			"links": [
+					{
+						"href": "http://api.ft.com/content/notifications?since=2015-11-09T14:10:08.500Z",
+						"rel": "next"
+					}
+			]
+		}`, currentTID)
+
+	notificationsCheck := &NotificationsCheck{
+		mockHTTPCaller(buildResponse(200, testResponse1), buildResponse(200, testResponse2)),
+	}
+
+	if !notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTID).build()) {
+		t.Error("Expected success")
+	}
+}
+
+func TestNotificationsBuildURL_SinceQueryParamsCorrectlyParsed(test *testing.T) {
 	publishDate, err := time.Parse(time.RFC3339Nano, "2015-10-21T14:22:06.270Z")
 	if err != nil {
 		test.Errorf("Error in test data: [%v]", err)
@@ -147,7 +269,7 @@ func TestBuildURL_NotificationsCheck(test *testing.T) {
 
 	pm := newPublishMetricBuilder().withEndpoint("http://notifications-endpoint:8080/content/notifications").withPublishDate(publishDate).build()
 
-	builtURL, err := url.Parse(nc.buildURL(pm))
+	builtURL, err := url.Parse(buildNotificationsURL(pm))
 	if err != nil {
 		test.Errorf("Cannot parse built URL: [%s].", err.Error())
 	}
@@ -166,33 +288,6 @@ func TestBuildURL_NotificationsCheck(test *testing.T) {
 	if !t.Equal(publishDate) {
 		test.Errorf("Expected timestamp: [%v]. Actual: [%v].", publishDate, t)
 	}
-}
-
-func TestBuildURL_S3Check_And_ContentCheck(test *testing.T) {
-	tests := []struct {
-		check    EndpointSpecificCheck
-		pm       PublishMetric
-		expected string
-	}{
-		{
-			&S3Check{},
-			newPublishMetricBuilder().withUUID("1234-1234").withEndpoint("https://s3-image-check/test/").build(),
-			"https://s3-image-check/test/1234-1234",
-		},
-		{
-			&ContentCheck{},
-			newPublishMetricBuilder().withUUID("4321-1234").withEndpoint("http://content-check/content-read/").build(),
-			"http://content-check/content-read/4321-1234",
-		},
-	}
-
-	for _, t := range tests {
-		actual := t.check.buildURL(t.pm)
-		if actual != t.expected {
-			test.Errorf("Expected: [%s]. Actual: [%s].", t.expected, actual)
-		}
-	}
-
 }
 
 type publishMetricBuilder interface {
@@ -258,6 +353,23 @@ func buildResponse(statusCode int, content string) *http.Response {
 		StatusCode: statusCode,
 		Body:       nopCloser{bytes.NewBuffer([]byte(content))},
 	}
+}
+
+//mock HttpCaller implementation
+type testHTTPCaller struct {
+	mockResponses []*http.Response
+	current       int
+}
+
+func (t *testHTTPCaller) doCall(url string) (*http.Response, error) {
+	response := t.mockResponses[t.current]
+	t.current = (t.current + 1) % len(t.mockResponses)
+	return response, nil
+}
+
+//builds testHTTPCaller with the given mocked responses in the provided order
+func mockHTTPCaller(responses ...*http.Response) httpCaller {
+	return &testHTTPCaller{responses, 0}
 }
 
 // this is necessary to be able to build an http.Response
