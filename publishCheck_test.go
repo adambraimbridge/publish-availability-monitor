@@ -355,19 +355,20 @@ func buildResponse(statusCode int, content string) *http.Response {
 	}
 }
 
-//mock HttpCaller implementation
+// mock HttpCaller implementation
 type testHTTPCaller struct {
 	mockResponses []*http.Response
 	current       int
 }
 
+// returns the mock responses of testHTTPCaller in order
 func (t *testHTTPCaller) doCall(url string) (*http.Response, error) {
 	response := t.mockResponses[t.current]
 	t.current = (t.current + 1) % len(t.mockResponses)
 	return response, nil
 }
 
-//builds testHTTPCaller with the given mocked responses in the provided order
+// builds testHTTPCaller with the given mocked responses in the provided order
 func mockHTTPCaller(responses ...*http.Response) httpCaller {
 	return &testHTTPCaller{responses, 0}
 }
