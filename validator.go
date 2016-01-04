@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/satori/go.uuid"
 	"launchpad.net/xmlpath"
 )
@@ -21,7 +20,6 @@ const webTypeXPath = "//ObjectMetadata/FTcom/DIFTcomWebType"
 const filePathXPath = "//ObjectMetadata/EditorialNotes/ObjectLocation"
 const sourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
 
-const expectedSystemID = "http://cmdb.ft.com/systems/methode-web-pub"
 const expectedWebChannel = "FTcom"
 const expectedWebTypePrefix = "digitalList"
 const expectedFilePathSuffix = ".xml"
@@ -36,16 +34,6 @@ func isMessagePastPublishSLA(date time.Time, threshold int) bool {
 
 func isSyntheticMessage(tid string) bool {
 	return strings.HasPrefix(tid, syntheticPrefix)
-}
-
-func isMessageValid(message consumer.Message) bool {
-	headers := message.Headers
-	systemID := headers[systemIDKey]
-	if systemID != expectedSystemID {
-		warn.Printf("Message invalid: unexpected system ID: [%v]", systemID)
-		return false
-	}
-	return true
 }
 
 func isEomfileValid(eomfile EomFile) bool {

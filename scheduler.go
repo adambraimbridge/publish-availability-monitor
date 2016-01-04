@@ -6,19 +6,19 @@ import (
 	"time"
 )
 
-func scheduleChecks(eomFile EomFile, publishDate time.Time, tid string, isMarkedDeleted bool) {
+func scheduleChecks(content Content, publishDate time.Time, tid string, isMarkedDeleted bool) {
 	for _, conf := range appConfig.MetricConf {
 		endpointURL, err := url.Parse(conf.Endpoint)
 		if err != nil {
 			log.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
 			continue
 		}
-		if !validType(conf.ContentTypes, eomFile.Type) {
+		if !validType(conf.ContentTypes, content.getType()) {
 			continue
 		}
 
 		var publishMetric = PublishMetric{
-			eomFile.UUID,
+			content.getUUID(),
 			false,
 			publishDate,
 			appConfig.Platform,

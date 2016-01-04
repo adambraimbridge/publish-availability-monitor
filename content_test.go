@@ -4,28 +4,48 @@ import (
 	"testing"
 )
 
-func TestIsMarkedDeleted_True(t *testing.T) {
-	if !isMarkedDeleted(storyMarkedDeletedTrue) {
+func TestIsMarkedDeleted_Story_True(t *testing.T) {
+	if !storyMarkedDeletedTrue.isMarkedDeleted() {
 		t.Error("Expected True, the story IS marked deleted")
 	}
 }
 
-func TestIsMarkedDeleted_False(t *testing.T) {
-	if isMarkedDeleted(storyMarkedDeletedFalse) {
+func TestIsMarkedDeleted_Story_False(t *testing.T) {
+	if storyMarkedDeletedFalse.isMarkedDeleted() {
 		t.Error("Expected False, the story IS NOT marked deleted")
 	}
 }
 
 func TestIsMarkedDeleted_Image(t *testing.T) {
-	if isMarkedDeleted(imageEomFile) {
+	if imageEomFile.isMarkedDeleted() {
 		t.Error("Expected False, the image IS NOT marked deleted")
 	}
 }
 
 func TestIsMarkedDeleted_WebContainer(t *testing.T) {
-	if isMarkedDeleted(webContainerEomFile) {
+	if webContainerEomFile.isMarkedDeleted() {
 		t.Error("Expected False, the webContainer IS NOT marked deleted")
 	}
+}
+
+func TestIsMarkedDeleted_WordPressContent_True(t *testing.T) {
+	if !wordpressContentMarkedDeletedTrue.isMarkedDeleted() {
+		t.Error("Expected True, the story IS marked deleted")
+	}
+}
+
+func TestIsMarkedDeleted_WordPressContent_False(t *testing.T) {
+	if wordpressContentMarkedDeletedFalse.isMarkedDeleted() {
+		t.Error("Expected False, the wordPress article IS NOT marked deleted")
+	}
+}
+
+var wordpressContentMarkedDeletedTrue = WordPressMessage{
+	Status: "error", Error: "Not found.",
+}
+
+var wordpressContentMarkedDeletedFalse = WordPressMessage{
+	Status: "ok", Post: &Post{},
 }
 
 var storyMarkedDeletedTrue = EomFile{

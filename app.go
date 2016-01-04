@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"io"
 	"log"
@@ -54,15 +53,6 @@ type AppConfig struct {
 	MetricConf []MetricConfig       `json:"metricConfig"`
 	Platform   string               `json:"platform"`
 	SplunkConf SplunkConfig         `json:"splunk-config"`
-}
-
-// EomFile models content as it is stored in our CMS
-type EomFile struct {
-	UUID             string `json:"uuid"`
-	Type             string `json:"type"`
-	Value            string `json:"value"`
-	Attributes       string `json:"attributes"`
-	SystemAttributes string `json:"systemAttributes"`
 }
 
 const dateLayout = "2006-01-02T15:04:05.000Z"
@@ -135,24 +125,19 @@ func handleMessage(msg consumer.Message) error {
 		return nil
 	}
 
-	if !isMessageValid(msg) {
-		info.Printf("Message [%v] is INVALID, skipping...", tid)
-		return nil
-	}
-
-	var eomFile EomFile
-	err := json.Unmarshal([]byte(msg.Body), &eomFile)
+	content, err := unmarshalContent(msg)
 	if err != nil {
-		log.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
+		warn.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return err
 	}
 
-	if !isEomfileValid(eomFile) {
-		info.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, eomFile.UUID)
+	uuid := content.getUUID()
+	if !content.isValid() {
+		info.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return nil
 	}
 
-	info.Printf("Message [%v] with UUID [%v] is VALID.", tid, eomFile.UUID)
+	info.Printf("Message [%v] with UUID [%v] is VALID.", tid, uuid)
 
 	publishDateString := msg.Headers["Message-Timestamp"]
 	publishDate, err := time.Parse(dateLayout, publishDateString)
@@ -163,15 +148,20 @@ func handleMessage(msg consumer.Message) error {
 	}
 
 	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
-		info.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, eomFile.UUID)
+		info.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
 		return nil
 	}
 
-	scheduleChecks(eomFile, publishDate, tid, isMarkedDeleted(eomFile))
+	scheduleChecks(content, publishDate, tid, content.isMarkedDeleted())
 
 	// for images we need to check their corresponding image sets
 	// the image sets don't have messages of their own so we need to create one
-	if eomFile.Type == "Image" {
+	if content.getType() == "Image" {
+		eomFile, ok := content.(EomFile)
+		if !ok {
+			log.Printf("Cannot assert that message [%v] with UUID [%v] of 'Image' type is an EomFile.", tid, uuid)
+			return nil
+		}
 		imageSetEomFile := spawnImageSet(eomFile)
 		if imageSetEomFile.UUID != "" {
 			scheduleChecks(imageSetEomFile, publishDate, tid, false)
