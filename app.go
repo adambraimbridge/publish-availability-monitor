@@ -159,7 +159,7 @@ func handleMessage(msg consumer.Message) error {
 	if content.getType() == "Image" {
 		eomFile, ok := content.(EomFile)
 		if !ok {
-			log.Printf("Cannot assert that message [%v] with UUID [%v] of 'Image' type is an EomFile.", tid, uuid)
+			log.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
 			return nil
 		}
 		imageSetEomFile := spawnImageSet(eomFile)
