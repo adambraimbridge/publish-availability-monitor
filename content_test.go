@@ -24,10 +24,40 @@ func TestUnmarshalContent_InvalidMessageMissingHeader_Error(t *testing.T) {
 	}
 }
 
-func TestIsMessageValid_InvalidSystemId_Error(t *testing.T) {
+func TestUnmarshalContent_InvalidMessageWrongSystemId_Error(t *testing.T) {
 	if _, err := unmarshalContent(invalidMessageWrongSystemID); err == nil {
 		t.Error("Expected failure, but message with wrong system ID successfully unmarshalled!")
 	}
+}
+
+func TestUnmarshalContent_InvalidMethodeContentWrongJSONFormat_Error(t *testing.T) {
+	if _, err := unmarshalContent(invalidMethodeMessageWrongJSONFormat); err == nil {
+		t.Error("Expected failure, but message with wrong system ID successfully unmarshalled!")
+	}
+}
+
+func TestUnmarshalContent_InvalidWordPressContentWrongJSONFormat_Error(t *testing.T) {
+	if _, err := unmarshalContent(invalidWordPressMessageWrongJSONFormat); err == nil {
+		t.Error("Expected failure, but message with wrong system ID successfully unmarshalled!")
+	}
+}
+
+func TestUnmarshalContent_ValidWordPressMessageWithTypeField_TypeIsCorrectlyUnmarshalled(t *testing.T) {
+	content, err := unmarshalContent(validWordPressMessageWithTypeField)
+	if err != nil {
+		t.Errorf("Expected success, but error occured [%v]", err)
+		return
+	}
+	if content.getType() != "post" {
+		t.Errorf("Expected [post] content type, but found [%s].", content.getType())
+	}
+}
+
+var invalidMethodeMessageWrongJSONFormat = consumer.Message{
+	Headers: map[string]string{
+		"Origin-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
+	},
+	Body: `{"uuid": "79e7f5ed-63c7-46b2-9767-736f8ae3a3f6", "type": "Image", "value" : " }`,
 }
 
 var validMethodeMessage = consumer.Message{
@@ -36,6 +66,21 @@ var validMethodeMessage = consumer.Message{
 	},
 	Body: "{}",
 }
+
+var invalidWordPressMessageWrongJSONFormat = consumer.Message{
+	Headers: map[string]string{
+		"Origin-System-Id": "http://cmdb.ft.com/systems/wordpress",
+	},
+	Body: `{"status": "ok", "post": {"id : "002251", "type": "post"}}`,
+}
+
+var validWordPressMessageWithTypeField = consumer.Message{
+	Headers: map[string]string{
+		"Origin-System-Id": "http://cmdb.ft.com/systems/wordpress",
+	},
+	Body: `{"status": "ok", "post": {"id" : "002251", "type": "post"}}`,
+}
+
 var validWordpressMessage = consumer.Message{
 	Headers: map[string]string{
 		"Origin-System-Id": "http://cmdb.ft.com/systems/wordpress",
