@@ -15,6 +15,8 @@ type Content interface {
 	getUUID() string
 }
 
+const systemIDKey = "Origin-System-Id"
+
 // Unmarshals the message body into the appropriate content type based on the systemID header.
 func unmarshalContent(msg consumer.Message) (Content, error) {
 	headers := msg.Headers

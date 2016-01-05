@@ -11,6 +11,8 @@ func init() {
 	}
 }
 
+const notFoundError = "Not found."
+
 // WordPressMessage models messages from Wordpress
 type WordPressMessage struct {
 	Status      string `json:"status"`
@@ -29,6 +31,11 @@ type Post struct {
 }
 
 func (wordPressMessage WordPressMessage) isValid() bool {
+	if wordPressMessage.Status == "error" && wordPressMessage.Error != notFoundError {
+		//it's an error which we do not understand
+		return false
+	}
+
 	contentUUID := wordPressMessage.Post.UUID
 	if !isUUIDValid(contentUUID) {
 		warn.Printf("WordPress message invalid: invalid UUID: [%s]", contentUUID)
@@ -52,7 +59,7 @@ func (wordPressMessage WordPressMessage) isValid() bool {
 }
 
 func (wordPressMessage WordPressMessage) isMarkedDeleted() bool {
-	if wordPressMessage.Post == nil {
+	if wordPressMessage.Status == "error" && wordPressMessage.Error == notFoundError {
 		return true
 	}
 	return false
