@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	. "github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/gorilla/mux"
 )
 
@@ -125,14 +127,14 @@ func handleMessage(msg consumer.Message) error {
 		return nil
 	}
 
-	content, err := unmarshalContent(msg)
+	content, err := UnmarshalContent(msg)
 	if err != nil {
 		warn.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return err
 	}
 
-	uuid := content.getUUID()
-	if !content.isValid() {
+	uuid := content.GetUUID()
+	if !content.IsValid() {
 		info.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return nil
 	}
@@ -152,11 +154,11 @@ func handleMessage(msg consumer.Message) error {
 		return nil
 	}
 
-	scheduleChecks(content, publishDate, tid, content.isMarkedDeleted())
+	scheduleChecks(content, publishDate, tid, content.IsMarkedDeleted())
 
 	// for images we need to check their corresponding image sets
 	// the image sets don't have messages of their own so we need to create one
-	if content.getType() == "Image" {
+	if content.GetType() == "Image" {
 		eomFile, ok := content.(EomFile)
 		if !ok {
 			log.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
@@ -191,6 +193,15 @@ func spawnImageSet(imageEomFile EomFile) EomFile {
 
 	imageSetEomFile.UUID = imageSetUUID.String()
 	return imageSetEomFile
+}
+
+func isMessagePastPublishSLA(date time.Time, threshold int) bool {
+	passedSLA := date.Add(time.Duration(threshold) * time.Second)
+	return time.Now().After(passedSLA)
+}
+
+func isSyntheticMessage(tid string) bool {
+	return strings.HasPrefix(tid, "SYNTHETIC")
 }
 
 func initLogs(infoHandle io.Writer, warnHandle io.Writer, panicHandle io.Writer) {

@@ -1,41 +1,41 @@
-package main
+package content
 
 import (
 	"testing"
 )
 
 func TestIsEomfileValid_InvalidContentType(t *testing.T) {
-	if eomfileWithInvalidContentType.isValid() {
+	if eomfileWithInvalidContentType.IsValid() {
 		t.Error("Eomfile with invalid content marked as valid")
 	}
 }
 
 func TestIsEomfileValid_InvalidUUID(t *testing.T) {
-	if eomfileWithInvalidUUID.isValid() {
+	if eomfileWithInvalidUUID.IsValid() {
 		t.Error("Eomfile with invalid UUID marked as valid")
 	}
 }
 
 func TestIsEomfileValid_InvalidSourceCode(t *testing.T) {
-	if unsupportedSourceCodeEomFile.isValid() {
+	if unsupportedSourceCodeEomFile.IsValid() {
 		t.Error("Eomfile with unsupported source code marked as valid")
 	}
 }
 
 func TestIsEomfileValid_ValidImage(t *testing.T) {
-	if !validImage.isValid() {
+	if !validImage.IsValid() {
 		t.Error("Valid Image marked as invalid!")
 	}
 }
 
 func TestIsEomfileValid_ValidList(t *testing.T) {
-	if !validList.isValid() {
+	if !validList.IsValid() {
 		t.Error("Valid List marked as invalid!")
 	}
 }
 
 func TestIsEomfileValid_ValidCompoundStory(t *testing.T) {
-	if !validCompoundStory.isValid() {
+	if !validCompoundStory.IsValid() {
 		t.Error("Valid CompoundStory marked as invalid!")
 	}
 }
@@ -247,25 +247,25 @@ var invalidImageEomFile = EomFile{
 }
 
 func TestIsMarkedDeleted_Story_True(t *testing.T) {
-	if !storyMarkedDeletedTrue.isMarkedDeleted() {
+	if !storyMarkedDeletedTrue.IsMarkedDeleted() {
 		t.Error("Expected True, the story IS marked deleted")
 	}
 }
 
 func TestIsMarkedDeleted_Story_False(t *testing.T) {
-	if storyMarkedDeletedFalse.isMarkedDeleted() {
+	if storyMarkedDeletedFalse.IsMarkedDeleted() {
 		t.Error("Expected False, the story IS NOT marked deleted")
 	}
 }
 
 func TestIsMarkedDeleted_Image(t *testing.T) {
-	if imageEomFile.isMarkedDeleted() {
+	if imageEomFile.IsMarkedDeleted() {
 		t.Error("Expected False, the image IS NOT marked deleted")
 	}
 }
 
 func TestIsMarkedDeleted_WebContainer(t *testing.T) {
-	if webContainerEomFile.isMarkedDeleted() {
+	if webContainerEomFile.IsMarkedDeleted() {
 		t.Error("Expected False, the webContainer IS NOT marked deleted")
 	}
 }

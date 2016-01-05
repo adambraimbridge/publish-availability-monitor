@@ -1,4 +1,4 @@
-package main
+package content
 
 import (
 	"testing"
@@ -7,51 +7,66 @@ import (
 )
 
 func TestUnmarshalContent_ValidMessageMethodeSystemHeader_NoError(t *testing.T) {
-	if _, err := unmarshalContent(validMethodeMessage); err != nil {
+	if _, err := UnmarshalContent(validMethodeMessage); err != nil {
 		t.Errorf("Message with valid system ID [%s] cannot be unmarshalled!", validMethodeMessage.Headers["Origin-System-Id"])
 	}
 }
 
 func TestUnmarshalContent_ValidMessageWordpressSystemHeader_NoError(t *testing.T) {
-	if _, err := unmarshalContent(validWordpressMessage); err != nil {
+	if _, err := UnmarshalContent(validWordpressMessage); err != nil {
 		t.Errorf("Message with valid system ID [%s] cannot be unmarshalled!", validWordpressMessage.Headers["Origin-System-Id"])
 	}
 }
 
 func TestUnmarshalContent_InvalidMessageMissingHeader_Error(t *testing.T) {
-	if _, err := unmarshalContent(invalidMessageWrongHeader); err == nil {
+	if _, err := UnmarshalContent(invalidMessageWrongHeader); err == nil {
 		t.Error("Expected failure, but message with missing system ID successfully unmarshalled!")
 	}
 }
 
 func TestUnmarshalContent_InvalidMessageWrongSystemId_Error(t *testing.T) {
-	if _, err := unmarshalContent(invalidMessageWrongSystemID); err == nil {
+	if _, err := UnmarshalContent(invalidMessageWrongSystemID); err == nil {
 		t.Error("Expected failure, but message with wrong system ID successfully unmarshalled!")
 	}
 }
 
 func TestUnmarshalContent_InvalidMethodeContentWrongJSONFormat_Error(t *testing.T) {
-	if _, err := unmarshalContent(invalidMethodeMessageWrongJSONFormat); err == nil {
+	if _, err := UnmarshalContent(invalidMethodeMessageWrongJSONFormat); err == nil {
 		t.Error("Expected failure, but message with wrong system ID successfully unmarshalled!")
 	}
 }
 
 func TestUnmarshalContent_InvalidWordPressContentWrongJSONFormat_Error(t *testing.T) {
-	if _, err := unmarshalContent(invalidWordPressMessageWrongJSONFormat); err == nil {
+	if _, err := UnmarshalContent(invalidWordPressMessageWrongJSONFormat); err == nil {
 		t.Error("Expected failure, but message with wrong system ID successfully unmarshalled!")
 	}
 }
 
 func TestUnmarshalContent_ValidWordPressMessageWithTypeField_TypeIsCorrectlyUnmarshalled(t *testing.T) {
-	content, err := unmarshalContent(validWordPressMessageWithTypeField)
+	content, err := UnmarshalContent(validWordPressMessageWithTypeField)
 	if err != nil {
 		t.Errorf("Expected success, but error occured [%v]", err)
 		return
 	}
-	if content.getType() != "post" {
-		t.Errorf("Expected [post] content type, but found [%s].", content.getType())
+	if content.GetType() != "post" {
+		t.Errorf("Expected [post] content type, but found [%s].", content.GetType())
 	}
 }
+
+func TestIsUUIDValid_UUIDValid(t *testing.T) {
+	if !isUUIDValid(validUUID) {
+		t.Error("Valid UUID marked as invalid!")
+	}
+}
+
+func TestIsUUIDValid_UUIDInvalid(t *testing.T) {
+	if isUUIDValid(invalidUUID) {
+		t.Error("Invalid UUID marked as valid!")
+	}
+}
+
+const validUUID = "e28b12f7-9796-3331-b030-05082f0b8157"
+const invalidUUID = "foobar"
 
 var invalidMethodeMessageWrongJSONFormat = consumer.Message{
 	Headers: map[string]string{

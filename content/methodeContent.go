@@ -1,4 +1,4 @@
-package main
+package content
 
 import (
 	"encoding/base64"
@@ -31,7 +31,7 @@ type EomFile struct {
 	SystemAttributes string `json:"systemAttributes"`
 }
 
-func (eomfile EomFile) isValid() bool {
+func (eomfile EomFile) IsValid() bool {
 	contentUUID := eomfile.UUID
 	if !isUUIDValid(contentUUID) {
 		warn.Printf("Eomfile invalid: invalid UUID: [%s]", contentUUID)
@@ -52,7 +52,7 @@ func (eomfile EomFile) isValid() bool {
 	}
 }
 
-func (eomfile EomFile) isMarkedDeleted() bool {
+func (eomfile EomFile) IsMarkedDeleted() bool {
 	if eomfile.Type == "Image" || eomfile.Type == "EOM::WebContainer" {
 		return false
 	}
@@ -76,11 +76,11 @@ func (eomfile EomFile) isMarkedDeleted() bool {
 	return false
 }
 
-func (eomfile EomFile) getType() string {
+func (eomfile EomFile) GetType() string {
 	return eomfile.Type
 }
 
-func (eomfile EomFile) getUUID() string {
+func (eomfile EomFile) GetUUID() string {
 	return eomfile.UUID
 }
 

@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/url"
 	"time"
+
+	. "github.com/Financial-Times/publish-availability-monitor/content"
 )
 
 func scheduleChecks(content Content, publishDate time.Time, tid string, isMarkedDeleted bool) {
@@ -13,12 +15,12 @@ func scheduleChecks(content Content, publishDate time.Time, tid string, isMarked
 			log.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
 			continue
 		}
-		if !validType(conf.ContentTypes, content.getType()) {
+		if !validType(conf.ContentTypes, content.GetType()) {
 			continue
 		}
 
 		var publishMetric = PublishMetric{
-			content.getUUID(),
+			content.GetUUID(),
 			false,
 			publishDate,
 			appConfig.Platform,

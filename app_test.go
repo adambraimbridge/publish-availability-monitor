@@ -37,20 +37,6 @@ func TestIsSyntheticMessage_syntheticMessage(t *testing.T) {
 	}
 }
 
-func TestIsUUIDValid_UUIDValid(t *testing.T) {
-	if !isUUIDValid(validUUID) {
-		t.Error("Valid UUID marked as invalid!")
-	}
-}
-
-func TestIsUUIDValid_UUIDInvalid(t *testing.T) {
-	if isUUIDValid(invalidUUID) {
-		t.Error("Invalid UUID marked as valid!")
-	}
-}
-
-const validUUID = "e28b12f7-9796-3331-b030-05082f0b8157"
-const invalidUUID = "foobar"
 const threshold = 120
 const syntheticTID = "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd"
 const naturalTID = "tid_xltcnbckvq"

@@ -1,4 +1,4 @@
-package main
+package content
 
 var validWordPressTypes []string
 
@@ -30,7 +30,7 @@ type Post struct {
 	UUID string `json:"uuid"`
 }
 
-func (wordPressMessage WordPressMessage) isValid() bool {
+func (wordPressMessage WordPressMessage) IsValid() bool {
 	if wordPressMessage.Status == "error" && wordPressMessage.Error != notFoundError {
 		//it's an error which we do not understand
 		return false
@@ -58,17 +58,17 @@ func (wordPressMessage WordPressMessage) isValid() bool {
 	return false
 }
 
-func (wordPressMessage WordPressMessage) isMarkedDeleted() bool {
+func (wordPressMessage WordPressMessage) IsMarkedDeleted() bool {
 	if wordPressMessage.Status == "error" && wordPressMessage.Error == notFoundError {
 		return true
 	}
 	return false
 }
 
-func (wordPressMessage WordPressMessage) getType() string {
+func (wordPressMessage WordPressMessage) GetType() string {
 	return wordPressMessage.Post.Type
 }
 
-func (wordPressMessage WordPressMessage) getUUID() string {
+func (wordPressMessage WordPressMessage) GetUUID() string {
 	return wordPressMessage.Post.UUID
 }

@@ -1,15 +1,15 @@
-package main
+package content
 
 import "testing"
 
 func TestIsMarkedDeleted_True(t *testing.T) {
-	if !wordpressContentMarkedDeletedTrue.isMarkedDeleted() {
+	if !wordpressContentMarkedDeletedTrue.IsMarkedDeleted() {
 		t.Error("Expected True, the story IS marked deleted")
 	}
 }
 
 func TestIsMarkedDeleted_False(t *testing.T) {
-	if wordpressContentMarkedDeletedFalse.isMarkedDeleted() {
+	if wordpressContentMarkedDeletedFalse.IsMarkedDeleted() {
 		t.Error("Expected False, the wordPress article IS NOT marked deleted")
 	}
 }
