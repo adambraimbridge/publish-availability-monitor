@@ -23,9 +23,8 @@ type WordPressMessage struct {
 }
 
 // Post models WordPress content
-// neglect unused fields (e.g. slug, title, content, etc)
+// neglect unused fields (e.g. id, slug, title, content, etc)
 type Post struct {
-	ID   string `json:"id"`
 	Type string `json:"type"`
 	UUID string `json:"uuid"`
 }
