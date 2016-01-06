@@ -38,13 +38,13 @@ func (wordPressMessage WordPressMessage) IsValid() bool {
 
 	contentUUID := wordPressMessage.Post.UUID
 	if !isUUIDValid(contentUUID) {
-		warn.Printf("WordPress message invalid: invalid UUID: [%s]", contentUUID)
+		warnLogger.Printf("WordPress message invalid: invalid UUID: [%s]", contentUUID)
 		return false
 	}
 
 	apiURL := wordPressMessage.APIURL
 	if !isValidBrand(apiURL) {
-		warn.Printf("WordPress message invalid: failed to resolve brand for uri [%s].", apiURL)
+		warnLogger.Printf("WordPress message invalid: failed to resolve brand for uri [%s].", apiURL)
 		return false
 	}
 
@@ -54,7 +54,7 @@ func (wordPressMessage WordPressMessage) IsValid() bool {
 			return true
 		}
 	}
-	warn.Printf("WordPress message invalid: unexpected content type: [%s]", contentType)
+	warnLogger.Printf("WordPress message invalid: unexpected content type: [%s]", contentType)
 	return false
 }
 

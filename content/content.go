@@ -23,17 +23,17 @@ const systemIDKey = "Origin-System-Id"
 const dateLayout = "2006-01-02T15:04:05.000Z"
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
-var info *log.Logger
-var warn *log.Logger
-var errorL *log.Logger
+var infoLogger *log.Logger
+var warnLogger *log.Logger
+var errorLogger *log.Logger
 
 func init() {
 	//to be used for INFO-level logging: info.Println("foo is now bar")
-	info = log.New(os.Stdout, "INFO  - ", logPattern)
+	infoLogger = log.New(os.Stdout, "INFO  - ", logPattern)
 	//to be used for WARN-level logging: warn.Println("foo is now bar")
-	warn = log.New(os.Stdout, "WARN  - ", logPattern)
+	warnLogger = log.New(os.Stdout, "WARN  - ", logPattern)
 	//to be used for ERROR-leve logging: errorL.Println("foo is now bar")
-	errorL = log.New(os.Stdout, "ERROR - ", logPattern)
+	errorLogger = log.New(os.Stdout, "ERROR - ", logPattern)
 }
 
 // UnmarshalContent unmarshals the message body into the appropriate content type based on the systemID header.
@@ -57,7 +57,7 @@ func UnmarshalContent(msg consumer.Message) (Content, error) {
 func isUUIDValid(contentUUID string) bool {
 	parsedUUID, err := uuid.FromString(contentUUID)
 	if err != nil {
-		warn.Printf("Cannot parse UUID [%v], error: [%v]", contentUUID, err.Error())
+		warnLogger.Printf("Cannot parse UUID [%v], error: [%v]", contentUUID, err.Error())
 		return false
 	}
 	return contentUUID == parsedUUID.String()

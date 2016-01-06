@@ -12,7 +12,7 @@ type blogAPIEndpointMetadata struct {
 func isValidBrand(requestURI string) bool {
 	parsedURL, err := url.Parse(requestURI)
 	if err != nil || parsedURL.Host == "" {
-		warn.Printf("Invalid request URI  [%s].", requestURI)
+		warnLogger.Printf("Invalid request URI  [%s].", requestURI)
 		return false
 	}
 	requestHostAndPath := parsedURL.Host + parsedURL.Path

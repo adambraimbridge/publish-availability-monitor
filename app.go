@@ -60,9 +60,9 @@ type AppConfig struct {
 const dateLayout = "2006-01-02T15:04:05.000Z"
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
-var info *log.Logger
-var warn *log.Logger
-var errorL *log.Logger
+var infoLogger *log.Logger
+var warnLogger *log.Logger
+var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var appConfig *AppConfig
 var metricSink = make(chan PublishMetric)
@@ -74,7 +74,7 @@ func main() {
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
-		errorL.Printf("Cannot load configuration: [%v]", err)
+		errorLogger.Printf("Cannot load configuration: [%v]", err)
 		return
 	}
 
@@ -92,7 +92,7 @@ func enableHealthchecks() {
 	http.Handle("/", router)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		errorL.Panicf("Couldn't set up HTTP listener: %+v\n", err)
+		errorLogger.Panicf("Couldn't set up HTTP listener: %+v\n", err)
 	}
 }
 
@@ -101,7 +101,7 @@ func readMessages() {
 	for {
 		msgs, err := iterator.NextMessages()
 		if err != nil {
-			warn.Printf("Could not read messages: [%v]", err.Error())
+			warnLogger.Printf("Could not read messages: [%v]", err.Error())
 			continue
 		}
 		for _, m := range msgs {
@@ -121,48 +121,48 @@ func startAggregator() {
 
 func handleMessage(msg consumer.Message) error {
 	tid := msg.Headers["X-Request-Id"]
-	info.Printf("Received message with TID [%v]", tid)
+	infoLogger.Printf("Received message with TID [%v]", tid)
 
 	if isSyntheticMessage(tid) {
-		info.Printf("Message [%v] is INVALID: synthetic, skipping...", tid)
+		infoLogger.Printf("Message [%v] is INVALID: synthetic, skipping...", tid)
 		return nil
 	}
 
-	cntnt, err := content.UnmarshalContent(msg)
+	publishedContent, err := content.UnmarshalContent(msg)
 	if err != nil {
-		warn.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
+		warnLogger.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return err
 	}
 
-	uuid := cntnt.GetUUID()
-	if !cntnt.IsValid() {
-		info.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
+	uuid := publishedContent.GetUUID()
+	if !publishedContent.IsValid() {
+		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return nil
 	}
 
-	info.Printf("Message [%v] with UUID [%v] is VALID.", tid, uuid)
+	infoLogger.Printf("Message [%v] with UUID [%v] is VALID.", tid, uuid)
 
 	publishDateString := msg.Headers["Message-Timestamp"]
 	publishDate, err := time.Parse(dateLayout, publishDateString)
 	if err != nil {
-		errorL.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
+		errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
 			publishDateString, tid, err.Error())
 		return nil
 	}
 
 	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
-		info.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
+		infoLogger.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
 		return nil
 	}
 
-	scheduleChecks(cntnt, publishDate, tid, cntnt.IsMarkedDeleted())
+	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted())
 
 	// for images we need to check their corresponding image sets
 	// the image sets don't have messages of their own so we need to create one
-	if cntnt.GetType() == "Image" {
-		eomFile, ok := cntnt.(content.EomFile)
+	if publishedContent.GetType() == "Image" {
+		eomFile, ok := publishedContent.(content.EomFile)
 		if !ok {
-			errorL.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
+			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
 			return nil
 		}
 		imageSetEomFile := spawnImageSet(eomFile)
@@ -180,14 +180,14 @@ func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
 
 	imageUUID, err := content.NewUUIDFromString(imageEomFile.UUID)
 	if err != nil {
-		warn.Printf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
+		warnLogger.Printf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
 			imageEomFile.UUID, err.Error())
 		return content.EomFile{}
 	}
 
 	imageSetUUID, err := content.GenerateImageSetUUID(*imageUUID)
 	if err != nil {
-		warn.Printf("Cannot generate image set UUID: [%v], skipping image set check",
+		warnLogger.Printf("Cannot generate image set UUID: [%v], skipping image set check",
 			err.Error())
 		return content.EomFile{}
 	}
@@ -207,9 +207,9 @@ func isSyntheticMessage(tid string) bool {
 
 func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
 	//to be used for INFO-level logging: info.Println("foo is now bar")
-	info = log.New(infoHandle, "INFO  - ", logPattern)
+	infoLogger = log.New(infoHandle, "INFO  - ", logPattern)
 	//to be used for WARN-level logging: warn.Println("foo is now bar")
-	warn = log.New(warnHandle, "WARN  - ", logPattern)
+	warnLogger = log.New(warnHandle, "WARN  - ", logPattern)
 	//to be used for ERROR-level logging: errorL.Println("foo is now bar")
-	errorL = log.New(errorHandle, "ERROR - ", logPattern)
+	errorLogger = log.New(errorHandle, "ERROR - ", logPattern)
 }

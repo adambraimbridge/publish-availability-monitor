@@ -80,10 +80,10 @@ func init() {
 // endpoint, applying endpoint-specific processing.
 // Returns true if the content is available at the endpoint, false otherwise.
 func (pc PublishCheck) DoCheck() bool {
-	info.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
+	infoLogger.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
 	check := endpointSpecificChecks[pc.Metric.config.Alias]
 	if check == nil {
-		warn.Printf("No check for endpoint %s.", pc.Metric.config.Alias)
+		warnLogger.Printf("No check for endpoint %s.", pc.Metric.config.Alias)
 		return false
 	}
 
@@ -94,7 +94,7 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) bool {
 	url := pm.endpoint.String() + pm.UUID
 	resp, err := c.httpCaller.doCall(url)
 	if err != nil {
-		warn.Printf("Error calling URL: [%v] : [%v]", url, err.Error())
+		warnLogger.Printf("Error calling URL: [%v] : [%v]", url, err.Error())
 		return false
 	}
 	defer resp.Body.Close()
@@ -102,7 +102,7 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) bool {
 	// if the article was marked as deleted, operation is finished when the
 	// article cannot be found anymore
 	if pm.isMarkedDeleted {
-		info.Printf("[%v]Marked deleted, status code [%v]", pm.UUID, resp.StatusCode)
+		infoLogger.Printf("[%v]Marked deleted, status code [%v]", pm.UUID, resp.StatusCode)
 		return resp.StatusCode == 404
 	}
 
@@ -111,12 +111,12 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) bool {
 		return false
 	}
 
-	info.Printf("[%v]Not marked as deleted, got 200, checking PR", pm.UUID)
+	infoLogger.Printf("[%v]Not marked as deleted, got 200, checking PR", pm.UUID)
 	// if status is 200, we check the publishReference
 	// this way we can handle updates
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warn.Printf("Cannot read response: [%s]", err.Error())
+		warnLogger.Printf("Cannot read response: [%s]", err.Error())
 		return false
 	}
 
@@ -124,7 +124,7 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) bool {
 
 	err = json.Unmarshal(data, &jsonResp)
 	if err != nil {
-		warn.Printf("Cannot unmarshal JSON response: [%s]", err.Error())
+		warnLogger.Printf("Cannot unmarshal JSON response: [%s]", err.Error())
 		return false
 	}
 
@@ -135,7 +135,7 @@ func (s S3Check) isCurrentOperationFinished(pm PublishMetric) bool {
 	url := pm.endpoint.String() + pm.UUID
 	resp, err := s.httpCaller.doCall(url)
 	if err != nil {
-		warn.Printf("Error calling URL: [%v] : [%v]", url, err.Error())
+		warnLogger.Printf("Error calling URL: [%v] : [%v]", url, err.Error())
 		return false
 	}
 	defer resp.Body.Close()
@@ -148,12 +148,12 @@ func (s S3Check) isCurrentOperationFinished(pm PublishMetric) bool {
 	// uploaded to S3, but body is empty - in this case, we get 200 back but empty body
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warn.Printf("Cannot read response: [%s]", err.Error())
+		warnLogger.Printf("Cannot read response: [%s]", err.Error())
 		return false
 	}
 
 	if len(data) == 0 {
-		warn.Printf("Image [%v] body is empty!", pm.UUID)
+		warnLogger.Printf("Image [%v] body is empty!", pm.UUID)
 		return false
 	}
 	return true
@@ -197,20 +197,20 @@ func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric) bool {
 func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL, publishReference string) (bool, string) {
 	resp, err := n.httpCaller.doCall(notificationsURL)
 	if err != nil {
-		warn.Printf("Error calling URL: [%v] : [%v]", notificationsURL, err.Error())
+		warnLogger.Printf("Error calling URL: [%v] : [%v]", notificationsURL, err.Error())
 		return false, ""
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		warn.Printf("/notifications endpoint status: [%d]", resp.StatusCode)
+		warnLogger.Printf("/notifications endpoint status: [%d]", resp.StatusCode)
 		return false, ""
 	}
 
 	var notifications notificationsContent
 	err = json.NewDecoder(resp.Body).Decode(&notifications)
 	if err != nil {
-		warn.Printf("Cannot decode json response: [%s]", err.Error())
+		warnLogger.Printf("Cannot decode json response: [%s]", err.Error())
 		return false, ""
 	}
 	for _, n := range notifications.Notifications {
@@ -238,12 +238,12 @@ func buildNotificationsURL(pm PublishMetric) string {
 func adjustNextNotificationsURL(current, next string) (string, error) {
 	currentNotificationsURLValue, err := url.Parse(current)
 	if err != nil {
-		warn.Printf("Cannot parse current notifications URL: [%s].", current)
+		warnLogger.Printf("Cannot parse current notifications URL: [%s].", current)
 		return "", err
 	}
 	nextNotificationsURLValue, err := url.Parse(next)
 	if err != nil {
-		warn.Printf("Cannot parse next notifications URL: [%s].", next)
+		warnLogger.Printf("Cannot parse next notifications URL: [%s].", next)
 		return "", err
 	}
 	nextNotificationsURLValue.Host = currentNotificationsURLValue.Host
