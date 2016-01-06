@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+
+	"github.com/satori/go.uuid"
 )
 
 // UUID is modeled after java.util.UUID
@@ -96,4 +98,13 @@ func hexToInt(hexStrings []string) ([]uint64, error) {
 	}
 
 	return ints, nil
+}
+
+func isUUIDValid(contentUUID string) bool {
+	parsedUUID, err := uuid.FromString(contentUUID)
+	if err != nil {
+		warnLogger.Printf("Cannot parse UUID [%v], error: [%v]", contentUUID, err.Error())
+		return false
+	}
+	return contentUUID == parsedUUID.String()
 }

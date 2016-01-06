@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/satori/go.uuid"
 )
 
 // Content is the interface for different type of contents from different CMSs.
@@ -52,13 +51,4 @@ func UnmarshalContent(msg consumer.Message) (Content, error) {
 	default:
 		return nil, fmt.Errorf("Unsupported content with system ID: [%s].", systemID)
 	}
-}
-
-func isUUIDValid(contentUUID string) bool {
-	parsedUUID, err := uuid.FromString(contentUUID)
-	if err != nil {
-		warnLogger.Printf("Cannot parse UUID [%v], error: [%v]", contentUUID, err.Error())
-		return false
-	}
-	return contentUUID == parsedUUID.String()
 }
