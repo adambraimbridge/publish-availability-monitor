@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	. "github.com/Financial-Times/publish-availability-monitor/content"
+	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/gorilla/mux"
 )
 
@@ -62,6 +62,7 @@ const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | 
 
 var info *log.Logger
 var warn *log.Logger
+var errorL *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var appConfig *AppConfig
 var metricSink = make(chan PublishMetric)
@@ -73,7 +74,7 @@ func main() {
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
-		log.Printf("Cannot load configuration: [%v]", err)
+		errorL.Printf("Cannot load configuration: [%v]", err)
 		return
 	}
 
@@ -91,7 +92,7 @@ func enableHealthchecks() {
 	http.Handle("/", router)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		log.Panicf("Couldn't set up HTTP listener: %+v\n", err)
+		errorL.Panicf("Couldn't set up HTTP listener: %+v\n", err)
 	}
 }
 
@@ -127,14 +128,14 @@ func handleMessage(msg consumer.Message) error {
 		return nil
 	}
 
-	content, err := UnmarshalContent(msg)
+	cntnt, err := content.UnmarshalContent(msg)
 	if err != nil {
 		warn.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return err
 	}
 
-	uuid := content.GetUUID()
-	if !content.IsValid() {
+	uuid := cntnt.GetUUID()
+	if !cntnt.IsValid() {
 		info.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return nil
 	}
@@ -144,7 +145,7 @@ func handleMessage(msg consumer.Message) error {
 	publishDateString := msg.Headers["Message-Timestamp"]
 	publishDate, err := time.Parse(dateLayout, publishDateString)
 	if err != nil {
-		log.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
+		errorL.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
 			publishDateString, tid, err.Error())
 		return nil
 	}
@@ -154,14 +155,14 @@ func handleMessage(msg consumer.Message) error {
 		return nil
 	}
 
-	scheduleChecks(content, publishDate, tid, content.IsMarkedDeleted())
+	scheduleChecks(cntnt, publishDate, tid, cntnt.IsMarkedDeleted())
 
 	// for images we need to check their corresponding image sets
 	// the image sets don't have messages of their own so we need to create one
-	if content.GetType() == "Image" {
-		eomFile, ok := content.(EomFile)
+	if cntnt.GetType() == "Image" {
+		eomFile, ok := cntnt.(content.EomFile)
 		if !ok {
-			log.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
+			errorL.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
 			return nil
 		}
 		imageSetEomFile := spawnImageSet(eomFile)
@@ -173,22 +174,22 @@ func handleMessage(msg consumer.Message) error {
 	return nil
 }
 
-func spawnImageSet(imageEomFile EomFile) EomFile {
+func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
 	imageSetEomFile := imageEomFile
 	imageSetEomFile.Type = "ImageSet"
 
-	imageUUID, err := NewUUIDFromString(imageEomFile.UUID)
+	imageUUID, err := content.NewUUIDFromString(imageEomFile.UUID)
 	if err != nil {
 		warn.Printf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
 			imageEomFile.UUID, err.Error())
-		return EomFile{}
+		return content.EomFile{}
 	}
 
-	imageSetUUID, err := GenerateImageSetUUID(*imageUUID)
+	imageSetUUID, err := content.GenerateImageSetUUID(*imageUUID)
 	if err != nil {
 		warn.Printf("Cannot generate image set UUID: [%v], skipping image set check",
 			err.Error())
-		return EomFile{}
+		return content.EomFile{}
 	}
 
 	imageSetEomFile.UUID = imageSetUUID.String()
@@ -204,13 +205,11 @@ func isSyntheticMessage(tid string) bool {
 	return strings.HasPrefix(tid, "SYNTHETIC")
 }
 
-func initLogs(infoHandle io.Writer, warnHandle io.Writer, panicHandle io.Writer) {
+func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
 	//to be used for INFO-level logging: info.Println("foo is now bar")
 	info = log.New(infoHandle, "INFO  - ", logPattern)
 	//to be used for WARN-level logging: warn.Println("foo is now bar")
 	warn = log.New(warnHandle, "WARN  - ", logPattern)
-
-	log.SetFlags(logPattern)
-	log.SetPrefix("ERROR - ")
-	log.SetOutput(panicHandle)
+	//to be used for ERROR-level logging: errorL.Println("foo is now bar")
+	errorL = log.New(errorHandle, "ERROR - ", logPattern)
 }

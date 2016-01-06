@@ -25,19 +25,18 @@ const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | 
 
 var info *log.Logger
 var warn *log.Logger
+var errorL *log.Logger
 
 func init() {
 	//to be used for INFO-level logging: info.Println("foo is now bar")
 	info = log.New(os.Stdout, "INFO  - ", logPattern)
 	//to be used for WARN-level logging: warn.Println("foo is now bar")
 	warn = log.New(os.Stdout, "WARN  - ", logPattern)
-
-	log.SetFlags(logPattern)
-	log.SetPrefix("ERROR - ")
-	log.SetOutput(os.Stderr)
+	//to be used for ERROR-leve logging: errorL.Println("foo is now bar")
+	errorL = log.New(os.Stdout, "ERROR - ", logPattern)
 }
 
-// Unmarshals the message body into the appropriate content type based on the systemID header.
+// UnmarshalContent unmarshals the message body into the appropriate content type based on the systemID header.
 func UnmarshalContent(msg consumer.Message) (Content, error) {
 	headers := msg.Headers
 	systemID := headers[systemIDKey]

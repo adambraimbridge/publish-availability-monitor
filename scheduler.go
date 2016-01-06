@@ -1,26 +1,25 @@
 package main
 
 import (
-	"log"
 	"net/url"
 	"time"
 
-	. "github.com/Financial-Times/publish-availability-monitor/content"
+	"github.com/Financial-Times/publish-availability-monitor/content"
 )
 
-func scheduleChecks(content Content, publishDate time.Time, tid string, isMarkedDeleted bool) {
+func scheduleChecks(cntnt content.Content, publishDate time.Time, tid string, isMarkedDeleted bool) {
 	for _, conf := range appConfig.MetricConf {
 		endpointURL, err := url.Parse(conf.Endpoint)
 		if err != nil {
-			log.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
+			errorL.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
 			continue
 		}
-		if !validType(conf.ContentTypes, content.GetType()) {
+		if !validType(conf.ContentTypes, cntnt.GetType()) {
 			continue
 		}
 
 		var publishMetric = PublishMetric{
-			content.GetUUID(),
+			cntnt.GetUUID(),
 			false,
 			publishDate,
 			appConfig.Platform,
