@@ -1,16 +1,17 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/gorilla/mux"
 )
 
@@ -56,20 +57,12 @@ type AppConfig struct {
 	SplunkConf SplunkConfig         `json:"splunk-config"`
 }
 
-// EomFile models content as it is stored in our CMS
-type EomFile struct {
-	UUID             string `json:"uuid"`
-	Type             string `json:"type"`
-	Value            string `json:"value"`
-	Attributes       string `json:"attributes"`
-	SystemAttributes string `json:"systemAttributes"`
-}
-
 const dateLayout = "2006-01-02T15:04:05.000Z"
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
-var info *log.Logger
-var warn *log.Logger
+var infoLogger *log.Logger
+var warnLogger *log.Logger
+var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var appConfig *AppConfig
 var metricSink = make(chan PublishMetric)
@@ -81,7 +74,7 @@ func main() {
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
-		log.Printf("Cannot load configuration: [%v]", err)
+		errorLogger.Printf("Cannot load configuration: [%v]", err)
 		return
 	}
 
@@ -99,7 +92,7 @@ func enableHealthchecks() {
 	http.Handle("/", router)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		log.Panicf("Couldn't set up HTTP listener: %+v\n", err)
+		errorLogger.Panicf("Couldn't set up HTTP listener: %+v\n", err)
 	}
 }
 
@@ -108,7 +101,7 @@ func readMessages() {
 	for {
 		msgs, err := iterator.NextMessages()
 		if err != nil {
-			warn.Printf("Could not read messages: [%v]", err.Error())
+			warnLogger.Printf("Could not read messages: [%v]", err.Error())
 			continue
 		}
 		for _, m := range msgs {
@@ -128,50 +121,50 @@ func startAggregator() {
 
 func handleMessage(msg consumer.Message) error {
 	tid := msg.Headers["X-Request-Id"]
-	info.Printf("Received message with TID [%v]", tid)
+	infoLogger.Printf("Received message with TID [%v]", tid)
 
 	if isSyntheticMessage(tid) {
-		info.Printf("Message [%v] is INVALID: synthetic, skipping...", tid)
+		infoLogger.Printf("Message [%v] is INVALID: synthetic, skipping...", tid)
 		return nil
 	}
 
-	if !isMessageValid(msg) {
-		info.Printf("Message [%v] is INVALID, skipping...", tid)
-		return nil
-	}
-
-	var eomFile EomFile
-	err := json.Unmarshal([]byte(msg.Body), &eomFile)
+	publishedContent, err := content.UnmarshalContent(msg)
 	if err != nil {
-		log.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
+		warnLogger.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return err
 	}
 
-	if !isEomfileValid(eomFile) {
-		info.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, eomFile.UUID)
+	uuid := publishedContent.GetUUID()
+	if !publishedContent.IsValid() {
+		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return nil
 	}
 
-	info.Printf("Message [%v] with UUID [%v] is VALID.", tid, eomFile.UUID)
+	infoLogger.Printf("Message [%v] with UUID [%v] is VALID.", tid, uuid)
 
 	publishDateString := msg.Headers["Message-Timestamp"]
 	publishDate, err := time.Parse(dateLayout, publishDateString)
 	if err != nil {
-		log.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
+		errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
 			publishDateString, tid, err.Error())
 		return nil
 	}
 
 	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
-		info.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, eomFile.UUID)
+		infoLogger.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
 		return nil
 	}
 
-	scheduleChecks(eomFile, publishDate, tid, isMarkedDeleted(eomFile))
+	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted())
 
 	// for images we need to check their corresponding image sets
 	// the image sets don't have messages of their own so we need to create one
-	if eomFile.Type == "Image" {
+	if publishedContent.GetType() == "Image" {
+		eomFile, ok := publishedContent.(content.EomFile)
+		if !ok {
+			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
+			return nil
+		}
 		imageSetEomFile := spawnImageSet(eomFile)
 		if imageSetEomFile.UUID != "" {
 			scheduleChecks(imageSetEomFile, publishDate, tid, false)
@@ -181,35 +174,42 @@ func handleMessage(msg consumer.Message) error {
 	return nil
 }
 
-func spawnImageSet(imageEomFile EomFile) EomFile {
+func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
 	imageSetEomFile := imageEomFile
 	imageSetEomFile.Type = "ImageSet"
 
-	imageUUID, err := NewUUIDFromString(imageEomFile.UUID)
+	imageUUID, err := content.NewUUIDFromString(imageEomFile.UUID)
 	if err != nil {
-		warn.Printf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
+		warnLogger.Printf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
 			imageEomFile.UUID, err.Error())
-		return EomFile{}
+		return content.EomFile{}
 	}
 
-	imageSetUUID, err := GenerateImageSetUUID(*imageUUID)
+	imageSetUUID, err := content.GenerateImageSetUUID(*imageUUID)
 	if err != nil {
-		warn.Printf("Cannot generate image set UUID: [%v], skipping image set check",
+		warnLogger.Printf("Cannot generate image set UUID: [%v], skipping image set check",
 			err.Error())
-		return EomFile{}
+		return content.EomFile{}
 	}
 
 	imageSetEomFile.UUID = imageSetUUID.String()
 	return imageSetEomFile
 }
 
-func initLogs(infoHandle io.Writer, warnHandle io.Writer, panicHandle io.Writer) {
-	//to be used for INFO-level logging: info.Println("foo is now bar")
-	info = log.New(infoHandle, "INFO  - ", logPattern)
-	//to be used for WARN-level logging: warn.Println("foo is now bar")
-	warn = log.New(warnHandle, "WARN  - ", logPattern)
+func isMessagePastPublishSLA(date time.Time, threshold int) bool {
+	passedSLA := date.Add(time.Duration(threshold) * time.Second)
+	return time.Now().After(passedSLA)
+}
 
-	log.SetFlags(logPattern)
-	log.SetPrefix("ERROR - ")
-	log.SetOutput(panicHandle)
+func isSyntheticMessage(tid string) bool {
+	return strings.HasPrefix(tid, "SYNTHETIC")
+}
+
+func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
+	//to be used for INFO-level logging: info.Println("foo is now bar")
+	infoLogger = log.New(infoHandle, "INFO  - ", logPattern)
+	//to be used for WARN-level logging: warn.Println("foo is now bar")
+	warnLogger = log.New(warnHandle, "WARN  - ", logPattern)
+	//to be used for ERROR-level logging: errorL.Println("foo is now bar")
+	errorLogger = log.New(errorHandle, "ERROR - ", logPattern)
 }

@@ -1,35 +1,36 @@
 package main
 
 import (
-	"log"
 	"net/url"
 	"time"
+
+	"github.com/Financial-Times/publish-availability-monitor/content"
 )
 
-func scheduleChecks(eomFile EomFile, publishDate time.Time, tid string, isMarkedDeleted bool) {
-	for _, conf := range appConfig.MetricConf {
-		endpointURL, err := url.Parse(conf.Endpoint)
+func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid string, isMarkedDeleted bool) {
+	for _, metric := range appConfig.MetricConf {
+		endpointURL, err := url.Parse(metric.Endpoint)
 		if err != nil {
-			log.Printf("Cannot parse url [%v], error: [%v]", conf.Endpoint, err.Error())
+			errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
 			continue
 		}
-		if !validType(conf.ContentTypes, eomFile.Type) {
+		if !validType(metric.ContentTypes, contentToCheck.GetType()) {
 			continue
 		}
 
 		var publishMetric = PublishMetric{
-			eomFile.UUID,
+			contentToCheck.GetUUID(),
 			false,
 			publishDate,
 			appConfig.Platform,
 			Interval{},
-			conf,
+			metric,
 			*endpointURL,
 			tid,
 			isMarkedDeleted,
 		}
 
-		var checkInterval = appConfig.Threshold / conf.Granularity
+		var checkInterval = appConfig.Threshold / metric.Granularity
 		var publishCheck = NewPublishCheck(publishMetric, appConfig.Threshold, checkInterval, metricSink)
 		go scheduleCheck(*publishCheck)
 	}
@@ -43,7 +44,7 @@ func scheduleCheck(check PublishCheck) {
 	//compute the actual seconds left until the SLA to compensate for the
 	//time passed between publish and the message reaching this point
 	secondsUntilSLA := publishSLA.Sub(time.Now()).Seconds()
-	info.Printf("Seconds until SLA for [%v] : [%v]", check.Metric.UUID, int(secondsUntilSLA))
+	infoLogger.Printf("Seconds until SLA for [%v] : [%v]", check.Metric.UUID, int(secondsUntilSLA))
 
 	//used to signal the ticker to stop after the threshold duration is reached
 	quitChan := make(chan bool)
@@ -53,10 +54,10 @@ func scheduleCheck(check PublishCheck) {
 	}()
 
 	secondsSincePublish := time.Since(check.Metric.publishDate).Seconds()
-	info.Printf("Seconds elapsed since publish for [%v] : [%v]", check.Metric.UUID, int(secondsSincePublish))
+	infoLogger.Printf("Seconds elapsed since publish for [%v] : [%v]", check.Metric.UUID, int(secondsSincePublish))
 
 	elapsedIntervals := secondsSincePublish / float64(check.CheckInterval)
-	info.Printf("Skipping first [%v] checks for [%v]", int(elapsedIntervals), check.Metric.UUID)
+	infoLogger.Printf("Skipping first [%v] checks for [%v]", int(elapsedIntervals), check.Metric.UUID)
 
 	checkNr := int(elapsedIntervals) + 1
 	// ticker to fire once per interval

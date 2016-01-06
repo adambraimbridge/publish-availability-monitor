@@ -23,6 +23,6 @@ func ParseConfig(configFileName string) (*AppConfig, error) {
 		return nil, err
 	}
 
-	info.Printf("Using configuration: %# v", pretty.Formatter(conf))
+	infoLogger.Printf("Using configuration: %# v", pretty.Formatter(conf))
 	return &conf, nil
 }
