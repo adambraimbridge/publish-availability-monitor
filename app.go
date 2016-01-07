@@ -97,17 +97,8 @@ func enableHealthchecks() {
 }
 
 func readMessages() {
-	iterator := consumer.NewIterator(appConfig.QueueConf)
-	for {
-		msgs, err := iterator.NextMessages()
-		if err != nil {
-			warnLogger.Printf("Could not read messages: [%v]", err.Error())
-			continue
-		}
-		for _, m := range msgs {
-			go handleMessage(m)
-		}
-	}
+	c := consumer.NewConsumer(appConfig.QueueConf, handleMessage, http.Client{})
+	c.Start()
 }
 
 func startAggregator() {
@@ -119,25 +110,25 @@ func startAggregator() {
 	go aggregator.Run()
 }
 
-func handleMessage(msg consumer.Message) error {
+func handleMessage(msg consumer.Message) {
 	tid := msg.Headers["X-Request-Id"]
 	infoLogger.Printf("Received message with TID [%v]", tid)
 
 	if isSyntheticMessage(tid) {
 		infoLogger.Printf("Message [%v] is INVALID: synthetic, skipping...", tid)
-		return nil
+		return
 	}
 
 	publishedContent, err := content.UnmarshalContent(msg)
 	if err != nil {
 		warnLogger.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
-		return err
+		return
 	}
 
 	uuid := publishedContent.GetUUID()
 	if !publishedContent.IsValid() {
 		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
-		return nil
+		return
 	}
 
 	infoLogger.Printf("Message [%v] with UUID [%v] is VALID.", tid, uuid)
@@ -147,12 +138,12 @@ func handleMessage(msg consumer.Message) error {
 	if err != nil {
 		errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
 			publishDateString, tid, err.Error())
-		return nil
+		return
 	}
 
 	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
 		infoLogger.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
-		return nil
+		return
 	}
 
 	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted())
@@ -163,15 +154,13 @@ func handleMessage(msg consumer.Message) error {
 		eomFile, ok := publishedContent.(content.EomFile)
 		if !ok {
 			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
-			return nil
+			return
 		}
 		imageSetEomFile := spawnImageSet(eomFile)
 		if imageSetEomFile.UUID != "" {
 			scheduleChecks(imageSetEomFile, publishDate, tid, false)
 		}
 	}
-
-	return nil
 }
 
 func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
