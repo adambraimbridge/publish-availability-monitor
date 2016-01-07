@@ -7,7 +7,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
@@ -98,7 +101,20 @@ func enableHealthchecks() {
 
 func readMessages() {
 	c := consumer.NewConsumer(appConfig.QueueConf, handleMessage, http.Client{})
-	c.Start()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		c.Start()
+		wg.Done()
+	}()
+
+	ch := make(chan os.Signal)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	<-ch
+	c.Stop()
+	wg.Wait()
 }
 
 func startAggregator() {
