@@ -4,7 +4,8 @@
         "address": ["http://kafka-proxy:8080"],
         "group": "ExamplePubMonitorGroupName",
         "topic": "NativeCmsPublicationEvents",
-        "queue": "kafka"
+        "queue": "kafka",
+        "concurrentProcessing": true
     },
     "metricConfig": [{
         "endpoint": "http://contentannotator-api/content/",
