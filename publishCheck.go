@@ -21,6 +21,7 @@ type PublishCheck struct {
 
 // EndpointSpecificCheck is the interface which determines the state of the operation we are currently checking.
 type EndpointSpecificCheck interface {
+	// Returns the state of the operation and whether this check should be ignored
 	isCurrentOperationFinished(pm PublishMetric) (operationFinished, ignoreCheck bool)
 }
 
@@ -140,7 +141,7 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) (operationFin
 			return false, true
 		}
 	} else {
-		warnLogger.Printf("Skip checking rapid-fire publishes. Type assertion failure: Cannot convert lastModified date [%v] to string.", jsonResp["lastModified"])
+		warnLogger.Printf("Skip checking rapid-fire publishes for UUID [%s]. The field 'lastModified' is not valid: [%v].", pm.UUID, jsonResp["lastModified"])
 	}
 
 	return jsonResp["publishReference"] == pm.tid, false
