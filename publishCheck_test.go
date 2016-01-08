@@ -14,7 +14,7 @@ func TestIsCurrentOperationFinished_S3Check_Finished(t *testing.T) {
 	s3Check := &S3Check{
 		mockHTTPCaller(buildResponse(200, "imagebytes")),
 	}
-	if !s3Check.isCurrentOperationFinished(PublishMetric{}) {
+	if finished, _ := s3Check.isCurrentOperationFinished(PublishMetric{}); !finished {
 		t.Errorf("Expected: true. Actual: false")
 	}
 }
@@ -23,7 +23,7 @@ func TestIsCurrentOperationFinished_S3Check_Empty(t *testing.T) {
 	s3Check := &S3Check{
 		mockHTTPCaller(buildResponse(200, "")),
 	}
-	if s3Check.isCurrentOperationFinished(PublishMetric{}) {
+	if finished, _ := s3Check.isCurrentOperationFinished(PublishMetric{}); finished {
 		t.Errorf("Expected: false. Actual: true")
 	}
 }
@@ -32,7 +32,7 @@ func TestIsCurrentOperationFinished_S3Check_NotFinished(t *testing.T) {
 	s3Check := &S3Check{
 		mockHTTPCaller(buildResponse(404, "")),
 	}
-	if s3Check.isCurrentOperationFinished(PublishMetric{}) {
+	if finished, _ := s3Check.isCurrentOperationFinished(PublishMetric{}); finished {
 		t.Errorf("Expected: false. Actual: True")
 	}
 }
@@ -43,7 +43,7 @@ func TestIsCurrentOperationFinished_ContentCheck_InvalidContent(t *testing.T) {
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if contentCheck.isCurrentOperationFinished(PublishMetric{}) {
+	if finished, _ := contentCheck.isCurrentOperationFinished(PublishMetric{}); finished {
 		t.Errorf("Expected error.")
 	}
 }
@@ -55,7 +55,7 @@ func TestIsCurrentOperationFinished_ContentCheck_Finished(t *testing.T) {
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if !contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build()) {
+	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build()); !finished {
 		t.Error("Expected success.")
 	}
 }
@@ -67,7 +67,7 @@ func TestIsCurrentOperationFinished_ContentCheck_NotFinished(t *testing.T) {
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build()) {
+	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build()); finished {
 		t.Error("Expected failure.")
 	}
 }
@@ -79,7 +79,7 @@ func TestIsCurrentOperationFinished_ContentCheck_MarkedDeleted_Finished(t *testi
 		mockHTTPCaller(buildResponse(404, testResponse)),
 	}
 
-	if !contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build()) {
+	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build()); !finished {
 		t.Error("Expected success.")
 	}
 }
@@ -91,8 +91,111 @@ func TestIsCurrentOperationFinished_ContentCheck_MarkedDeleted_NotFinished(t *te
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build()) {
+	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build()); finished {
 		t.Error("Expected failure.")
+	}
+}
+
+func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsAfterCurrentPublishDate_IgnoreCheckTrue(t *testing.T) {
+	currentTid := "tid_1234"
+	publishDate, err := time.Parse(time.RFC3339Nano, "2016-01-08T14:22:06.271Z")
+	if err != nil {
+		t.Error("Failure in setting up test data")
+		return
+	}
+	testResponse := fmt.Sprint(`{ "uuid" : "1234-1234", "publishReference" : "tid_1235", "lastModified" : "2016-01-08T14:22:07.391Z" }`)
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
+
+	if _, ignoreCheck := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); !ignoreCheck {
+		t.Error("Expected ignoreCheck to be true")
+	}
+}
+
+func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsBeforeCurrentPublishDate_IgnoreCheckFalse(t *testing.T) {
+	currentTid := "tid_1234"
+	publishDate, err := time.Parse(time.RFC3339Nano, "2016-01-08T14:22:06.271Z")
+	if err != nil {
+		t.Error("Failure in setting up test data")
+		return
+	}
+	testResponse := fmt.Sprint(`{ "uuid" : "1234-1234", "publishReference" : "tid_1235", "lastModified" : "2016-01-08T14:22:05.391Z" }`)
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
+
+	if _, ignoreCheck := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); ignoreCheck {
+		t.Error("Expected ignoreCheck to be false.")
+	}
+}
+
+func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsBeforeCurrentPublishDate_NotFinished(t *testing.T) {
+	currentTid := "tid_1234"
+	publishDate, err := time.Parse(time.RFC3339Nano, "2016-01-08T14:22:06.271Z")
+	if err != nil {
+		t.Error("Failure in setting up test data")
+		return
+	}
+	testResponse := fmt.Sprint(`{ "uuid" : "1234-1234", "publishReference" : "tid_1235", "lastModified" : "2016-01-08T14:22:05.391Z" }`)
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
+
+	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); finished {
+		t.Error("Expected failure.")
+	}
+}
+
+func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateEqualsCurrentPublishDate_Finished(t *testing.T) {
+	currentTid := "tid_1234"
+	publishDateAsString := "2016-01-08T14:22:06.271Z"
+	publishDate, err := time.Parse(time.RFC3339Nano, publishDateAsString)
+	if err != nil {
+		t.Error("Failure in setting up test data")
+		return
+	}
+	testResponse := fmt.Sprintf(`{ "uuid" : "1234-1234", "publishReference" : "%s", "lastModified" : "%s" }`, currentTid, publishDateAsString)
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
+
+	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); !finished {
+		t.Error("Expected success.")
+	}
+}
+
+func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsNull_Finished(t *testing.T) {
+	currentTid := "tid_1234"
+	publishDate, err := time.Parse(time.RFC3339Nano, "2016-01-08T14:22:06.271Z")
+	if err != nil {
+		t.Error("Failure in setting up test data")
+		return
+	}
+	testResponse := fmt.Sprintf(`{ "uuid" : "1234-1234", "publishReference" : "%s", "lastModified" : null }`, currentTid)
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
+
+	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); !finished {
+		t.Error("Expected success.")
+	}
+}
+
+func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsEmptyString_Finished(t *testing.T) {
+	currentTid := "tid_1234"
+	publishDate, err := time.Parse(time.RFC3339Nano, "2016-01-08T14:22:06.271Z")
+	if err != nil {
+		t.Error("Failure in setting up test data")
+		return
+	}
+	testResponse := fmt.Sprintf(`{ "uuid" : "1234-1234", "publishReference" : "%s", "lastModified" : "" }`, currentTid)
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
+
+	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); !finished {
+		t.Error("Expected success.")
 	}
 }
 

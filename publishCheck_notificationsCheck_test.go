@@ -104,7 +104,7 @@ func TestIsCurrentOperationFinished_FirstBatchOfNotificationsContainsTID_Finishe
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if !notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(testTID).build()) {
+	if finished, _ := notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(testTID).build()); !finished {
 		t.Error("Expected success")
 	}
 }
@@ -140,7 +140,7 @@ func TestIsCurrentOperationFinished_FirstBatchOfNotificationsDoesNotContainTIDSe
 	notificationsCheck := &NotificationsCheck{
 		mockHTTPCaller(buildResponse(200, testResponse1), buildResponse(200, testResponse2)),
 	}
-	if notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID("tid_0123wxyZ").build()) {
+	if finished, _ := notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID("tid_0123wxyZ").build()); finished {
 		t.Error("Expected failure")
 	}
 }
@@ -186,7 +186,7 @@ func TestIsCurrentOperationFinished_FirstBatchOfNotificationsDoesNotContainTIDBu
 		mockHTTPCaller(buildResponse(200, testResponse1), buildResponse(200, testResponse2)),
 	}
 
-	if !notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTID).build()) {
+	if finished, _ := notificationsCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTID).build()); !finished {
 		t.Error("Expected success")
 	}
 }
