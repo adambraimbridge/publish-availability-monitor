@@ -80,7 +80,7 @@ func init() {
 // endpoint, applying endpoint-specific processing.
 // Returns true if the content is available at the endpoint, false otherwise.
 func (pc PublishCheck) DoCheck() (checkSuccessful, ignoreCheck bool) {
-	infoLogger.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
+	infoLogger.Printf("Running [%s] check for UUID [%v]\n", pc.Metric.config.Alias, pc.Metric.UUID)
 	check := endpointSpecificChecks[pc.Metric.config.Alias]
 	if check == nil {
 		warnLogger.Printf("No check for endpoint %s.", pc.Metric.config.Alias)
@@ -111,7 +111,6 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) (operationFin
 		return false, false
 	}
 
-	infoLogger.Printf("[%v]Not marked as deleted, got 200, checking PR", pm.UUID)
 	// if status is 200, we check the publishReference
 	// this way we can handle updates
 	data, err := ioutil.ReadAll(resp.Body)
