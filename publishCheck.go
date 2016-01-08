@@ -135,7 +135,7 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) (operationFin
 		if err != nil {
 			errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
 				jsonResp["lastModified"], pm.tid, err.Error())
-			return false, false
+			return jsonResp["publishReference"] == pm.tid, false
 		}
 		if lastModifiedDate.After(pm.publishDate) {
 			return false, true
