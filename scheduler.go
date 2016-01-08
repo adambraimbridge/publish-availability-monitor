@@ -63,7 +63,12 @@ func scheduleCheck(check PublishCheck) {
 	// ticker to fire once per interval
 	tickerChan := time.NewTicker(time.Duration(check.CheckInterval) * time.Second)
 	for {
-		if check.DoCheck() {
+		checkSuccessful, ignoreCheck := check.DoCheck()
+		if ignoreCheck {
+			tickerChan.Stop()
+			return
+		}
+		if checkSuccessful {
 			tickerChan.Stop()
 			check.Metric.publishOK = true
 

@@ -21,7 +21,7 @@ type PublishCheck struct {
 
 // EndpointSpecificCheck is the interface which determines the state of the operation we are currently checking.
 type EndpointSpecificCheck interface {
-	isCurrentOperationFinished(pm PublishMetric) bool
+	isCurrentOperationFinished(pm PublishMetric) (operationFinished, ignoreCheck bool)
 }
 
 // ContentCheck implements the EndpointSpecificCheck interface to check operation
@@ -79,23 +79,23 @@ func init() {
 // DoCheck performs an availability check on a piece of content at a certain
 // endpoint, applying endpoint-specific processing.
 // Returns true if the content is available at the endpoint, false otherwise.
-func (pc PublishCheck) DoCheck() bool {
+func (pc PublishCheck) DoCheck() (checkSuccessful, ignoreCheck bool) {
 	infoLogger.Printf("Running check for UUID [%v]\n", pc.Metric.UUID)
 	check := endpointSpecificChecks[pc.Metric.config.Alias]
 	if check == nil {
 		warnLogger.Printf("No check for endpoint %s.", pc.Metric.config.Alias)
-		return false
+		return false, false
 	}
 
 	return check.isCurrentOperationFinished(pc.Metric)
 }
 
-func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) bool {
+func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) (operationFinished, ignoreCheck bool) {
 	url := pm.endpoint.String() + pm.UUID
 	resp, err := c.httpCaller.doCall(url)
 	if err != nil {
 		warnLogger.Printf("Error calling URL: [%v] : [%v]", url, err.Error())
-		return false
+		return false, false
 	}
 	defer resp.Body.Close()
 
@@ -103,12 +103,12 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) bool {
 	// article cannot be found anymore
 	if pm.isMarkedDeleted {
 		infoLogger.Printf("[%v]Marked deleted, status code [%v]", pm.UUID, resp.StatusCode)
-		return resp.StatusCode == 404
+		return resp.StatusCode == 404, false
 	}
 
 	// if not marked deleted, operation isn't finished until status is 200
 	if resp.StatusCode != 200 {
-		return false
+		return false, false
 	}
 
 	infoLogger.Printf("[%v]Not marked as deleted, got 200, checking PR", pm.UUID)
@@ -117,7 +117,7 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) bool {
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		warnLogger.Printf("Cannot read response: [%s]", err.Error())
-		return false
+		return false, false
 	}
 
 	var jsonResp map[string]interface{}
@@ -125,23 +125,40 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) bool {
 	err = json.Unmarshal(data, &jsonResp)
 	if err != nil {
 		warnLogger.Printf("Cannot unmarshal JSON response: [%s]", err.Error())
-		return false
+		return false, false
 	}
 
-	return jsonResp["publishReference"] == pm.tid
+	// look for rapid-fire publishes
+	lastModifiedDateAsString, ok := jsonResp["lastModified"].(string)
+	if ok && lastModifiedDateAsString != "" {
+		lastModifiedDate, err := time.Parse(dateLayout, lastModifiedDateAsString)
+		if err != nil {
+			errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
+				jsonResp["lastModified"], pm.tid, err.Error())
+			return false, false
+		}
+		if lastModifiedDate.After(pm.publishDate) {
+			return false, true
+		}
+	} else {
+		warnLogger.Printf("Skip checking rapid-fire publishes. Type assertion failure: Cannot convert lastModified date [%v] to string.", jsonResp["lastModified"])
+	}
+
+	return jsonResp["publishReference"] == pm.tid, false
 }
 
-func (s S3Check) isCurrentOperationFinished(pm PublishMetric) bool {
+// ignoreCheck is always false
+func (s S3Check) isCurrentOperationFinished(pm PublishMetric) (operationFinished, ignoreCheck bool) {
 	url := pm.endpoint.String() + pm.UUID
 	resp, err := s.httpCaller.doCall(url)
 	if err != nil {
 		warnLogger.Printf("Error calling URL: [%v] : [%v]", url, err.Error())
-		return false
+		return false, false
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return false
+		return false, false
 	}
 
 	// we have to check if the body is null because of an issue where the image is
@@ -149,14 +166,14 @@ func (s S3Check) isCurrentOperationFinished(pm PublishMetric) bool {
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		warnLogger.Printf("Cannot read response: [%s]", err.Error())
-		return false
+		return false, false
 	}
 
 	if len(data) == 0 {
 		warnLogger.Printf("Image [%v] body is empty!", pm.UUID)
-		return false
+		return false, false
 	}
-	return true
+	return true, false
 }
 
 // ignore unused field (e.g. requestUrl)
@@ -175,18 +192,19 @@ type link struct {
 	Href string
 }
 
-func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric) bool {
+// ignoreCheck is always false
+func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric) (operationFinished, ignoreCheck bool) {
 	notificationsURL := buildNotificationsURL(pm)
 	var err error
 	for {
 		finished, nextNotificationsURL := n.checkBatchOfNotifications(notificationsURL, pm.tid)
 		if finished || nextNotificationsURL == "" {
-			return finished
+			return finished, false
 		}
 		//replace nextNotificationsURL host, as by default it's the API gateway host
 		notificationsURL, err = adjustNextNotificationsURL(notificationsURL, nextNotificationsURL)
 		if err != nil {
-			return false
+			return false, false
 		}
 	}
 }
