@@ -8,12 +8,38 @@
 		"concurrentProcessing": true
 	},
 	"metricConfig": [{
-		"endpoint": "URL1",
+		"endpoint": "CONTENT_URL",
+		"alias": "content",
+		"granularity": 40,
+		"contentTypes": [
+			"EOM::CompoundStory",
+			"Image",
+			"ImageSet",
+			"post", "webchat-markets-live", "webchat-live-blogs", "webchat-live-qa"
+		]
+	}, {
+		"endpoint": "S3_URL",
 		"granularity": 40,
 		"alias": "S3",
-		"contentTypes": ["Image"]
-	}
-	],
+		"contentTypes": [
+			"Image"
+		]
+	}, {
+		"endpoint": "LISTS_URL",
+		"granularity": 40,
+		"alias": "lists",
+		"contentTypes": [
+			"EOM::WebContainer"
+		]
+	}, {
+		"endpoint": "NOTIFICATIONS_URL",
+		"granularity": 40,
+		"alias": "notifications",
+		"contentTypes": [
+			"EOM::CompoundStory",
+			"post", "webchat-markets-live", "webchat-live-blogs", "webchat-live-qa"
+		]
+	}],
 	"platform": "ENVIRONMENT",
 	"splunk-config": {
 		"logPrefix": "[splunkMetrics] "
