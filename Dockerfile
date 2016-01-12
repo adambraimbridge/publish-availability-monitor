@@ -1,6 +1,7 @@
 FROM alpine
 
 ADD *.go /publish-availability-monitor/
+ADD content/*.go /publish-availability-monitor/content/
 ADD config.json.template /publish-availability-monitor/config.json
 ADD startup.sh /
 
@@ -14,7 +15,7 @@ RUN apk add --update bash \
   && mv /publish-availability-monitor/* $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
   && go get \
-  && go test \
+  && go test ./... \
   && go build \
   && mv publish-availability-monitor /app \
   && mv config.json /config.json \
