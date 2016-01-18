@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -182,9 +183,11 @@ type notificationsContent struct {
 	Links         []link
 }
 
-// ignore unused fields (e.g. type, id, apiUrl)
+// ignore unused fields (e.g. type, apiUrl)
 type notifications struct {
 	PublishReference string
+	LastModified     string
+	ID               string
 }
 
 // ignore unused field (e.g. rel)
@@ -197,50 +200,75 @@ func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric) (operat
 	notificationsURL := buildNotificationsURL(pm)
 	var err error
 	for {
-		finished, nextNotificationsURL := n.checkBatchOfNotifications(notificationsURL, pm.tid)
-		if finished || nextNotificationsURL == "" {
-			return finished, false
+		result := n.checkBatchOfNotifications(notificationsURL, pm)
+		if result.operationFinished || result.nextNotificationsURL == "" {
+			return result.operationFinished, result.ignoreCheck
 		}
 		//replace nextNotificationsURL host, as by default it's the API gateway host
-		notificationsURL, err = adjustNextNotificationsURL(notificationsURL, nextNotificationsURL)
+		notificationsURL, err = adjustNextNotificationsURL(notificationsURL, result.nextNotificationsURL)
 		if err != nil {
 			return false, false
 		}
 	}
 }
 
-// Check the notification content with the provided publishReference from the batch of notifications from the provided URL.
-// Returns the status of the check and the URL for the next batch of notifications (if it is applicable).
+// Bundles the result of a single check of batch of notifications
 // Note: the next notifications URL has the host set to the API gateway host, as returned by the notifications service.
-func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL, publishReference string) (bool, string) {
+type notificationCheckResult struct {
+	// the status of the check
+	operationFinished bool
+	// true, if there is a more recent notification found for the current content
+	ignoreCheck bool
+	// the URL for the next batch of notifications to be checked (if it is applicable), otherwise empty string ""
+	nextNotificationsURL string
+}
+
+// Check the notification content with the provided publishReference from the batch of notifications from the provided URL.
+// Returns the status of the check and the
+func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL string, pm PublishMetric) notificationCheckResult {
+	// return this check result where is appropriate (e.g. in case of errors): operation not finished, ignore checks false, empty next notifications URL
+	var defaultResult = notificationCheckResult{false, false, ""}
+
 	resp, err := n.httpCaller.doCall(notificationsURL)
 	if err != nil {
 		warnLogger.Printf("Error calling URL: [%v] : [%v]", notificationsURL, err.Error())
-		return false, ""
+		return defaultResult
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		warnLogger.Printf("/notifications endpoint status: [%d]", resp.StatusCode)
-		return false, ""
+		return defaultResult
 	}
 
 	var notifications notificationsContent
 	err = json.NewDecoder(resp.Body).Decode(&notifications)
 	if err != nil {
 		warnLogger.Printf("Cannot decode json response: [%s]", err.Error())
-		return false, ""
+		return defaultResult
 	}
 	for _, n := range notifications.Notifications {
-		if n.PublishReference == publishReference {
-			return true, ""
+		if strings.Contains(n.ID, pm.UUID) {
+			lastModifiedDate, err := time.Parse(dateLayout, n.LastModified)
+			if err != nil {
+				warnLogger.Printf("Skip checking rapid-fire publishes for notification of UUID [%s]. The field 'lastModified' is not valid: [%v].",
+					pm.UUID, n.LastModified)
+				//fallback check
+				return notificationCheckResult{pm.tid == n.PublishReference, false, ""}
+			}
+			if lastModifiedDate.After(pm.publishDate) {
+				return notificationCheckResult{false, true, ""}
+			}
+			if lastModifiedDate.Equal(pm.publishDate) {
+				return notificationCheckResult{true, false, ""}
+			}
 		}
 	}
 
 	if len(notifications.Notifications) > 0 {
-		return false, notifications.Links[0].Href
+		return notificationCheckResult{false, false, notifications.Links[0].Href}
 	}
-	return false, ""
+	return defaultResult
 }
 
 func buildNotificationsURL(pm PublishMetric) string {
