@@ -130,22 +130,29 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) (operationFin
 	}
 
 	// look for rapid-fire publishes
-	lastModifiedDateAsString, ok := jsonResp["lastModified"].(string)
-	if ok && lastModifiedDateAsString != "" {
-		lastModifiedDate, err := time.Parse(dateLayout, lastModifiedDateAsString)
-		if err != nil {
-			errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
-				jsonResp["lastModified"], pm.tid, err.Error())
-			return jsonResp["publishReference"] == pm.tid, false
-		}
-		if lastModifiedDate.After(pm.publishDate) {
+	lastModifiedDate, ok := parseLastModifiedDate(jsonResp)
+	if ok {
+		if (*lastModifiedDate).After(pm.publishDate) {
 			return false, true
 		}
-	} else {
-		warnLogger.Printf("Skip checking rapid-fire publishes for UUID [%s]. The field 'lastModified' is not valid: [%v].", pm.UUID, jsonResp["lastModified"])
+		if (*lastModifiedDate).Equal(pm.publishDate) {
+			return true, false
+		}
+		return false, false
 	}
+	warnLogger.Printf("Skip checking rapid-fire publishes for UUID [%s]. The field 'lastModified' is not valid: [%v].", pm.UUID, jsonResp["lastModified"])
 
+	// fallback check
 	return jsonResp["publishReference"] == pm.tid, false
+}
+
+func parseLastModifiedDate(jsonContent map[string]interface{}) (*time.Time, bool) {
+	lastModifiedDateAsString, ok := jsonContent["lastModified"].(string)
+	if ok && lastModifiedDateAsString != "" {
+		lastModifiedDate, err := time.Parse(dateLayout, lastModifiedDateAsString)
+		return &lastModifiedDate, err == nil
+	}
+	return nil, false
 }
 
 // ignoreCheck is always false
@@ -251,8 +258,8 @@ func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL string, p
 		if strings.Contains(n.ID, pm.UUID) {
 			lastModifiedDate, err := time.Parse(dateLayout, n.LastModified)
 			if err != nil {
-				warnLogger.Printf("Skip checking rapid-fire publishes for notification of UUID [%s]. The field 'lastModified' is not valid: [%v].",
-					pm.UUID, n.LastModified)
+				warnLogger.Printf("Skip checking rapid-fire publishes on notification endpoint for tid [%s]. The field 'lastModified' is not valid: [%v].",
+					pm.tid, n.LastModified)
 				//fallback check
 				return notificationCheckResult{pm.tid == n.PublishReference, false, ""}
 			}
