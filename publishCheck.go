@@ -234,7 +234,7 @@ type notificationCheckResult struct {
 // Returns the status of the check and the
 func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL string, pm PublishMetric) notificationCheckResult {
 	// return this check result where is appropriate (e.g. in case of errors): operation not finished, ignore checks false, empty next notifications URL
-	var defaultResult = notificationCheckResult{false, false, ""}
+	var defaultResult = notificationCheckResult{operationFinished: false, ignoreCheck: false, nextNotificationsURL: ""}
 
 	resp, err := n.httpCaller.doCall(notificationsURL)
 	if err != nil {
@@ -255,25 +255,28 @@ func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL string, p
 		return defaultResult
 	}
 	for _, n := range notifications.Notifications {
-		if strings.Contains(n.ID, pm.UUID) {
-			lastModifiedDate, err := time.Parse(dateLayout, n.LastModified)
-			if err != nil {
-				warnLogger.Printf("Skip checking rapid-fire publishes on notification endpoint for tid [%s]. The field 'lastModified' is not valid: [%v].",
-					pm.tid, n.LastModified)
-				//fallback check
-				return notificationCheckResult{pm.tid == n.PublishReference, false, ""}
-			}
-			if lastModifiedDate.After(pm.publishDate) {
-				return notificationCheckResult{false, true, ""}
-			}
-			if lastModifiedDate.Equal(pm.publishDate) {
-				return notificationCheckResult{true, false, ""}
-			}
+		if !strings.Contains(n.ID, pm.UUID) {
+			continue
 		}
+
+		lastModifiedDate, err := time.Parse(dateLayout, n.LastModified)
+		if err != nil {
+			warnLogger.Printf("Skip checking rapid-fire publishes on notification endpoint for tid [%s]. The field 'lastModified' is not valid: [%v].",
+				pm.tid, n.LastModified)
+			//fallback check
+			return notificationCheckResult{operationFinished: pm.tid == n.PublishReference, ignoreCheck: false, nextNotificationsURL: ""}
+		}
+		if lastModifiedDate.After(pm.publishDate) {
+			return notificationCheckResult{operationFinished: false, ignoreCheck: true, nextNotificationsURL: ""}
+		}
+		if lastModifiedDate.Equal(pm.publishDate) {
+			return notificationCheckResult{operationFinished: true, ignoreCheck: false, nextNotificationsURL: ""}
+		}
+		return defaultResult
 	}
 
 	if len(notifications.Notifications) > 0 {
-		return notificationCheckResult{false, false, notifications.Links[0].Href}
+		return notificationCheckResult{operationFinished: false, ignoreCheck: false, nextNotificationsURL: notifications.Links[0].Href}
 	}
 	return defaultResult
 }
