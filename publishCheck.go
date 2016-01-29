@@ -202,7 +202,6 @@ type link struct {
 	Href string
 }
 
-// ignoreCheck is always false
 func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric) (operationFinished, ignoreCheck bool) {
 	notificationsURL := buildNotificationsURL(pm)
 	var err error
