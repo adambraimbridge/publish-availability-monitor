@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/content"
+	"fmt"
 )
 
 func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid string, isMarkedDeleted bool) {
@@ -44,7 +45,7 @@ func scheduleCheck(check PublishCheck) {
 	//compute the actual seconds left until the SLA to compensate for the
 	//time passed between publish and the message reaching this point
 	secondsUntilSLA := publishSLA.Sub(time.Now()).Seconds()
-	infoLogger.Printf("Seconds until SLA for [%v] : [%v]", check.Metric.UUID, int(secondsUntilSLA))
+	infoLogger.Printf("Checking %s. [%v] seconds until SLA.", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.tid), int(secondsUntilSLA))
 
 	//used to signal the ticker to stop after the threshold duration is reached
 	quitChan := make(chan bool)
@@ -54,10 +55,10 @@ func scheduleCheck(check PublishCheck) {
 	}()
 
 	secondsSincePublish := time.Since(check.Metric.publishDate).Seconds()
-	infoLogger.Printf("Seconds elapsed since publish for [%v] : [%v]", check.Metric.UUID, int(secondsSincePublish))
+	infoLogger.Printf("Checking %s. [%v] seconds elapsed since publish.", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.tid), int(secondsSincePublish))
 
 	elapsedIntervals := secondsSincePublish / float64(check.CheckInterval)
-	infoLogger.Printf("Skipping first [%v] checks for [%v]", int(elapsedIntervals), check.Metric.UUID)
+	infoLogger.Printf("Checking %s. Skipping first [%v] checks", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.tid), int(elapsedIntervals))
 
 	checkNr := int(elapsedIntervals) + 1
 	// ticker to fire once per interval
@@ -65,6 +66,7 @@ func scheduleCheck(check PublishCheck) {
 	for {
 		checkSuccessful, ignoreCheck := check.DoCheck()
 		if ignoreCheck {
+			infoLogger.Printf("Ignore check for %s", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.tid))
 			tickerChan.Stop()
 			return
 		}
@@ -100,4 +102,9 @@ func validType(validTypes []string, eomType string) bool {
 		}
 	}
 	return false
+}
+
+
+func loggingContextForCheck(checkType string, uuid string, transactionId string) (string) {
+   return fmt.Sprintf("checkType=[%v], uuid=[%v], transaction_id=[%v]", checkType, uuid, transactionId)
 }
