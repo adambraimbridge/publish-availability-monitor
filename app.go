@@ -60,7 +60,7 @@ type AppConfig struct {
 	SplunkConf SplunkConfig         `json:"splunk-config"`
 }
 
-const dateLayout = "2006-01-02T15:04:05.000Z"
+const dateLayout = time.RFC3339Nano
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
 var infoLogger *log.Logger

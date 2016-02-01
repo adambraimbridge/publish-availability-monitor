@@ -284,7 +284,7 @@ func buildNotificationsURL(pm PublishMetric) string {
 	base := pm.endpoint.String()
 	queryParam := url.Values{}
 	//e.g. 2015-07-23T00:00:00.000Z
-	since := pm.publishDate.Format(time.RFC3339Nano)
+	since := pm.publishDate.Format(dateLayout)
 	queryParam.Add("since", since)
 	return base + "?" + queryParam.Encode()
 }
