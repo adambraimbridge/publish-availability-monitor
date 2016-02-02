@@ -98,7 +98,7 @@ func TestIsCurrentOperationFinished_ContentCheck_MarkedDeleted_NotFinished(t *te
 
 func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsAfterCurrentPublishDate_IgnoreCheckTrue(t *testing.T) {
 	currentTid := "tid_1234"
-	publishDate, err := time.Parse(time.RFC3339Nano, "2016-01-08T14:22:06.271Z")
+	publishDate, err := time.Parse(dateLayout, "2016-01-08T14:22:06.271Z")
 	if err != nil {
 		t.Error("Failure in setting up test data")
 		return
@@ -113,9 +113,28 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsAfterCurrentP
 	}
 }
 
+//fails for dateLayout="2006-01-02T15:04:05.000Z"
+func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsBeforeCurrentPublishDateSpecifiedWith2Decimals_IgnoreCheckFalse(t *testing.T) {
+	currentTid := "tid_1234"
+
+	publishDate, err := time.Parse(dateLayout, "2016-02-01T14:30:21.55Z")
+	if err != nil {
+		t.Error("Failure in setting up test data")
+		return
+	}
+	testResponse := fmt.Sprint(`{ "uuid" : "1234-1234", "publishReference" : "tid_1235", "lastModified" : "2016-02-01T14:30:21.549Z" }`)
+	contentCheck := &ContentCheck{
+		mockHTTPCaller(buildResponse(200, testResponse)),
+	}
+
+	if _, ignoreCheck := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); ignoreCheck {
+		t.Error("Expected ignoreCheck to be false")
+	}
+}
+
 func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsBeforeCurrentPublishDate_IgnoreCheckFalse(t *testing.T) {
 	currentTid := "tid_1234"
-	publishDate, err := time.Parse(time.RFC3339Nano, "2016-01-08T14:22:06.271Z")
+	publishDate, err := time.Parse(dateLayout, "2016-01-08T14:22:06.271Z")
 	if err != nil {
 		t.Error("Failure in setting up test data")
 		return
@@ -132,7 +151,7 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsBeforeCurrent
 
 func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsBeforeCurrentPublishDate_NotFinished(t *testing.T) {
 	currentTid := "tid_1234"
-	publishDate, err := time.Parse(time.RFC3339Nano, "2016-01-08T14:22:06.271Z")
+	publishDate, err := time.Parse(dateLayout, "2016-01-08T14:22:06.271Z")
 	if err != nil {
 		t.Error("Failure in setting up test data")
 		return
@@ -150,7 +169,7 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsBeforeCurrent
 func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateEqualsCurrentPublishDate_Finished(t *testing.T) {
 	currentTid := "tid_1234"
 	publishDateAsString := "2016-01-08T14:22:06.271Z"
-	publishDate, err := time.Parse(time.RFC3339Nano, publishDateAsString)
+	publishDate, err := time.Parse(dateLayout, publishDateAsString)
 	if err != nil {
 		t.Error("Failure in setting up test data")
 		return
@@ -168,7 +187,7 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateEqualsCurrentPu
 // fallback to publish reference check if last modified date is not valid
 func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsNullCurrentTIDAndPubReferenceMatch_Finished(t *testing.T) {
 	currentTid := "tid_1234"
-	publishDate, err := time.Parse(time.RFC3339Nano, "2016-01-08T14:22:06.271Z")
+	publishDate, err := time.Parse(dateLayout, "2016-01-08T14:22:06.271Z")
 	if err != nil {
 		t.Error("Failure in setting up test data")
 		return
@@ -186,7 +205,7 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsNullCurrentTI
 // fallback to publish reference check if last modified date is not valid
 func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsEmptyStringCurrentTIDAndPubReferenceMatch_Finished(t *testing.T) {
 	currentTid := "tid_1234"
-	publishDate, err := time.Parse(time.RFC3339Nano, "2016-01-08T14:22:06.271Z")
+	publishDate, err := time.Parse(dateLayout, "2016-01-08T14:22:06.271Z")
 	if err != nil {
 		t.Error("Failure in setting up test data")
 		return

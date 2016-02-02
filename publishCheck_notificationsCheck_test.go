@@ -370,7 +370,7 @@ func TestIsCurrentOperationFinished_FirstBatchOfNotificationsDoesNotContainUUIDB
 }
 
 func TestNotificationsBuildURL_Success(test *testing.T) {
-	publishDate, err := time.Parse(time.RFC3339Nano, "2015-10-21T14:22:06.271Z")
+	publishDate, err := time.Parse(dateLayout, "2015-10-21T14:22:06.271Z")
 	if err != nil {
 		test.Errorf("Test data error: [%v]", err)
 	}
