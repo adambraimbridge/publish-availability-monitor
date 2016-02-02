@@ -82,10 +82,10 @@ func init() {
 // endpoint, applying endpoint-specific processing.
 // Returns true if the content is available at the endpoint, false otherwise.
 func (pc PublishCheck) DoCheck() (checkSuccessful, ignoreCheck bool) {
-	infoLogger.Printf("Running [%s] check for UUID [%v]\n", pc.Metric.config.Alias, pc.Metric.UUID)
+	infoLogger.Printf("Running check for %s\n", loggingContextForCheck(pc.Metric.config.Alias, pc.Metric.UUID, pc.Metric.tid))
 	check := endpointSpecificChecks[pc.Metric.config.Alias]
 	if check == nil {
-		warnLogger.Printf("No check for endpoint %s.", pc.Metric.config.Alias)
+		warnLogger.Printf("No check for %s", loggingContextForCheck(pc.Metric.config.Alias, pc.Metric.UUID, pc.Metric.tid))
 		return false, false
 	}
 
@@ -96,7 +96,7 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) (operationFin
 	url := pm.endpoint.String() + pm.UUID
 	resp, err := c.httpCaller.doCall(url)
 	if err != nil {
-		warnLogger.Printf("Error calling URL: [%v] : [%v]", url, err.Error())
+		warnLogger.Printf("Error calling URL: [%v] for %s : [%v]", url, loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), err.Error())
 		return false, false
 	}
 	defer resp.Body.Close()
@@ -104,7 +104,7 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) (operationFin
 	// if the article was marked as deleted, operation is finished when the
 	// article cannot be found anymore
 	if pm.isMarkedDeleted {
-		infoLogger.Printf("[%v]Marked deleted, status code [%v]", pm.UUID, resp.StatusCode)
+		infoLogger.Printf("Content Marked deleted. Checking %s, status code [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), resp.StatusCode)
 		return resp.StatusCode == 404, false
 	}
 
@@ -117,7 +117,7 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) (operationFin
 	// this way we can handle updates
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warnLogger.Printf("Cannot read response: [%s]", err.Error())
+		warnLogger.Printf("Checking %s. Cannot read response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), err.Error())
 		return false, false
 	}
 
@@ -125,7 +125,7 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) (operationFin
 
 	err = json.Unmarshal(data, &jsonResp)
 	if err != nil {
-		warnLogger.Printf("Cannot unmarshal JSON response: [%s]", err.Error())
+		warnLogger.Printf("Checking %s. Cannot unmarshal JSON response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), err.Error())
 		return false, false
 	}
 
@@ -133,16 +133,20 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) (operationFin
 	lastModifiedDate, ok := parseLastModifiedDate(jsonResp)
 	if ok {
 		if (*lastModifiedDate).After(pm.publishDate) {
+			infoLogger.Printf("Checking %s. Last modified date [%v] is after publish date [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), lastModifiedDate, pm.publishDate)
 			return false, true
 		}
 		if (*lastModifiedDate).Equal(pm.publishDate) {
+			infoLogger.Printf("Checking %s. Last modified date [%v] is equal to publish date [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), lastModifiedDate, pm.publishDate)
 			return true, false
 		}
+		infoLogger.Printf("Checking %s. Last modified date [%v] is before publish date [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), lastModifiedDate, pm.publishDate)
 		return false, false
 	}
-	warnLogger.Printf("Skip checking rapid-fire publishes for UUID [%s]. The field 'lastModified' is not valid: [%v].", pm.UUID, jsonResp["lastModified"])
+	warnLogger.Printf("The field 'lastModified' is not valid: [%v]. Skip checking rapid-fire publishes for %s.", jsonResp["lastModified"], loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid))
 
 	// fallback check
+	infoLogger.Printf("Checking %s. Fallback checking publishReference [%v] from response.", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), jsonResp["publishReference"])
 	return jsonResp["publishReference"] == pm.tid, false
 }
 
@@ -160,7 +164,7 @@ func (s S3Check) isCurrentOperationFinished(pm PublishMetric) (operationFinished
 	url := pm.endpoint.String() + pm.UUID
 	resp, err := s.httpCaller.doCall(url)
 	if err != nil {
-		warnLogger.Printf("Error calling URL: [%v] : [%v]", url, err.Error())
+		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), url, err.Error())
 		return false, false
 	}
 	defer resp.Body.Close()
@@ -173,12 +177,12 @@ func (s S3Check) isCurrentOperationFinished(pm PublishMetric) (operationFinished
 	// uploaded to S3, but body is empty - in this case, we get 200 back but empty body
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warnLogger.Printf("Cannot read response: [%s]", err.Error())
+		warnLogger.Printf("Checking %s. Cannot read response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), err.Error())
 		return false, false
 	}
 
 	if len(data) == 0 {
-		warnLogger.Printf("Image [%v] body is empty!", pm.UUID)
+		warnLogger.Printf("Checking %s. Image body is empty!", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid))
 		return false, false
 	}
 	return true, false
@@ -237,20 +241,20 @@ func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL string, p
 
 	resp, err := n.httpCaller.doCall(notificationsURL)
 	if err != nil {
-		warnLogger.Printf("Error calling URL: [%v] : [%v]", notificationsURL, err.Error())
+		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), notificationsURL, err.Error())
 		return defaultResult
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		warnLogger.Printf("/notifications endpoint status: [%d]", resp.StatusCode)
+		warnLogger.Printf("Checking %s. Status NOT OK: [%d]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), resp.StatusCode)
 		return defaultResult
 	}
 
 	var notifications notificationsContent
 	err = json.NewDecoder(resp.Body).Decode(&notifications)
 	if err != nil {
-		warnLogger.Printf("Cannot decode json response: [%s]", err.Error())
+		warnLogger.Printf("Checking %s. Cannot decode json response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), err.Error())
 		return defaultResult
 	}
 	for _, n := range notifications.Notifications {
@@ -260,17 +264,20 @@ func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL string, p
 
 		lastModifiedDate, err := time.Parse(dateLayout, n.LastModified)
 		if err != nil {
-			warnLogger.Printf("Skip checking rapid-fire publishes on notification endpoint for tid [%s]. The field 'lastModified' is not valid: [%v].",
-				pm.tid, n.LastModified)
+			warnLogger.Printf("The field 'lastModified' is not valid: [%v]. Skip checking rapid-fire publishes for %s.", n.LastModified, loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid))
 			//fallback check
+			infoLogger.Printf("Checking %s. Fallback checking publishReference [%v] from response.", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), n.PublishReference)
 			return notificationCheckResult{operationFinished: pm.tid == n.PublishReference, ignoreCheck: false, nextNotificationsURL: ""}
 		}
 		if lastModifiedDate.After(pm.publishDate) {
+			infoLogger.Printf("Checking %s. Last modified date [%v] is after publish date [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), lastModifiedDate, pm.publishDate)
 			return notificationCheckResult{operationFinished: false, ignoreCheck: true, nextNotificationsURL: ""}
 		}
 		if lastModifiedDate.Equal(pm.publishDate) {
+			infoLogger.Printf("Checking %s. Last modified date [%v] is equal to publish date [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), lastModifiedDate, pm.publishDate)
 			return notificationCheckResult{operationFinished: true, ignoreCheck: false, nextNotificationsURL: ""}
 		}
+		infoLogger.Printf("Checking %s. Last modified date [%v] is before publish date [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), lastModifiedDate, pm.publishDate)
 		return defaultResult
 	}
 
