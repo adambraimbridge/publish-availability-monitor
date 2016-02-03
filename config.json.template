@@ -37,7 +37,7 @@
 		"alias": "notifications",
 		"contentTypes": [
 			"EOM::CompoundStory",
-			"post", "webchat-markets-live", "webchat-live-blogs", "webchat-live-qa"
+			"post"
 		]
 	}],
 	"platform": "ENVIRONMENT",
