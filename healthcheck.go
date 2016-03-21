@@ -14,10 +14,11 @@ import (
 type Healthcheck struct {
 	client http.Client
 	config AppConfig
+	metricContainer *publishHistory
 }
 
 func (h *Healthcheck) checkHealth() func(w http.ResponseWriter, r *http.Request) {
-	return fthealth.HandlerParallel("Dependent services healthcheck", "Checks if all the dependent services are reachable and healthy.", h.messageQueueProxyReachable())
+	return fthealth.HandlerParallel("Dependent services healthcheck", "Checks if all the dependent services are reachable and healthy.", h.messageQueueProxyReachable(), h.reflectPublishFailures())
 }
 
 func (h *Healthcheck) gtg(writer http.ResponseWriter, req *http.Request) {
@@ -106,4 +107,32 @@ func checkIfTopicIsPresent(body []byte, searchedTopic string) error {
 	}
 
 	return errors.New("Topic was not found")
+}
+
+func (h *Healthcheck) reflectPublishFailures() fthealth.Check {
+	return fthealth.Check{
+		BusinessImpact:   "At least two of the last 10 publishes failed. This will reflect in the SLA measurement.",
+		Name:             "ReflectPublishFailures",
+		PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-runbook",
+		Severity:         1,
+		TechnicalSummary: "Publishes did not meet the SLA measurments",
+		Checker:          h.checkForPublishFailures,
+	}
+
+}
+
+func (h *Healthcheck) checkForPublishFailures() error {
+	metricContainer.RLock()
+	failures := 0;
+	for i := 0; i < len(metricContainer.publishMetrics); i++ {
+		if (!metricContainer.publishMetrics[i].publishOK) {
+			failures += 1
+		}
+	}
+	metricContainer.RUnlock()
+
+	if failures >= 2 {
+		return fmt.Errorf("%d publish failures happened during the last 10 publishes.", failures)
+	}
+	return nil
 }

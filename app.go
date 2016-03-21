@@ -16,6 +16,7 @@ import (
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/gorilla/mux"
+	"fmt"
 )
 
 // Interval is a simple representation of an interval of time, with a lower and
@@ -60,6 +61,11 @@ type AppConfig struct {
 	SplunkConf SplunkConfig         `json:"splunk-config"`
 }
 
+type publishHistory struct {
+	sync.RWMutex
+	publishMetrics []PublishMetric
+}
+
 const dateLayout = time.RFC3339Nano
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
@@ -69,8 +75,14 @@ var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var appConfig *AppConfig
 var metricSink = make(chan PublishMetric)
+var metricContainer publishHistory
+
+
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 func main() {
+	//defer profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
+
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
 	flag.Parse()
 
@@ -81,6 +93,8 @@ func main() {
 		return
 	}
 
+	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
+
 	go enableHealthchecks()
 	startAggregator()
 	readMessages()
@@ -88,10 +102,11 @@ func main() {
 
 func enableHealthchecks() {
 
-	healthcheck := &Healthcheck{http.Client{}, *appConfig}
+	healthcheck := &Healthcheck{http.Client{}, *appConfig, &metricContainer}
 	router := mux.NewRouter()
 	router.HandleFunc("/__health", healthcheck.checkHealth())
 	router.HandleFunc("/__gtg", healthcheck.gtg)
+	router.HandleFunc("/history", loadHistory)
 	http.Handle("/", router)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
@@ -124,6 +139,24 @@ func startAggregator() {
 	destinations = append(destinations, splunkFeeder)
 	aggregator := NewAggregator(metricSink, destinations)
 	go aggregator.Run()
+}
+
+func loadHistory(w http.ResponseWriter, r *http.Request) {
+	log.Printf("History request.")
+	infoLogger.Printf("size:%s",len(metricContainer.publishMetrics))
+	metricContainer.RLock()
+	for i := len(metricContainer.publishMetrics) - 1; i >= 0; i-- {
+		fmt.Fprintf(w, "%d. Tid: %s, UUID: %s, Endpoint: %s, PublishDate: %s, Duration: %d, Succeeded: %t\n\n",
+			len(metricContainer.publishMetrics)-i,
+			metricContainer.publishMetrics[i].tid,
+			metricContainer.publishMetrics[i].UUID,
+			metricContainer.publishMetrics[i].config.Alias,
+			metricContainer.publishMetrics[i].publishDate.String(),
+			metricContainer.publishMetrics[i].publishInterval.upperBound,
+			metricContainer.publishMetrics[i].publishOK,
+		)
+	}
+	metricContainer.RUnlock()
 }
 
 func handleMessage(msg consumer.Message) {
@@ -162,7 +195,7 @@ func handleMessage(msg consumer.Message) {
 		return
 	}
 
-	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted())
+	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted(), &metricContainer)
 
 	// for images we need to check their corresponding image sets
 	// the image sets don't have messages of their own so we need to create one
@@ -174,7 +207,7 @@ func handleMessage(msg consumer.Message) {
 		}
 		imageSetEomFile := spawnImageSet(eomFile)
 		if imageSetEomFile.UUID != "" {
-			scheduleChecks(imageSetEomFile, publishDate, tid, false)
+			scheduleChecks(imageSetEomFile, publishDate, tid, false, &metricContainer)
 		}
 	}
 }
