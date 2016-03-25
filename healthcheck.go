@@ -126,7 +126,7 @@ func (h *Healthcheck) checkForPublishFailures() error {
 	failures := 0
 	for i := 0; i < len(metricContainer.publishMetrics); i++ {
 		if !metricContainer.publishMetrics[i].publishOK {
-			failures += 1
+			failures++
 		}
 	}
 	metricContainer.RUnlock()
@@ -136,7 +136,7 @@ func (h *Healthcheck) checkForPublishFailures() error {
 		failureThreshold = h.config.HealthConf.FailureThreshold
 	}
 	if failures >= failureThreshold {
-		return fmt.Errorf("%d publish failures happened during the last 10 publishes.", failures)
+		return fmt.Errorf("%d publish failures happened during the last 10 publishes", failures)
 	}
 	return nil
 }

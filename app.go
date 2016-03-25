@@ -64,6 +64,7 @@ type AppConfig struct {
 	HealthConf HealthConfig         `json:"healthConfig"`
 }
 
+// HealthConfig holds the application's healthchecks configuration
 type HealthConfig struct {
 	FailureThreshold int `json:"failureThreshold"`
 }
@@ -153,7 +154,7 @@ func startAggregator() {
 
 func loadHistory(w http.ResponseWriter, r *http.Request) {
 	log.Printf("History request.")
-	infoLogger.Printf("size:%s", len(metricContainer.publishMetrics))
+	infoLogger.Printf("size:%d", len(metricContainer.publishMetrics))
 	metricContainer.RLock()
 	for i := len(metricContainer.publishMetrics) - 1; i >= 0; i-- {
 		fmt.Fprintf(w, "%d. %v\n\n", len(metricContainer.publishMetrics)-i, metricContainer.publishMetrics[i])

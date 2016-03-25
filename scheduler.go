@@ -4,8 +4,9 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Financial-Times/publish-availability-monitor/content"
 	"fmt"
+
+	"github.com/Financial-Times/publish-availability-monitor/content"
 )
 
 func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid string, isMarkedDeleted bool, metricContainer *publishHistory) {
@@ -116,7 +117,6 @@ func validType(validTypes []string, eomType string) bool {
 	return false
 }
 
-
-func loggingContextForCheck(checkType string, uuid string, transactionId string) (string) {
-   return fmt.Sprintf("checkType=[%v], uuid=[%v], transaction_id=[%v]", checkType, uuid, transactionId)
+func loggingContextForCheck(checkType string, uuid string, transactionID string) string {
+	return fmt.Sprintf("checkType=[%v], uuid=[%v], transaction_id=[%v]", checkType, uuid, transactionID)
 }
