@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"net/url"
 	"os"
 	"os/signal"
@@ -13,10 +14,11 @@ import (
 	"syscall"
 	"time"
 
+	"fmt"
+
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/gorilla/mux"
-	"fmt"
 )
 
 // Interval is a simple representation of an interval of time, with a lower and
@@ -59,6 +61,11 @@ type AppConfig struct {
 	MetricConf []MetricConfig       `json:"metricConfig"`
 	Platform   string               `json:"platform"`
 	SplunkConf SplunkConfig         `json:"splunk-config"`
+	HealthConf HealthConfig         `json:"healthConfig"`
+}
+
+type HealthConfig struct {
+	FailureThreshold int `json:"failureThreshold"`
 }
 
 type publishHistory struct {
@@ -77,12 +84,7 @@ var appConfig *AppConfig
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 
-
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-
 func main() {
-	//defer profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
-
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
 	flag.Parse()
 
@@ -106,12 +108,20 @@ func enableHealthchecks() {
 	router := mux.NewRouter()
 	router.HandleFunc("/__health", healthcheck.checkHealth())
 	router.HandleFunc("/__gtg", healthcheck.gtg)
-	router.HandleFunc("/history", loadHistory)
+	router.HandleFunc("/__history", loadHistory)
+	attachProfiler(router)
 	http.Handle("/", router)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		errorLogger.Panicf("Couldn't set up HTTP listener: %+v\n", err)
 	}
+}
+
+func attachProfiler(router *mux.Router) {
+	router.HandleFunc("/debug/pprof/", pprof.Index)
+	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 }
 
 func readMessages() {
@@ -143,18 +153,10 @@ func startAggregator() {
 
 func loadHistory(w http.ResponseWriter, r *http.Request) {
 	log.Printf("History request.")
-	infoLogger.Printf("size:%s",len(metricContainer.publishMetrics))
+	infoLogger.Printf("size:%s", len(metricContainer.publishMetrics))
 	metricContainer.RLock()
 	for i := len(metricContainer.publishMetrics) - 1; i >= 0; i-- {
-		fmt.Fprintf(w, "%d. Tid: %s, UUID: %s, Endpoint: %s, PublishDate: %s, Duration: %d, Succeeded: %t\n\n",
-			len(metricContainer.publishMetrics)-i,
-			metricContainer.publishMetrics[i].tid,
-			metricContainer.publishMetrics[i].UUID,
-			metricContainer.publishMetrics[i].config.Alias,
-			metricContainer.publishMetrics[i].publishDate.String(),
-			metricContainer.publishMetrics[i].publishInterval.upperBound,
-			metricContainer.publishMetrics[i].publishOK,
-		)
+		fmt.Fprintf(w, "%d. %v\n\n", len(metricContainer.publishMetrics)-i, metricContainer.publishMetrics[i])
 	}
 	metricContainer.RUnlock()
 }
@@ -250,4 +252,16 @@ func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer)
 	warnLogger = log.New(warnHandle, "WARN  - ", logPattern)
 	//to be used for ERROR-level logging: errorL.Println("foo is now bar")
 	errorLogger = log.New(errorHandle, "ERROR - ", logPattern)
+}
+
+func (pm PublishMetric) String() string {
+	return fmt.Sprintf("Tid: %s, UUID: %s, Endpoint: %s, PublishDate: %s, Duration: %d, Succeeded: %t.",
+		pm.tid,
+		pm.UUID,
+		pm.config.Alias,
+		pm.publishDate.String(),
+		pm.publishInterval.upperBound,
+		pm.publishOK,
+	)
+
 }

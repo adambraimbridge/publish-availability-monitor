@@ -12,8 +12,8 @@ import (
 
 // Healthcheck offers methods to measure application health.
 type Healthcheck struct {
-	client http.Client
-	config AppConfig
+	client          http.Client
+	config          AppConfig
 	metricContainer *publishHistory
 }
 
@@ -123,15 +123,19 @@ func (h *Healthcheck) reflectPublishFailures() fthealth.Check {
 
 func (h *Healthcheck) checkForPublishFailures() error {
 	metricContainer.RLock()
-	failures := 0;
+	failures := 0
 	for i := 0; i < len(metricContainer.publishMetrics); i++ {
-		if (!metricContainer.publishMetrics[i].publishOK) {
+		if !metricContainer.publishMetrics[i].publishOK {
 			failures += 1
 		}
 	}
 	metricContainer.RUnlock()
 
-	if failures >= 2 {
+	failureThreshold := 2 //default
+	if h.config.HealthConf.FailureThreshold != 0 {
+		failureThreshold = h.config.HealthConf.FailureThreshold
+	}
+	if failures >= failureThreshold {
 		return fmt.Errorf("%d publish failures happened during the last 10 publishes.", failures)
 	}
 	return nil
