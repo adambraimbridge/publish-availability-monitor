@@ -153,8 +153,6 @@ func startAggregator() {
 }
 
 func loadHistory(w http.ResponseWriter, r *http.Request) {
-	log.Printf("History request.")
-	infoLogger.Printf("size:%d", len(metricContainer.publishMetrics))
 	metricContainer.RLock()
 	for i := len(metricContainer.publishMetrics) - 1; i >= 0; i-- {
 		fmt.Fprintf(w, "%d. %v\n\n", len(metricContainer.publishMetrics)-i, metricContainer.publishMetrics[i])
