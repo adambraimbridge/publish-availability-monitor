@@ -4,11 +4,12 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Financial-Times/publish-availability-monitor/content"
 	"fmt"
+
+	"github.com/Financial-Times/publish-availability-monitor/content"
 )
 
-func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid string, isMarkedDeleted bool) {
+func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid string, isMarkedDeleted bool, metricContainer *publishHistory) {
 	for _, metric := range appConfig.MetricConf {
 		endpointURL, err := url.Parse(metric.Endpoint)
 		if err != nil {
@@ -33,11 +34,11 @@ func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid s
 
 		var checkInterval = appConfig.Threshold / metric.Granularity
 		var publishCheck = NewPublishCheck(publishMetric, appConfig.Threshold, checkInterval, metricSink)
-		go scheduleCheck(*publishCheck)
+		go scheduleCheck(*publishCheck, metricContainer)
 	}
 }
 
-func scheduleCheck(check PublishCheck) {
+func scheduleCheck(check PublishCheck, metricContainer *publishHistory) {
 
 	//the date the SLA expires for this publish event
 	publishSLA := check.Metric.publishDate.Add(time.Duration(check.Threshold) * time.Second)
@@ -79,6 +80,7 @@ func scheduleCheck(check PublishCheck) {
 			check.Metric.publishInterval = Interval{lower, upper}
 
 			check.ResultSink <- check.Metric
+			updateHistory(metricContainer, check.Metric)
 			return
 		}
 		checkNr++
@@ -90,11 +92,22 @@ func scheduleCheck(check PublishCheck) {
 			//if we get here, checks were unsuccessful
 			check.Metric.publishOK = false
 			check.ResultSink <- check.Metric
+			updateHistory(metricContainer, check.Metric)
 			return
 		}
 	}
 
 }
+
+func updateHistory(metricContainer *publishHistory, newPublishResult PublishMetric) {
+	metricContainer.Lock()
+	if len(metricContainer.publishMetrics) == 10 {
+		metricContainer.publishMetrics = metricContainer.publishMetrics[1:len(metricContainer.publishMetrics)]
+	}
+	metricContainer.publishMetrics = append(metricContainer.publishMetrics, newPublishResult)
+	metricContainer.Unlock()
+}
+
 func validType(validTypes []string, eomType string) bool {
 	for _, t := range validTypes {
 		if t == eomType {
@@ -104,7 +117,6 @@ func validType(validTypes []string, eomType string) bool {
 	return false
 }
 
-
-func loggingContextForCheck(checkType string, uuid string, transactionId string) (string) {
-   return fmt.Sprintf("checkType=[%v], uuid=[%v], transaction_id=[%v]", checkType, uuid, transactionId)
+func loggingContextForCheck(checkType string, uuid string, transactionID string) string {
+	return fmt.Sprintf("checkType=[%v], uuid=[%v], transaction_id=[%v]", checkType, uuid, transactionID)
 }

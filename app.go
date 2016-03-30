@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"net/url"
 	"os"
 	"os/signal"
@@ -12,6 +13,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"fmt"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/content"
@@ -58,6 +61,17 @@ type AppConfig struct {
 	MetricConf []MetricConfig       `json:"metricConfig"`
 	Platform   string               `json:"platform"`
 	SplunkConf SplunkConfig         `json:"splunk-config"`
+	HealthConf HealthConfig         `json:"healthConfig"`
+}
+
+// HealthConfig holds the application's healthchecks configuration
+type HealthConfig struct {
+	FailureThreshold int `json:"failureThreshold"`
+}
+
+type publishHistory struct {
+	sync.RWMutex
+	publishMetrics []PublishMetric
 }
 
 const dateLayout = time.RFC3339Nano
@@ -69,6 +83,7 @@ var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var appConfig *AppConfig
 var metricSink = make(chan PublishMetric)
+var metricContainer publishHistory
 
 func main() {
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
@@ -81,6 +96,8 @@ func main() {
 		return
 	}
 
+	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
+
 	go enableHealthchecks()
 	startAggregator()
 	readMessages()
@@ -88,15 +105,24 @@ func main() {
 
 func enableHealthchecks() {
 
-	healthcheck := &Healthcheck{http.Client{}, *appConfig}
+	healthcheck := &Healthcheck{http.Client{}, *appConfig, &metricContainer}
 	router := mux.NewRouter()
 	router.HandleFunc("/__health", healthcheck.checkHealth())
 	router.HandleFunc("/__gtg", healthcheck.gtg)
+	router.HandleFunc("/__history", loadHistory)
+	attachProfiler(router)
 	http.Handle("/", router)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		errorLogger.Panicf("Couldn't set up HTTP listener: %+v\n", err)
 	}
+}
+
+func attachProfiler(router *mux.Router) {
+	router.HandleFunc("/debug/pprof/", pprof.Index)
+	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 }
 
 func readMessages() {
@@ -124,6 +150,14 @@ func startAggregator() {
 	destinations = append(destinations, splunkFeeder)
 	aggregator := NewAggregator(metricSink, destinations)
 	go aggregator.Run()
+}
+
+func loadHistory(w http.ResponseWriter, r *http.Request) {
+	metricContainer.RLock()
+	for i := len(metricContainer.publishMetrics) - 1; i >= 0; i-- {
+		fmt.Fprintf(w, "%d. %v\n\n", len(metricContainer.publishMetrics)-i, metricContainer.publishMetrics[i])
+	}
+	metricContainer.RUnlock()
 }
 
 func handleMessage(msg consumer.Message) {
@@ -162,7 +196,7 @@ func handleMessage(msg consumer.Message) {
 		return
 	}
 
-	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted())
+	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted(), &metricContainer)
 
 	// for images we need to check their corresponding image sets
 	// the image sets don't have messages of their own so we need to create one
@@ -174,7 +208,7 @@ func handleMessage(msg consumer.Message) {
 		}
 		imageSetEomFile := spawnImageSet(eomFile)
 		if imageSetEomFile.UUID != "" {
-			scheduleChecks(imageSetEomFile, publishDate, tid, false)
+			scheduleChecks(imageSetEomFile, publishDate, tid, false, &metricContainer)
 		}
 	}
 }
@@ -217,4 +251,16 @@ func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer)
 	warnLogger = log.New(warnHandle, "WARN  - ", logPattern)
 	//to be used for ERROR-level logging: errorL.Println("foo is now bar")
 	errorLogger = log.New(errorHandle, "ERROR - ", logPattern)
+}
+
+func (pm PublishMetric) String() string {
+	return fmt.Sprintf("Tid: %s, UUID: %s, Endpoint: %s, PublishDate: %s, Duration: %d, Succeeded: %t.",
+		pm.tid,
+		pm.UUID,
+		pm.config.Alias,
+		pm.publishDate.String(),
+		pm.publishInterval.upperBound,
+		pm.publishOK,
+	)
+
 }
