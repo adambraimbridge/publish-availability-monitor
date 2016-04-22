@@ -73,7 +73,7 @@ The preferrable way for the second step is to create a github release with the m
 	//optional field to indicate that this endpoint should only be checked
 	//for content of a certain type
 	//if not present, all content will be checked against this endpoint
-	"contentType": "Image"
+	"contentTypes": ["Image"]
 }
 ],
 ```
