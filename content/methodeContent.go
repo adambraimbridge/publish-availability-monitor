@@ -120,7 +120,7 @@ func isSupportedFileType(eomfile EomFile) bool {
 }
 
 func isWebChannel(eomfile EomFile) bool {
-	channel, ok := getXPathValue(eomfile.SystemAttributes, eomfile, sourceXPath)
+	channel, ok := getXPathValue(eomfile.SystemAttributes, eomfile, channelXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", channelXPath)
 		return false
