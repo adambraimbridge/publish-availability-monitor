@@ -17,6 +17,7 @@ const channelXPath = "/props/productInfo/name"
 const webTypeXPath = "//ObjectMetadata/FTcom/DIFTcomWebType"
 const filePathXPath = "//ObjectMetadata/EditorialNotes/ObjectLocation"
 const sourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
+const markDeletedFlagXPath = "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMarkDeleted"
 
 const expectedWebChannel = "FTcom"
 const expectedWebTypePrefix = "digitalList"
@@ -59,15 +60,7 @@ func (eomfile EomFile) IsMarkedDeleted() bool {
 	if eomfile.Type == "Image" || eomfile.Type == "EOM::WebContainer" {
 		return false
 	}
-	attributes := eomfile.Attributes
-	markDeletedFlagXPath := "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMarkDeleted"
-	path := xmlpath.MustCompile(markDeletedFlagXPath)
-	root, err := xmlpath.Parse(strings.NewReader(attributes))
-	if err != nil {
-		warnLogger.Printf("Cannot parse attribute XML of eomFile, error: [%v]", err.Error())
-		return false
-	}
-	markDeletedFlag, ok := path.String(root)
+	markDeletedFlag, ok := getXPathValue(eomfile.Attributes, eomfile, markDeletedFlagXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", markDeletedFlagXPath)
 		return false
@@ -88,14 +81,7 @@ func (eomfile EomFile) GetUUID() string {
 }
 
 func isListValid(eomfile EomFile) bool {
-	attributes := eomfile.Attributes
-	path := xmlpath.MustCompile(webTypeXPath)
-	root, err := xmlpath.Parse(strings.NewReader(attributes))
-	if err != nil {
-		warnLogger.Printf("Cannot parse attribute XML of eomfile, error: [%v]", err.Error())
-		return false
-	}
-	webType, ok := path.String(root)
+	webType, ok := getXPathValue(eomfile.Attributes, eomfile, webTypeXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", webTypeXPath)
 		return false
@@ -122,14 +108,7 @@ func isStoryValid(eomfile EomFile) bool {
 }
 
 func isSupportedFileType(eomfile EomFile) bool {
-	attributes := eomfile.Attributes
-	path := xmlpath.MustCompile(filePathXPath)
-	root, err := xmlpath.Parse(strings.NewReader(attributes))
-	if err != nil {
-		warnLogger.Printf("Cannot parse attribute XML of eomfile, error: [%v]", err.Error())
-		return false
-	}
-	filePath, ok := path.String(root)
+	filePath, ok := getXPathValue(eomfile.Attributes, eomfile, filePathXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", filePathXPath)
 		return false
@@ -141,14 +120,7 @@ func isSupportedFileType(eomfile EomFile) bool {
 }
 
 func isWebChannel(eomfile EomFile) bool {
-	systemAttributes := eomfile.SystemAttributes
-	path := xmlpath.MustCompile(channelXPath)
-	root, err := xmlpath.Parse(strings.NewReader(systemAttributes))
-	if err != nil {
-		warnLogger.Printf("Cannot parse system attribute XML of eomfile, error: [%v]", err.Error())
-		return false
-	}
-	channel, ok := path.String(root)
+	channel, ok := getXPathValue(eomfile.SystemAttributes, eomfile, sourceXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", channelXPath)
 		return false
@@ -170,14 +142,7 @@ func hasTitle(eomfile EomFile) bool {
 	}
 	articleXML := string(decoded[:])
 
-	root, err := xmlpath.Parse(strings.NewReader(articleXML))
-	if err != nil {
-		warnLogger.Printf("Cannot parse value XML of eomfile, error: [%v]", err.Error())
-		return false
-	}
-
-	path := xmlpath.MustCompile(titleXPath)
-	title, ok := path.String(root)
+	title, ok := getXPathValue(articleXML, eomfile, titleXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", titleXPath)
 		return false
@@ -200,14 +165,7 @@ func isImageValid(eomfile EomFile) bool {
 }
 
 func isSupportedCompoundStorySourceCode(eomfile EomFile) bool {
-	attributes := eomfile.Attributes
-	path := xmlpath.MustCompile(sourceXPath)
-	root, err := xmlpath.Parse(strings.NewReader(attributes))
-	if err != nil {
-		warnLogger.Printf("Cannot parse XML attribute of eomfile, error: [%v]", err.Error())
-		return false
-	}
-	sourceCode, ok := path.String(root)
+	sourceCode, ok := getXPathValue(eomfile.Attributes, eomfile, sourceXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", sourceXPath)
 		return false
@@ -218,12 +176,11 @@ func isSupportedCompoundStorySourceCode(eomfile EomFile) bool {
 	return false
 }
 
-func getXPathValue(eomfile EomFile, lookupPath string) (string, bool) {
-	attributes := eomfile.Attributes
+func getXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool) {
 	path := xmlpath.MustCompile(lookupPath)
-	root, err := xmlpath.Parse(strings.NewReader(attributes))
+	root, err := xmlpath.Parse(strings.NewReader(xml))
 	if err != nil {
-		warnLogger.Printf("Cannot parse XML attribute of eomfile, error: [%v]", err.Error())
+		warnLogger.Printf("Cannot parse XML of eomfile using xpath [%v], error: [%v]", err.Error(), lookupPath)
 		return "", false
 	}
 	xpathValue, ok := path.String(root)
@@ -234,7 +191,7 @@ func getXPathValue(eomfile EomFile, lookupPath string) (string, bool) {
 func isSupportedStorySourceCode (eomfile EomFile) bool {
 	validSourceCodes := [3]string{"FT", "TFTI", "MTFTI"}
 
-	sourceCode, ok := getXPathValue(eomfile, sourceXPath)
+	sourceCode, ok := getXPathValue(eomfile.Attributes, eomfile, sourceXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", sourceXPath)
 		return false
