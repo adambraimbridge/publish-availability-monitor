@@ -13,6 +13,7 @@
 		"granularity": 40,
 		"contentTypes": [
 			"EOM::CompoundStory",
+			"EOM::Story",
 			"Image",
 			"ImageSet",
 			"post", "webchat-markets-live", "webchat-live-blogs", "webchat-live-qa"

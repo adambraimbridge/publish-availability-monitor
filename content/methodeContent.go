@@ -10,6 +10,7 @@ import (
 const image = "Image"
 const webContainer = "EOM::WebContainer"
 const compoundStory = "EOM::CompoundStory"
+const story = "EOM::Story"
 
 const titleXPath = "/doc/lead/lead-headline/headline/ln"
 const channelXPath = "/props/productInfo/name"
@@ -44,6 +45,8 @@ func (eomfile EomFile) IsValid() bool {
 		return isListValid(eomfile)
 	case compoundStory:
 		return isCompoundStoryValid(eomfile)
+	case story:
+		return isStoryValid(eomfile)
 	case image:
 		return isImageValid(eomfile)
 	default:
@@ -107,7 +110,15 @@ func isCompoundStoryValid(eomfile EomFile) bool {
 	return isSupportedFileType(eomfile) &&
 		isWebChannel(eomfile) &&
 		hasTitle(eomfile) &&
-		isSupportedSourceCode(eomfile)
+		isSupportedCompoundStorySourceCode(eomfile)
+}
+
+func isStoryValid(eomfile EomFile) bool {
+
+	return isSupportedFileType(eomfile) &&
+	isWebChannel(eomfile) &&
+	hasTitle(eomfile) &&
+	isSupportedStorySourceCode(eomfile);
 }
 
 func isSupportedFileType(eomfile EomFile) bool {
@@ -188,7 +199,7 @@ func isImageValid(eomfile EomFile) bool {
 	return true
 }
 
-func isSupportedSourceCode(eomfile EomFile) bool {
+func isSupportedCompoundStorySourceCode(eomfile EomFile) bool {
 	attributes := eomfile.Attributes
 	path := xmlpath.MustCompile(sourceXPath)
 	root, err := xmlpath.Parse(strings.NewReader(attributes))
@@ -203,6 +214,35 @@ func isSupportedSourceCode(eomfile EomFile) bool {
 	}
 	if sourceCode == expectedSourceCode {
 		return true
+	}
+	return false
+}
+
+func getXPathValue(eomfile EomFile, lookupPath string) (string, bool) {
+	attributes := eomfile.Attributes
+	path := xmlpath.MustCompile(lookupPath)
+	root, err := xmlpath.Parse(strings.NewReader(attributes))
+	if err != nil {
+		warnLogger.Printf("Cannot parse XML attribute of eomfile, error: [%v]", err.Error())
+		return "", false
+	}
+	xpathValue, ok := path.String(root)
+	return xpathValue, ok
+
+}
+
+func isSupportedStorySourceCode (eomfile EomFile) bool {
+	validSourceCodes := [3]string{"FT", "TFTI", "MTFTI"}
+
+	sourceCode, ok := getXPathValue(eomfile, sourceXPath)
+	if !ok {
+		warnLogger.Printf("Cannot match node in XML using xpath [%v]", sourceXPath)
+		return false
+	}
+	for _, expected :=  range validSourceCodes {
+		if sourceCode == expected {
+			return true
+		}
 	}
 	return false
 }
