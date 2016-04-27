@@ -189,7 +189,7 @@ func getXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool
 }
 
 func isSupportedStorySourceCode (eomfile EomFile) bool {
-	validSourceCodes := [3]string{"FT", "TFTI", "MTFTI"}
+	validSourceCodes := [1]string{"FT"}
 
 	sourceCode, ok := getXPathValue(eomfile.Attributes, eomfile, sourceXPath)
 	if !ok {
