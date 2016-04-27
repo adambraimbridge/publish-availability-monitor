@@ -17,7 +17,7 @@ func TestIsEomfileValid_InvalidUUID(t *testing.T) {
 }
 
 func TestIsEomfileValid_InvalidSourceCode(t *testing.T) {
-	if unsupportedSourceCodeEomFile.IsValid() {
+	if unsupportedSourceCodeCompoundStory.IsValid() {
 		t.Error("Eomfile with unsupported source code marked as valid")
 	}
 }
@@ -39,50 +39,69 @@ func TestIsEomfileValid_ValidCompoundStory(t *testing.T) {
 		t.Error("Valid CompoundStory marked as invalid!")
 	}
 }
+
+func TestIsEomfileValid_ValidStory(t *testing.T) {
+	if !validStory.IsValid() {
+		t.Error("Valid Story marked as invalid!")
+	}
+}
+
 func TestHasTitle_ValidTitle(t *testing.T) {
 	if !hasTitle(eomfileWithTitle) {
-		t.Error("Compound story with title marked as invalid!")
+		t.Error("Eom File with title marked as invalid!")
 	}
 }
 
 func TestHasTitle_invalidTitle(t *testing.T) {
 	if hasTitle(eomfileWithoutTitle) {
-		t.Error("Compound story without title marked as valid!")
+		t.Error("Eom File without title marked as valid!")
 	}
 }
 
 func TestIsWebChannel_ValidChannel(t *testing.T) {
 	if !isWebChannel(validChannelEomFile) {
-		t.Error("Compound story with valid channel  marked as invalid!")
+		t.Error("Eom File with valid channel  marked as invalid!")
 	}
 }
 
 func TestIsWebChannel_InvalidChannel(t *testing.T) {
 	if isWebChannel(invalidChannelEomFile) {
-		t.Error("Compound story with invalid channel  marked as valid!")
+		t.Error("Eom File with invalid channel  marked as valid!")
 	}
 }
 
 func TestIsSupportedFileType_SupportedType(t *testing.T) {
 	if !isSupportedFileType(supportedEomFile) {
-		t.Error("Compound story with supported filetype marked as invalid!")
+		t.Error("Eom File with supported filetype marked as invalid!")
 	}
 }
 
 func TestIsSupportedFileType_UnupportedType(t *testing.T) {
 	if isSupportedFileType(unsupportedEomFile) {
-		t.Error("Compound story with unsupported filetype marked as valid!")
+		t.Error("Eom File with unsupported filetype marked as valid!")
 	}
 }
 
-func TestIsSupportedSourceCode_SupportedCode(t *testing.T) {
-	if !isSupportedSourceCode(supportedSourceCodeEomFile) {
+func TestIsSupportedSourceCode_CompoundStory_SupportedCode(t *testing.T) {
+	if !isSupportedCompoundStorySourceCode(supportedSourceCodeCompoundStory) {
 		t.Error("Compound story with supported source code marked as invalid!")
 	}
 }
 
-func TestIsSupportedSourceCode_UnupportedCode(t *testing.T) {
-	if isSupportedSourceCode(unsupportedSourceCodeEomFile) {
+func TestIsSupportedSourceCodes_Story_SupportedCode(t *testing.T) {
+	if !isSupportedStorySourceCode(supportedSourceCodeStory) {
+		t.Error("Story with supported source code marked as invalid!")
+	}
+}
+
+func TestIsSupportedSourceCode_CompoundStory_UnsupportedCode(t *testing.T) {
+	if isSupportedCompoundStorySourceCode(unsupportedSourceCodeCompoundStory) {
+		t.Error("Story with unsupported source code marked as valid!")
+	}
+}
+
+func TestIsSupportedSourceCode_Story_UnsupportedCode(t *testing.T) {
+	if isSupportedStorySourceCode(unsupportedSourceCodeStory) {
 		t.Error("Compound story with unsupported source code marked as valid!")
 	}
 }
@@ -150,6 +169,14 @@ var validCompoundStory = EomFile{
 	systemAttributesValidChannel,
 }
 
+var validStory = EomFile{
+	validUUID,
+	"EOM::Story",
+	contentWithHeadline,
+	supportedSourceCodeAttributes,
+	systemAttributesValidChannel,
+}
+
 var eomfileWithTitle = EomFile{
 	validUUID,
 	"EOM::CompoundStory",
@@ -182,7 +209,7 @@ var invalidChannelEomFile = EomFile{
 	systemAttributesInvalidChannel,
 }
 
-var supportedSourceCodeEomFile = EomFile{
+var supportedSourceCodeCompoundStory = EomFile{
 	validUUID,
 	"EOM::CompoundStory",
 	"bar",
@@ -190,7 +217,15 @@ var supportedSourceCodeEomFile = EomFile{
 	"systemAttributes",
 }
 
-var unsupportedSourceCodeEomFile = EomFile{
+var supportedSourceCodeStory = EomFile{
+	validUUID,
+	"EOM::Story",
+	"value",
+	supportedSourceCodeAttributes,
+	"systemAttributes",
+}
+
+var unsupportedSourceCodeCompoundStory = EomFile{
 	validUUID,
 	"EOM::CompoundStory",
 	"bar",
@@ -198,6 +233,13 @@ var unsupportedSourceCodeEomFile = EomFile{
 	"systemAttributes",
 }
 
+var unsupportedSourceCodeStory = EomFile{
+	validUUID,
+	"EOM::Story",
+	"bar",
+	unsupportedSourceCodeAttributes,
+	"systemAttributes",
+}
 var supportedEomFile = EomFile{
 	validUUID,
 	"EOM::CompoundStory",
@@ -246,6 +288,18 @@ var invalidImageEomFile = EomFile{
 	"system attributes",
 }
 
+func TestIsMarkedDeleted_CompoundStory_True(t *testing.T) {
+	if !compoundStoryMarkedDeletedTrue.IsMarkedDeleted() {
+		t.Error("Expected True, the compound story IS marked deleted")
+	}
+}
+
+func TestIsMarkedDeleted_CompoundStory_False(t *testing.T) {
+	if compoundStoryMarkedDeletedFalse.IsMarkedDeleted() {
+		t.Error("Expected False, the compound story IS NOT marked deleted")
+	}
+}
+
 func TestIsMarkedDeleted_Story_True(t *testing.T) {
 	if !storyMarkedDeletedTrue.IsMarkedDeleted() {
 		t.Error("Expected True, the story IS marked deleted")
@@ -270,9 +324,17 @@ func TestIsMarkedDeleted_WebContainer(t *testing.T) {
 	}
 }
 
-var storyMarkedDeletedTrue = EomFile{
+var compoundStoryMarkedDeletedTrue = EomFile{
 	UUIDString,
 	"EOM::CompoundStory",
+	content,
+	attributesMarkedDeletedTrue,
+	systemAttributes,
+}
+
+var storyMarkedDeletedTrue = EomFile{
+	UUIDString,
+	"EOM::Story",
 	content,
 	attributesMarkedDeletedTrue,
 	systemAttributes,
@@ -286,9 +348,17 @@ var imageEomFile = EomFile{
 	"barsystemAttributes",
 }
 
-var storyMarkedDeletedFalse = EomFile{
+var compoundStoryMarkedDeletedFalse = EomFile{
 	UUIDString,
 	"EOM::CompoundStory",
+	content,
+	attributesMarkedDeletedFalse,
+	systemAttributes,
+}
+
+var storyMarkedDeletedFalse = EomFile{
+	UUIDString,
+	"EOM::Story",
 	content,
 	attributesMarkedDeletedFalse,
 	systemAttributes,
@@ -314,6 +384,7 @@ const validFileTypeAttributes = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOC
 const invalidFileTypeAttributes = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE ObjectMetadata SYSTEM \"/SysConfig/Classify/FTStories/classify.dtd\"><ObjectMetadata><EditorialDisplayIndexing><DIBylineCopy>Kiran Stacey, Energy Correspondent</DIBylineCopy></EditorialDisplayIndexing><OutputChannels><DIFTcom><DIFTcomWebType>story</DIFTcomWebType></DIFTcom></OutputChannels><EditorialNotes><Language>English</Language><Author>staceyk</Author><ObjectLocation>/Users/staceyk/North Sea companies analysis CO 15.PDF</ObjectLocation></EditorialNotes><DataFactoryIndexing><ADRIS_MetaData><IndexSuccess>yes</IndexSuccess><StartTime>Wed Oct 21 10:11:53 GMT 2015</StartTime><EndTime>Wed Oct 21 10:11:57 GMT 2015</EndTime></ADRIS_MetaData></DataFactoryIndexing></ObjectMetadata>"
 
 var supportedSourceCodeAttributes = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE ObjectMetadata SYSTEM \"/SysConfig/Classify/FTStories/classify.dtd\"><ObjectMetadata><EditorialDisplayIndexing><DILeadCompanies /><DITemporaryCompanies><DITemporaryCompany><DICoTempCode /><DICoTempDescriptor /><DICoTickerCode /></DITemporaryCompany></DITemporaryCompanies><DIFTSEGlobalClassifications /><DIStockExchangeIndices /><DIHotTopics /><DIHeadlineCopy>Global oil inventory stands at record level</DIHeadlineCopy><DIBylineCopy>Anjli Raval, Oil and Gas Correspondent</DIBylineCopy><DIFTNPSections /><DIFirstParCopy>International Energy Agency says crude stockpiles near 3bn barrels despite robust demand growth</DIFirstParCopy><DIMasterImgFileRef>/FT/Graphics/Online/Master_2048x1152/2015/08/New%20story%20of%20MAS_crude-oil_02.jpg?uuid=c61fcc32-61cd-11e5-9846-de406ccb37f2</DIMasterImgFileRef></EditorialDisplayIndexing><OutputChannels><DIFTN><DIFTNPublicationDate /><DIFTNZoneEdition /><DIFTNPage /><DIFTNTimeEdition /><DIFTNFronts /></DIFTN><DIFTcom><DIFTcomWebType>story</DIFTcomWebType><DIFTcomDisplayCodes><DIFTcomDisplayCodeRank1><DIFTcomDisplayCode title=\"Markets - Commodities\"><DIFTcomDisplayCodeFTCode>MKCO</DIFTcomDisplayCodeFTCode><DIFTcomDisplayCodeDescriptor>Markets - Commodities</DIFTcomDisplayCodeDescriptor><DIFTcomDisplayCodeNewsInDepth>True</DIFTcomDisplayCodeNewsInDepth><DIFTcomDisplayCodeSite>FTcom</DIFTcomDisplayCodeSite><DIFTcomDisplayCodeArticleType>News</DIFTcomDisplayCodeArticleType><DIFTcomDisplayCodeArticleBrand /><DIFTcomDisplayCodeEditorsTag>Commodities</DIFTcomDisplayCodeEditorsTag></DIFTcomDisplayCode></DIFTcomDisplayCodeRank1><DIFTcomDisplayCodeRank2><DIFTcomDisplayCode title=\"Markets - European Equities\"><DIFTcomDisplayCodeFTCode>MKEU</DIFTcomDisplayCodeFTCode><DIFTcomDisplayCodeDescriptor>Markets - European Equities</DIFTcomDisplayCodeDescriptor><DIFTcomDisplayCodeNewsInDepth>True</DIFTcomDisplayCodeNewsInDepth><DIFTcomDisplayCodeSite>FTcom</DIFTcomDisplayCodeSite><DIFTcomDisplayCodeArticleType>News</DIFTcomDisplayCodeArticleType><DIFTcomDisplayCodeArticleBrand /><DIFTcomDisplayCodeEditorsTag>European Equities</DIFTcomDisplayCodeEditorsTag></DIFTcomDisplayCode><DIFTcomDisplayCode title=\"Energy - Oil &amp; Gas\"><DIFTcomDisplayCodeFTCode>OG8E</DIFTcomDisplayCodeFTCode><DIFTcomDisplayCodeDescriptor>Energy - Oil &amp; Gas</DIFTcomDisplayCodeDescriptor><DIFTcomDisplayCodeNewsInDepth>True</DIFTcomDisplayCodeNewsInDepth><DIFTcomDisplayCodeSite>FTcom</DIFTcomDisplayCodeSite><DIFTcomDisplayCodeArticleType>News</DIFTcomDisplayCodeArticleType><DIFTcomDisplayCodeArticleBrand /><DIFTcomDisplayCodeEditorsTag>Oil &amp; Gas</DIFTcomDisplayCodeEditorsTag></DIFTcomDisplayCode><DIFTcomDisplayCode title=\"Energy\"><DIFTcomDisplayCodeFTCode>NDEM</DIFTcomDisplayCodeFTCode><DIFTcomDisplayCodeDescriptor>Energy</DIFTcomDisplayCodeDescriptor><DIFTcomDisplayCodeNewsInDepth>True</DIFTcomDisplayCodeNewsInDepth><DIFTcomDisplayCodeSite>FTcom</DIFTcomDisplayCodeSite><DIFTcomDisplayCodeArticleType>News</DIFTcomDisplayCodeArticleType><DIFTcomDisplayCodeArticleBrand /><DIFTcomDisplayCodeEditorsTag>Energy</DIFTcomDisplayCodeEditorsTag></DIFTcomDisplayCode><DIFTcomDisplayCode title=\"Companies\"><DIFTcomDisplayCodeFTCode>BNIP</DIFTcomDisplayCodeFTCode><DIFTcomDisplayCodeDescriptor>Companies</DIFTcomDisplayCodeDescriptor><DIFTcomDisplayCodeNewsInDepth>True</DIFTcomDisplayCodeNewsInDepth><DIFTcomDisplayCodeSite>FTcom</DIFTcomDisplayCodeSite><DIFTcomDisplayCodeArticleType>News</DIFTcomDisplayCodeArticleType><DIFTcomDisplayCodeArticleBrand /><DIFTcomDisplayCodeEditorsTag /></DIFTcomDisplayCode><DIFTcomDisplayCode title=\"Markets\"><DIFTcomDisplayCodeFTCode>MKIP</DIFTcomDisplayCodeFTCode><DIFTcomDisplayCodeDescriptor>Markets</DIFTcomDisplayCodeDescriptor><DIFTcomDisplayCodeNewsInDepth>True</DIFTcomDisplayCodeNewsInDepth><DIFTcomDisplayCodeSite>FTcom</DIFTcomDisplayCodeSite><DIFTcomDisplayCodeArticleType>News</DIFTcomDisplayCodeArticleType><DIFTcomDisplayCodeArticleBrand /><DIFTcomDisplayCodeEditorsTag /></DIFTcomDisplayCode><DIFTcomDisplayCode title=\"Markets - Equities Main\"><DIFTcomDisplayCodeFTCode>MKEQ</DIFTcomDisplayCodeFTCode><DIFTcomDisplayCodeDescriptor>Markets - Equities Main</DIFTcomDisplayCodeDescriptor><DIFTcomDisplayCodeNewsInDepth>True</DIFTcomDisplayCodeNewsInDepth><DIFTcomDisplayCodeSite>FTcom</DIFTcomDisplayCodeSite><DIFTcomDisplayCodeArticleType>News</DIFTcomDisplayCodeArticleType><DIFTcomDisplayCodeArticleBrand /><DIFTcomDisplayCodeEditorsTag>Equities</DIFTcomDisplayCodeEditorsTag></DIFTcomDisplayCode></DIFTcomDisplayCodeRank2></DIFTcomDisplayCodes><DIFTcomSubscriptionLevel>0</DIFTcomSubscriptionLevel><DIFTcomUpdateTimeStamp>False</DIFTcomUpdateTimeStamp><DIFTcomIndexAndSynd>false</DIFTcomIndexAndSynd><DIFTcomSafeToSyndicate>True</DIFTcomSafeToSyndicate><DIFTcomInitialPublication>20151113105031</DIFTcomInitialPublication><DIFTcomLastPublication>20151113132953</DIFTcomLastPublication><DIFTcomSuppresInlineAds>False</DIFTcomSuppresInlineAds><DIFTcomMap>True</DIFTcomMap><DIFTcomDisplayStyle>Normal</DIFTcomDisplayStyle><DIFTcomFeatureType>Normal</DIFTcomFeatureType><DIFTcomMarkDeleted>False</DIFTcomMarkDeleted><DIFTcomMakeUnlinkable>False</DIFTcomMakeUnlinkable><isBestStory>0</isBestStory><DIFTcomCMRId>3040370</DIFTcomCMRId><DIFTcomCMRHint /><DIFTcomCMR><DIFTcomCMRPrimarySection>Commodities</DIFTcomCMRPrimarySection><DIFTcomCMRPrimarySectionId>MTA1-U2VjdGlvbnM=</DIFTcomCMRPrimarySectionId><DIFTcomCMRPrimaryTheme>Oil</DIFTcomCMRPrimaryTheme><DIFTcomCMRPrimaryThemeId>ZmFmYTUxOTItMGZjZC00YmJkLWJlZTQtMmY3ZDZiOWZkYmYw-VG9waWNz</DIFTcomCMRPrimaryThemeId><DIFTcomCMRBrand /><DIFTcomCMRBrandId /><DIFTcomCMRGenre>News</DIFTcomCMRGenre><DIFTcomCMRGenreId>Nw==-R2VucmVz</DIFTcomCMRGenreId><DIFTcomCMRMediaType>Text</DIFTcomCMRMediaType><DIFTcomCMRMediaTypeId>ZjMwY2E2NjctMDA1Ni00ZTk4LWI0MWUtZjk5MTk2ZTMyNGVm-TWVkaWFUeXBlcw==</DIFTcomCMRMediaTypeId></DIFTcomCMR><DIFTcomECPositionInText>Default</DIFTcomECPositionInText><DIFTcomHideECLevel1>False</DIFTcomHideECLevel1><DIFTcomHideECLevel2>False</DIFTcomHideECLevel2><DIFTcomHideECLevel3>False</DIFTcomHideECLevel3><DIFTcomDiscussion>True</DIFTcomDiscussion><DIFTcomArticleImage>Article size</DIFTcomArticleImage></DIFTcom><DISyndication><DISyndBeenCopied>False</DISyndBeenCopied><DISyndEdition>USA</DISyndEdition><DISyndStar>01</DISyndStar><DISyndChannel /><DISyndArea /><DISyndCategory /></DISyndication></OutputChannels><EditorialNotes><Language>English</Language><Author>ravala</Author><Guides /><Editor /><Sources><Source title=\"Financial Times\"><SourceCode>FT</SourceCode><SourceDescriptor>Financial Times</SourceDescriptor><SourceOnlineInclusion>True</SourceOnlineInclusion><SourceCanBeSyndicated>True</SourceCanBeSyndicated></Source></Sources><WordCount>670</WordCount><CreationDate>20151113095342</CreationDate><EmbargoDate /><ExpiryDate>20151113095342</ExpiryDate><ObjectLocation>/FT/Content/Markets/Stories/Live/IEA MA 13.xml</ObjectLocation><OriginatingStory /><CCMS><CCMSCommissionRefNo /><CCMSContributorRefNo>CB-0000844</CCMSContributorRefNo><CCMSContributorFullName>Anjli Raval</CCMSContributorFullName><CCMSContributorInclude /><CCMSContributorRights>3</CCMSContributorRights><CCMSFilingDate /><CCMSProposedPublishingDate /></CCMS></EditorialNotes><WiresIndexing><category /><Keyword /><char_count /><priority /><basket /><title /><Version /><story_num /><file_name /><serviceid /><entry_date /><ref_field /><take_num /></WiresIndexing><DataFactoryIndexing><ADRIS_MetaData><IndexSuccess>yes</IndexSuccess><StartTime>Fri Nov 13 13:29:53 GMT 2015</StartTime><EndTime>Fri Nov 13 13:29:56 GMT 2015</EndTime></ADRIS_MetaData><DFMajorCompanies><DFMajorCompany><DFCoMajScore>100</DFCoMajScore><DFCoMajDescriptor>International_Energy_Agency</DFCoMajDescriptor><DFCoMajFTCode>IEIEA00000</DFCoMajFTCode><Version>1</Version><DFCoMajTickerSymbol /><DFCoMajTickerExchangeCountry /><DFCoMajTickerExchangeCode /><DFCoMajFTMWTickercode /><DFCoMajSEDOL /><DFCoMajISIN /><DFCoMajCOFlag>O</DFCoMajCOFlag></DFMajorCompany></DFMajorCompanies><DFMinorCompanies /><DFNAICS><DFNAIC><DFNAICSFTCode>N52</DFNAICSFTCode><DFNAICSDescriptor>Finance_&amp;_Insurance</DFNAICSDescriptor><Version>1997</Version></DFNAIC><DFNAIC><DFNAICSFTCode>N523</DFNAICSFTCode><DFNAICSDescriptor>Security_Commodity_Contracts_&amp;_Like_Activity</DFNAICSDescriptor><Version>1997</Version></DFNAIC><DFNAIC><DFNAICSFTCode>N52321</DFNAICSFTCode><DFNAICSDescriptor>Securities_&amp;_Commodity_Exchanges</DFNAICSDescriptor><Version>1997</Version></DFNAIC><DFNAIC><DFNAICSFTCode>N9261</DFNAICSFTCode><DFNAICSDescriptor>Admin_of_Economic_Programs</DFNAICSDescriptor><Version>1997</Version></DFNAIC><DFNAIC><DFNAICSFTCode>N92613</DFNAICSFTCode><DFNAICSDescriptor>Regulation_&amp;_Admin_of_Utilities</DFNAICSDescriptor><Version>1997</Version></DFNAIC></DFNAICS><DFWPMIndustries /><DFFTSEGlobalClassifications /><DFStockExchangeIndices /><DFSubjects /><DFCountries /><DFRegions /><DFWPMRegions /><DFProvinces /><DFFTcomDisplayCodes /><DFFTSections /><DFWebRegions /></DataFactoryIndexing></ObjectMetadata>"
+
 var unsupportedSourceCodeAttributes = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE ObjectMetadata SYSTEM \"/SysConfig/Classify/FTStories/classify.dtd\"><ObjectMetadata><EditorialDisplayIndexing><DILeadCompanies /><DITemporaryCompanies><DITemporaryCompany><DICoTempCode /><DICoTempDescriptor /><DICoTickerCode /></DITemporaryCompany></DITemporaryCompanies><DIFTSEGlobalClassifications /><DIStockExchangeIndices /><DIHotTopics /><DIHeadlineCopy /><DIBylineCopy>Pilita Clark and Aimee Keane</DIBylineCopy><DIFTNPSections /><DIFirstParCopy /><DIMasterImgFileRef>/FT/Graphics/Online/Master_2048x1152/2015/01/MAS_m238260_20150118210430.jpg?uuid=987d1f18-9f55-11e4-a849-00144feab7de</DIMasterImgFileRef></EditorialDisplayIndexing><OutputChannels><DIFTN><DIFTNPublicationDate /><DIFTNZoneEdition /><DIFTNPage /><DIFTNTimeEdition /><DIFTNFronts /></DIFTN><DIFTcom><DIFTcomWebType>story</DIFTcomWebType><DIFTcomDisplayCodes><DIFTcomDisplayCodeRank1 /><DIFTcomDisplayCodeRank2 /></DIFTcomDisplayCodes><DIFTcomSubscriptionLevel>0</DIFTcomSubscriptionLevel><DIFTcomUpdateTimeStamp>False</DIFTcomUpdateTimeStamp><DIFTcomIndexAndSynd>true</DIFTcomIndexAndSynd><DIFTcomSafeToSyndicate>True</DIFTcomSafeToSyndicate><DIFTcomInitialPublication>20150306111836</DIFTcomInitialPublication><DIFTcomLastPublication>20151112154414</DIFTcomLastPublication><DIFTcomSuppresInlineAds>False</DIFTcomSuppresInlineAds><DIFTcomMap>True</DIFTcomMap><DIFTcomDisplayStyle>Normal</DIFTcomDisplayStyle><DIFTcomFeatureType>Normal</DIFTcomFeatureType><DIFTcomMarkDeleted>False</DIFTcomMarkDeleted><DIFTcomMakeUnlinkable>False</DIFTcomMakeUnlinkable><isBestStory>0</isBestStory><DIFTcomCMRId>2884440</DIFTcomCMRId><DIFTcomCMRHint /><DIFTcomCMR><DIFTcomCMRPrimarySection>Timelines</DIFTcomCMRPrimarySection><DIFTcomCMRPrimarySectionId>NzBlYjllYjgtZjlmZC00YmQ5LTg2MzItOTU2ZjFhM2RjNWFm-U2VjdGlvbnM=</DIFTcomCMRPrimarySectionId><DIFTcomCMRPrimaryTheme>Climate change</DIFTcomCMRPrimaryTheme><DIFTcomCMRPrimaryThemeId>Ng==-VG9waWNz</DIFTcomCMRPrimaryThemeId><DIFTcomCMRBrand /><DIFTcomCMRBrandId /><DIFTcomCMRGenre>News</DIFTcomCMRGenre><DIFTcomCMRGenreId>Nw==-R2VucmVz</DIFTcomCMRGenreId><DIFTcomCMRMediaType>Text</DIFTcomCMRMediaType><DIFTcomCMRMediaTypeId>ZjMwY2E2NjctMDA1Ni00ZTk4LWI0MWUtZjk5MTk2ZTMyNGVm-TWVkaWFUeXBlcw==</DIFTcomCMRMediaTypeId></DIFTcomCMR><DIFTcomECPositionInText>Default</DIFTcomECPositionInText><DIFTcomHideECLevel1>True</DIFTcomHideECLevel1><DIFTcomHideECLevel2>True</DIFTcomHideECLevel2><DIFTcomHideECLevel3>True</DIFTcomHideECLevel3><DIFTcomDiscussion>True</DIFTcomDiscussion><DIFTcomArticleImage>Primary size</DIFTcomArticleImage></DIFTcom><DISyndication><DISyndBeenCopied>False</DISyndBeenCopied><DISyndEdition>USA</DISyndEdition><DISyndStar>01</DISyndStar><DISyndChannel /><DISyndArea /><DISyndCategory /></DISyndication></OutputChannels><EditorialNotes><Language>English</Language><Author>kwongr</Author><Guides /><Editor /><Sources><Source title=\"FT Sitebuild\"><SourceCode>FTSB</SourceCode><SourceDescriptor>FT Sitebuild</SourceDescriptor><SourceOnlineInclusion>True</SourceOnlineInclusion><SourceCanBeSyndicated>False</SourceCanBeSyndicated></Source></Sources><WordCount>38</WordCount><CreationDate>20150306111437</CreationDate><EmbargoDate /><ExpiryDate>20150306111437</ExpiryDate><ObjectLocation>/FT/Content/Interactive/Stories/Live/Paris timeline.xml</ObjectLocation><OriginatingStory /><CCMS><CCMSCommissionRefNo /><CCMSContributorRefNo>CB-0000698</CCMSContributorRefNo><CCMSContributorFullName>Pilita Clark</CCMSContributorFullName><CCMSContributorInclude /><CCMSContributorRights>3</CCMSContributorRights><CCMSFilingDate /><CCMSProposedPublishingDate /></CCMS></EditorialNotes><WiresIndexing><category /><Keyword /><char_count /><priority /><basket /><title /><Version /><story_num /><file_name /><serviceid /><entry_date /><ref_field /><take_num /></WiresIndexing><DataFactoryIndexing><ADRIS_MetaData><IndexSuccess>yes</IndexSuccess><StartTime>Thu Nov 12 15:44:15 GMT 2015</StartTime><EndTime>Thu Nov 12 15:44:15 GMT 2015</EndTime></ADRIS_MetaData><DFMajorCompanies /><DFMinorCompanies /><DFNAICS /><DFWPMIndustries /><DFFTSEGlobalClassifications /><DFStockExchangeIndices /><DFSubjects><DFSubject><DFSUFTCode>ON15</DFSUFTCode><DFSUDescriptor>Environment</DFSUDescriptor><Version>1</Version></DFSubject><DFSubject><DFSUFTCode>ON</DFSUFTCode><DFSUDescriptor>General_News</DFSUDescriptor><Version>1</Version></DFSubject></DFSubjects><DFCountries><DFCountry><DFCtryISO3166FTCode>FR</DFCtryISO3166FTCode><DFCtryISO3166Descriptor>France</DFCtryISO3166Descriptor><Version>1</Version></DFCountry></DFCountries><DFRegions><DFRegion><DFRegFTCode>XG</DFRegFTCode><DFRegDescriptor>Europe</DFRegDescriptor><Version>1</Version></DFRegion><DFRegion><DFRegFTCode>XJ</DFRegFTCode><DFRegDescriptor>Western_Europe</DFRegDescriptor><Version>1</Version></DFRegion></DFRegions><DFWPMRegions /><DFProvinces /><DFFTcomDisplayCodes /><DFFTSections /><DFWebRegions><DFWebRegion><DFWebRegFTCode>EU</DFWebRegFTCode><DFWebRegDescriptor>Europe</DFWebRegDescriptor></DFWebRegion></DFWebRegions></DataFactoryIndexing></ObjectMetadata>"
 
 const systemAttributesValidChannel = "<props><productInfo><name>FTcom</name><issueDate>20150915</issueDate></productInfo><workFolder>/FT/WorldNews</workFolder><subFolder>UKNews</subFolder></props>"
