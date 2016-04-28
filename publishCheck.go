@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -99,7 +100,7 @@ func (c ContentCheck) isCurrentOperationFinished(pm PublishMetric) (operationFin
 		warnLogger.Printf("Error calling URL: [%v] for %s : [%v]", url, loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), err.Error())
 		return false, false
 	}
-	defer resp.Body.Close()
+	defer cleanupResp(resp)
 
 	// if the article was marked as deleted, operation is finished when the
 	// article cannot be found anymore
@@ -167,7 +168,7 @@ func (s S3Check) isCurrentOperationFinished(pm PublishMetric) (operationFinished
 		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), url, err.Error())
 		return false, false
 	}
-	defer resp.Body.Close()
+	defer cleanupResp(resp)
 
 	if resp.StatusCode != 200 {
 		return false, false
@@ -190,12 +191,12 @@ func (s S3Check) isCurrentOperationFinished(pm PublishMetric) (operationFinished
 
 // ignore unused field (e.g. requestUrl)
 type notificationsContent struct {
-	Notifications []notifications
+	Notifications []notification
 	Links         []link
 }
 
 // ignore unused fields (e.g. type, apiUrl)
-type notifications struct {
+type notification struct {
 	PublishReference string
 	LastModified     string
 	ID               string
@@ -207,6 +208,9 @@ type link struct {
 }
 
 func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric) (operationFinished, ignoreCheck bool) {
+	if n.shouldSkipCheck(pm) {
+		return false, true
+	}
 	notificationsURL := buildNotificationsURL(pm)
 	var err error
 	for {
@@ -220,6 +224,35 @@ func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric) (operat
 			return false, false
 		}
 	}
+}
+
+func (n NotificationsCheck) shouldSkipCheck(pm PublishMetric) bool {
+	if !pm.isMarkedDeleted {
+		return false
+	}
+	url := pm.endpoint.String() + "/" + pm.UUID
+	resp, err := n.httpCaller.doCall(url)
+	if err != nil {
+		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), url, err.Error())
+		return false
+	}
+	defer cleanupResp(resp)
+
+	if resp.StatusCode != 200 {
+		return false
+	}
+
+	var notifications []notification
+	err = json.NewDecoder(resp.Body).Decode(&notifications)
+	if err != nil {
+		return false
+	}
+	//ignore check if there are no previous notifications for this UUID
+	if len(notifications) == 0 {
+		return true
+	}
+
+	return false
 }
 
 // Bundles the result of a single check of batch of notifications
@@ -244,7 +277,7 @@ func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL string, p
 		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), notificationsURL, err.Error())
 		return defaultResult
 	}
-	defer resp.Body.Close()
+	defer cleanupResp(resp)
 
 	if resp.StatusCode != 200 {
 		warnLogger.Printf("Checking %s. Status NOT OK: [%d]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), resp.StatusCode)
@@ -310,4 +343,15 @@ func adjustNextNotificationsURL(current, next string) (string, error) {
 	}
 	nextNotificationsURLValue.Host = currentNotificationsURLValue.Host
 	return nextNotificationsURLValue.String(), nil
+}
+
+func cleanupResp(resp *http.Response) {
+	_, err := io.Copy(ioutil.Discard, resp.Body)
+	if err != nil {
+		warnLogger.Printf("[%v]", err)
+	}
+	err = resp.Body.Close()
+	if err != nil {
+		warnLogger.Printf("[%v]", err)
+	}
 }
