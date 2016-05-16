@@ -36,7 +36,7 @@ func (h *Healthcheck) messageQueueProxyReachable() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
 		Name:             "MessageQueueProxyReachable",
-		PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-runbook",
+		PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-run-book",
 		Severity:         1,
 		TechnicalSummary: "Message queue proxy is not reachable/healthy",
 		Checker:          h.checkAggregateMessageQueueProxiesReachable,
@@ -113,7 +113,7 @@ func (h *Healthcheck) reflectPublishFailures() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   "At least two of the last 10 publishes failed. This will reflect in the SLA measurement.",
 		Name:             "ReflectPublishFailures",
-		PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-runbook",
+		PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-run-book",
 		Severity:         1,
 		TechnicalSummary: "Publishes did not meet the SLA measurments",
 		Checker:          h.checkForPublishFailures,
