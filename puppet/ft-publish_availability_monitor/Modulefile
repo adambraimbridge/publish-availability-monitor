@@ -1,5 +1,5 @@
 name    'ft-publish_availability_monitor'
-version '0.17.3'
+version '0.17.4'
 source 'UNKNOWN'
 author 'ft'
 license 'Apache License, Version 2.0'
