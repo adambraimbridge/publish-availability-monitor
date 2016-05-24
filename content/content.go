@@ -48,6 +48,10 @@ func UnmarshalContent(msg consumer.Message) (Content, error) {
 		var wordPressMsg WordPressMessage
 		err := json.Unmarshal([]byte(msg.Body), &wordPressMsg)
 		return wordPressMsg, err
+	case "http://cmdb.ft.com/systems/brightcove":
+		var video Video
+		err := json.Unmarshal([]byte(msg.Body), &video)
+		return video, err
 	default:
 		return nil, fmt.Errorf("Unsupported content with system ID: [%s].", systemID)
 	}

@@ -16,7 +16,8 @@
 			"EOM::Story",
 			"Image",
 			"ImageSet",
-			"post", "webchat-markets-live", "webchat-live-blogs", "webchat-live-qa"
+			"post", "webchat-markets-live", "webchat-live-blogs", "webchat-live-qa",
+			"video"
 		]
 	}, {
 		"endpoint": "S3_URL",
