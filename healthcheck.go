@@ -155,7 +155,7 @@ func (h *Healthcheck) validationServicesReachable() fthealth.Check {
 		Name:             "validationServicesReachable",
 		PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-run-book",
 		Severity:         1,
-		TechnicalSummary: "Message queue proxy is not reachable/healthy",
+		TechnicalSummary: "Validation services are not reachable/healthy",
 		Checker:          h.checkValidationServicesReachable,
 	}
 }

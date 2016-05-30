@@ -62,7 +62,7 @@ type AppConfig struct {
 	Platform            string               `json:"platform"`
 	SplunkConf          SplunkConfig         `json:"splunk-config"`
 	HealthConf          HealthConfig         `json:"healthConfig"`
-	ValidationEndpoints map[string]string    `json:"validationEndpoints"` //contentType to validation endpoint mapping, ex. { "EOM::Story": "http://methode-article-transformer/content-transform/" }
+	ValidationEndpoints map[string]string    `json:"validationEndpoints"` //contentType to validation endpoint mapping, ex. { "EOM::Story": "http://methode-article-transformer/content-transform" }
 }
 
 // HealthConfig holds the application's healthchecks configuration

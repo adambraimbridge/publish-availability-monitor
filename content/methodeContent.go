@@ -215,12 +215,12 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string) bool 
 	}
 	marshalled, err := json.Marshal(eomfile)
 	if err != nil {
-		warnLogger.Printf("External validation error: [%v]", err)
+		warnLogger.Printf("External validation error: [%v]. Skipping external validation.", err)
 		return true
 	}
 	resp, err := http.Post(validationURL+"/"+eomfile.UUID, "application/json", bytes.NewBuffer(marshalled))
 	if err != nil {
-		warnLogger.Printf("External validation error: [%v]", err)
+		warnLogger.Printf("External validation error: [%v]. Skipping external validation.", err)
 		return true
 	}
 	defer cleanupResp(resp)
@@ -228,6 +228,7 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string) bool 
 		infoLogger.Printf("External validation request for content uuid=[%s] received statusCode: [%s]", eomfile.UUID, resp.StatusCode)
 		return false
 	}
+	infoLogger.Printf("External validation request for content uuid=[%s] is successful. Received statusCode: [%s]", eomfile.UUID, resp.StatusCode)
 	return true
 }
 
