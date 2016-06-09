@@ -30,7 +30,7 @@ func (h *Healthcheck) checkHealth() func(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Healthcheck) gtg(writer http.ResponseWriter, req *http.Request) {
-	healthChecks := []func() error{h.checkAggregateMessageQueueProxiesReachable}
+	healthChecks := []func() error{h.checkAggregateMessageQueueProxiesReachable, h.checkValidationServicesReachable}
 
 	for _, hCheck := range healthChecks {
 		if err := hCheck(); err != nil {
@@ -155,7 +155,7 @@ func (h *Healthcheck) validationServicesReachable() fthealth.Check {
 		Name:             "validationServicesReachable",
 		PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-run-book",
 		Severity:         1,
-		TechnicalSummary: "Message queue proxy is not reachable/healthy",
+		TechnicalSummary: "Validation services are not reachable/healthy",
 		Checker:          h.checkValidationServicesReachable,
 	}
 }
@@ -192,6 +192,10 @@ func checkValidationServiceReachable(validationURL string, hcRes chan<- error, w
 		return
 	}
 	defer cleanupResp(resp)
+	if resp.StatusCode != 200 {
+		hcRes <- fmt.Errorf("Not healthy statusCode received: [%d]", resp.StatusCode)
+		return
+	}
 	hcRes <- nil
 }
 
