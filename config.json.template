@@ -51,6 +51,10 @@
 	},
 	"validationEndpoints": {
 		"EOM::CompoundStory": "METHODE_ARTICLE_TRANSFORMER_URL",
-		"EOM::Story": "METHODE_ARTICLE_TRANSFORMER_URL"
+		"EOM::Story": "METHODE_ARTICLE_TRANSFORMER_URL",
+		"post": "WORDPRESS_ARTICLE_TRANSFORMER_URL",
+		"webchat-markets-live": "WORDPRESS_ARTICLE_TRANSFORMER_URL",
+		"webchat-live-blogs": "WORDPRESS_ARTICLE_TRANSFORMER_URL",
+		"webchat-live-qa": "WORDPRESS_ARTICLE_TRANSFORMER_URL"
 	}
 }
