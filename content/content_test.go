@@ -53,6 +53,39 @@ func TestUnmarshalContent_ValidWordPressMessageWithTypeField_TypeIsCorrectlyUnma
 	}
 }
 
+func TestUnmarshalContent_ValidVideoMessage(t *testing.T) {
+	content, err := UnmarshalContent(validVideoMsg)
+	if err != nil {
+		t.Errorf("Expected success, but error occured [%v]", err)
+		return
+	}
+	if content.IsMarkedDeleted() {
+		t.Errorf("Expected published content.")
+	}
+}
+
+func TestUnmarshalContent_ValidDeletedVideoMessage(t *testing.T) {
+	content, err := UnmarshalContent(validDeleteVideoMsg)
+	if err != nil {
+		t.Errorf("Expected success, but error occured [%v]", err)
+		return
+	}
+	if !content.IsMarkedDeleted() {
+		t.Errorf("Expected deleted content.")
+	}
+}
+
+func TestUnmarshalContent_InvalidVideoMessage(t *testing.T) {
+	content, err := UnmarshalContent(invalidVideoMsg)
+	if err != nil {
+		t.Errorf("Expected success, but error occured [%v]", err)
+		return
+	}
+	if content.IsValid("") {
+		t.Errorf("Expected invalid content.")
+	}
+}
+
 func TestIsUUIDValid_UUIDValid(t *testing.T) {
 	if !isUUIDValid(validUUID) {
 		t.Error("Valid UUID marked as invalid!")
@@ -113,4 +146,40 @@ var invalidMessageWrongSystemID = consumer.Message{
 		"Origin-System-Id": "methode-web-foobar",
 	},
 	Body: "{}",
+}
+
+var validVideoMsg = consumer.Message{
+	Headers: map[string]string{
+		"Origin-System-Id": "http://cmdb.ft.com/systems/brightcove",
+	},
+	Body: `{
+		"uuid": "e28b12f7-9796-3331-b030-05082f0b8157",
+		"id": "4966650664001",
+		"name": "the-dark-knight.mp4",
+		"published_at": "2016-06-01T21:40:19.120Z",
+		"updated_at": "2016-06-01T21:40:19.120Z",
+		"something_else": "something else"
+	}`,
+}
+
+var validDeleteVideoMsg = consumer.Message{
+	Headers: map[string]string{
+		"Origin-System-Id": "http://cmdb.ft.com/systems/brightcove",
+	},
+	Body: `{
+		"uuid": "e28b12f7-9796-3331-b030-05082f0b8157",
+		"id": "4966650664001",
+		"name": "the-dark-knight.mp4",
+		"something_else": "something else"
+	}`,
+}
+
+var invalidVideoMsg = consumer.Message{
+	Headers: map[string]string{
+		"Origin-System-Id": "http://cmdb.ft.com/systems/brightcove",
+	},
+	Body: `{
+		"uuid": "e28b12f7-9796-3331-b030-05082f0b8157",
+		"something_else": "something else"
+	}`,
 }
