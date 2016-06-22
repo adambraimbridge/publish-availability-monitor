@@ -165,7 +165,7 @@ func handleMessage(msg consumer.Message) {
 	infoLogger.Printf("Received message with TID [%v]", tid)
 
 	if isSyntheticMessage(tid) {
-		infoLogger.Printf("Message [%v] is INVALID: synthetic, skipping...", tid)
+		infoLogger.Printf("Message [%v] is synthetic. Skipping...", tid)
 		return
 	}
 
