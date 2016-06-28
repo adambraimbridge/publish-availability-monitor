@@ -41,7 +41,15 @@
 			"EOM::CompoundStory",
 			"post"
 		]
-	}],
+	}, {
+        "endpoint": "NOTIFICATIONS_PUSH_URL",
+        "granularity": 40,
+        "alias": "notifications-push",
+        "contentTypes": [
+            "EOM::CompoundStory",
+            "post"
+        ]
+    }],
 	"platform": "ENVIRONMENT",
 	"splunk-config": {
 		"logPrefix": "[splunkMetrics] "
