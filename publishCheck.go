@@ -344,6 +344,7 @@ func adjustNextNotificationsURL(current, next string) (string, error) {
 		return "", err
 	}
 	nextNotificationsURLValue.Host = currentNotificationsURLValue.Host
+	nextNotificationsURLValue.Scheme = currentNotificationsURLValue.Scheme
 	return nextNotificationsURLValue.String(), nil
 }
 
