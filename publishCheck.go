@@ -224,6 +224,7 @@ func (n NotificationsCheck) isCurrentOperationFinished(pm PublishMetric) (operat
 		if err != nil {
 			return false, false
 		}
+		infoLogger.Printf("next checking on %v", notificationsURL)
 	}
 }
 
