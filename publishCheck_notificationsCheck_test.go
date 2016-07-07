@@ -508,3 +508,4 @@ func TestCheckNotificationItems_ShouldNotFinishOpIfNotFound(t *testing.T) {
 		t.Errorf("Should not signal the finish of operation or ignore the check. Actual: %v", actual)
 	}
 }
+
