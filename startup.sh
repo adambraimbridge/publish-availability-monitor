@@ -5,6 +5,7 @@ sed -i "s S3_URL $S3_URL " /config.json
 sed -i "s CONTENT_URL $CONTENT_URL " /config.json
 sed -i "s LISTS_URL $LISTS_URL " /config.json
 sed -i "s NOTIFICATIONS_URL $NOTIFICATIONS_URL " /config.json
+sed -i "s NOTIFICATIONS_PUSH_URL $NOTIFICATIONS_PUSH_URL " /config.json
 sed -i "s METHODE_ARTICLE_TRANSFORMER_URL $METHODE_ARTICLE_TRANSFORMER_URL " /config.json
 
 exec ./app -config /config.json

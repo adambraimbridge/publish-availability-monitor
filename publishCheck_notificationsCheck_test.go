@@ -431,3 +431,81 @@ func TestShouldSkipCheck_ContentIsMarkedAsDeletedPreviousNotificationsDoesNotExi
 		t.Errorf("Expected success")
 	}
 }
+
+func TestCheckNotificationItems_ShouldIterateUponMultipleMatchingUuids(t *testing.T) {
+	notifications := notificationsContent{
+		Notifications: []notification{
+			notification{
+				ID: "0dda9446-4367-11e6-b22f-79eb4891c97d",
+				LastModified: "2016-07-07T07:07:07.000Z",
+				PublishReference: "tid_testtest1",
+			},
+			notification{
+				ID: "0dda9446-4367-11e6-b22f-79eb4891c97d",
+				LastModified: "2016-07-07T07:07:08.000Z",
+				PublishReference: "tid_testtest2",
+			},
+		},
+	}
+	pubDate, err := time.Parse(dateLayout, "2016-07-07T07:07:08.000Z")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	var pm PublishMetric
+	pm = PublishMetric{
+		UUID:            "0dda9446-4367-11e6-b22f-79eb4891c97d",
+		publishDate:     pubDate,
+		platform:        "test",
+		//publishInterval:
+		tid:             "tid_testtest2",
+		isMarkedDeleted: false,
+	}
+	var defaultResult = notificationCheckResult{operationFinished: false, ignoreCheck: false, nextNotificationsURL: ""}
+	actual := checkNotificationItems(notifications, pm, defaultResult)
+
+	if !(actual.operationFinished && !actual.ignoreCheck) {
+		t.Errorf("Should have finished finding the second occurence and result as operation finished and not ignore check. Actual: %v", actual)
+	}
+}
+
+func TestCheckNotificationItems_ShouldNotFinishOpIfNotFound(t *testing.T) {
+	notifications := notificationsContent{
+		Notifications: []notification{
+			notification{
+				ID: "0dda9446-4367-11e6-b22f-79eb4891c97d",
+				LastModified: "2016-07-07T07:07:07.000Z",
+				PublishReference: "tid_testtest1",
+			},
+			notification{
+				ID: "0dda9446-4367-11e6-b22f-79eb4891c97d",
+				LastModified: "2016-07-07T07:07:08.000Z",
+				PublishReference: "tid_testtest2",
+			},
+		},
+		Links: []link{
+			link{
+				Href: "",
+			},
+		},
+	}
+	pubDate, err := time.Parse(dateLayout, "2016-07-07T07:07:09.000Z")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	var pm PublishMetric
+	pm = PublishMetric{
+		UUID:            "0dda9446-4367-11e6-b22f-79eb4891c97d",
+		publishDate:     pubDate,
+		platform:        "test",
+		//publishInterval:
+		tid:             "tid_testtest99",
+		isMarkedDeleted: false,
+	}
+	var defaultResult = notificationCheckResult{operationFinished: false, ignoreCheck: false, nextNotificationsURL: ""}
+	actual := checkNotificationItems(notifications, pm, defaultResult)
+
+	if actual != defaultResult {
+		t.Errorf("Should not signal the finish of operation or ignore the check. Actual: %v", actual)
+	}
+}
+

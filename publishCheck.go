@@ -71,11 +71,12 @@ func init() {
 
 	//key is the endpoint alias from the config
 	endpointSpecificChecks = map[string]EndpointSpecificCheck{
-		"content":         ContentCheck{hC},
-		"S3":              S3Check{hC},
-		"enrichedContent": ContentCheck{hC},
-		"lists":           ContentCheck{hC},
-		"notifications":   NotificationsCheck{hC},
+		"content":              ContentCheck{hC},
+		"S3":                   S3Check{hC},
+		"enrichedContent":      ContentCheck{hC},
+		"lists":                ContentCheck{hC},
+		"notifications":        NotificationsCheck{hC},
+		"notifications-push":   NotificationsCheck{hC},
 	}
 }
 
@@ -290,6 +291,10 @@ func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL string, p
 		warnLogger.Printf("Checking %s. Cannot decode json response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), err.Error())
 		return defaultResult
 	}
+	return checkNotificationItems(notifications, pm, defaultResult)
+}
+
+func checkNotificationItems(notifications notificationsContent, pm PublishMetric, defaultResult notificationCheckResult) notificationCheckResult {
 	for _, n := range notifications.Notifications {
 		if !strings.Contains(n.ID, pm.UUID) {
 			continue
@@ -311,7 +316,6 @@ func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL string, p
 			return notificationCheckResult{operationFinished: true, ignoreCheck: false, nextNotificationsURL: ""}
 		}
 		infoLogger.Printf("Checking %s. Last modified date [%v] is before publish date [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.tid), lastModifiedDate, pm.publishDate)
-		return defaultResult
 	}
 
 	if len(notifications.Notifications) > 0 {
@@ -342,6 +346,7 @@ func adjustNextNotificationsURL(current, next string) (string, error) {
 		return "", err
 	}
 	nextNotificationsURLValue.Host = currentNotificationsURLValue.Host
+	nextNotificationsURLValue.Scheme = currentNotificationsURLValue.Scheme
 	return nextNotificationsURLValue.String(), nil
 }
 
