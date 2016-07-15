@@ -271,7 +271,7 @@ var validCompoundStory = EomFile{
 	Type:             "EOM::CompoundStory",
 	Value:            contentWithHeadline,
 	Attributes:       validFileTypeAttributes,
-	SystemAttributes: systemAttributesValidChannel,
+	SystemAttributes: systemAttributesWebChannel,
 }
 
 var validStory = EomFile{
@@ -279,7 +279,7 @@ var validStory = EomFile{
 	Type:             "EOM::Story",
 	Value:            contentWithHeadline,
 	Attributes:       supportedSourceCodeAttributes,
-	SystemAttributes: systemAttributesValidChannel,
+	SystemAttributes: systemAttributesWebChannel,
 }
 
 var eomfileWithTitle = EomFile{
