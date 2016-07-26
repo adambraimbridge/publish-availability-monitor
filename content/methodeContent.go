@@ -25,6 +25,7 @@ const sourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
 const markDeletedFlagXPath = "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMarkDeleted"
 
 const expectedWebChannel = "FTcom"
+const expectedFTChannel = "Financial Times"
 const expectedWebTypePrefix = "digitalList"
 const expectedFilePathSuffix = ".xml"
 const expectedSourceCode = "FT"
@@ -101,14 +102,14 @@ func isListValid(eomfile EomFile) bool {
 
 func isCompoundStoryValid(eomfile EomFile) bool {
 	return isSupportedFileType(eomfile) &&
-		isWebChannel(eomfile) &&
+		isSupportedChannel(eomfile) &&
 		hasTitle(eomfile) &&
 		isSupportedCompoundStorySourceCode(eomfile)
 }
 
 func isStoryValid(eomfile EomFile) bool {
 	return isSupportedFileType(eomfile) &&
-		isWebChannel(eomfile) &&
+		isSupportedChannel(eomfile) &&
 		hasTitle(eomfile) &&
 		isSupportedStorySourceCode(eomfile)
 }
@@ -125,16 +126,21 @@ func isSupportedFileType(eomfile EomFile) bool {
 	return false
 }
 
-func isWebChannel(eomfile EomFile) bool {
+func isSupportedChannel(eomfile EomFile) bool {
 	channel, ok := getXPathValue(eomfile.SystemAttributes, eomfile, channelXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", channelXPath)
 		return false
 	}
-	if channel == expectedWebChannel {
-		return true
+
+	switch eomfile.GetType() {
+	case compoundStory:
+		return channel == expectedWebChannel
+	case story:
+		return (channel == expectedWebChannel) || (channel == expectedFTChannel)
+	default:
+		return false
 	}
-	return false
 }
 
 func hasTitle(eomfile EomFile) bool {
