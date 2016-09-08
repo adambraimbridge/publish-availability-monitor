@@ -14,7 +14,7 @@ func TestIsCurrentOperationFinished_S3Check_Finished(t *testing.T) {
 	s3Check := &S3Check{
 		mockHTTPCaller(buildResponse(200, "imagebytes")),
 	}
-	if finished, _ := s3Check.isCurrentOperationFinished(PublishMetric{}); !finished {
+	if finished, _ := s3Check.isCurrentOperationFinished(NewPublishCheck(PublishMetric{}, "", "", 0, 0, nil)); !finished {
 		t.Errorf("Expected: true. Actual: false")
 	}
 }
@@ -23,7 +23,7 @@ func TestIsCurrentOperationFinished_S3Check_Empty(t *testing.T) {
 	s3Check := &S3Check{
 		mockHTTPCaller(buildResponse(200, "")),
 	}
-	if finished, _ := s3Check.isCurrentOperationFinished(PublishMetric{}); finished {
+	if finished, _ := s3Check.isCurrentOperationFinished(NewPublishCheck(PublishMetric{}, "", "", 0, 0, nil)); finished {
 		t.Errorf("Expected: false. Actual: true")
 	}
 }
@@ -32,7 +32,7 @@ func TestIsCurrentOperationFinished_S3Check_NotFinished(t *testing.T) {
 	s3Check := &S3Check{
 		mockHTTPCaller(buildResponse(404, "")),
 	}
-	if finished, _ := s3Check.isCurrentOperationFinished(PublishMetric{}); finished {
+	if finished, _ := s3Check.isCurrentOperationFinished(NewPublishCheck(PublishMetric{}, "", "", 0, 0, nil)); finished {
 		t.Errorf("Expected: false. Actual: True")
 	}
 }
@@ -43,7 +43,7 @@ func TestIsCurrentOperationFinished_ContentCheck_InvalidContent(t *testing.T) {
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if finished, _ := contentCheck.isCurrentOperationFinished(PublishMetric{}); finished {
+	if finished, _ := contentCheck.isCurrentOperationFinished(NewPublishCheck(PublishMetric{}, "", "", 0, 0, nil)); finished {
 		t.Errorf("Expected error.")
 	}
 }
@@ -55,7 +55,8 @@ func TestIsCurrentOperationFinished_ContentCheck_Finished(t *testing.T) {
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build()); !finished {
+	pm := newPublishMetricBuilder().withTID(currentTid).build()
+	if finished, _ := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, "", "", 0, 0, nil)); !finished {
 		t.Error("Expected success.")
 	}
 }
@@ -67,7 +68,8 @@ func TestIsCurrentOperationFinished_ContentCheck_NotFinished(t *testing.T) {
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).build()); finished {
+	pm := newPublishMetricBuilder().withTID(currentTid).build()
+	if finished, _ := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, "", "", 0, 0, nil)); finished {
 		t.Error("Expected failure.")
 	}
 }
@@ -79,7 +81,8 @@ func TestIsCurrentOperationFinished_ContentCheck_MarkedDeleted_Finished(t *testi
 		mockHTTPCaller(buildResponse(404, testResponse)),
 	}
 
-	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build()); !finished {
+	pm := newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build()
+	if finished, _ := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, "", "", 0, 0, nil)); !finished {
 		t.Error("Expected success.")
 	}
 }
@@ -91,7 +94,8 @@ func TestIsCurrentOperationFinished_ContentCheck_MarkedDeleted_NotFinished(t *te
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build()); finished {
+	pm := newPublishMetricBuilder().withTID(currentTid).withMarkedDeleted(true).build()
+	if finished, _ := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, "", "", 0, 0, nil)); finished {
 		t.Error("Expected failure.")
 	}
 }
@@ -108,7 +112,8 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsAfterCurrentP
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if _, ignoreCheck := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); !ignoreCheck {
+	pm := newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()
+	if _, ignoreCheck := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, "", "", 0, 0, nil)); !ignoreCheck {
 		t.Error("Expected ignoreCheck to be true")
 	}
 }
@@ -127,7 +132,8 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsBeforeCurrent
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if _, ignoreCheck := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); ignoreCheck {
+	pm := newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()
+	if _, ignoreCheck := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, "", "", 0, 0, nil)); ignoreCheck {
 		t.Error("Expected ignoreCheck to be false")
 	}
 }
@@ -144,7 +150,8 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsBeforeCurrent
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if _, ignoreCheck := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); ignoreCheck {
+	pm := newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()
+	if _, ignoreCheck := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, "", "", 0, 0, nil)); ignoreCheck {
 		t.Error("Expected ignoreCheck to be false.")
 	}
 }
@@ -161,7 +168,8 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsBeforeCurrent
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); finished {
+	pm := newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()
+	if finished, _ := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, "", "", 0, 0, nil)); finished {
 		t.Error("Expected failure.")
 	}
 }
@@ -179,7 +187,8 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateEqualsCurrentPu
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); !finished {
+	pm := newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()
+	if finished, _ := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, "", "", 0, 0, nil)); !finished {
 		t.Error("Expected success.")
 	}
 }
@@ -197,7 +206,8 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsNullCurrentTI
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); !finished {
+	pm := newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()
+	if finished, _ := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, "", "", 0, 0, nil)); !finished {
 		t.Error("Expected success.")
 	}
 }
@@ -215,7 +225,8 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsEmptyStringCu
 		mockHTTPCaller(buildResponse(200, testResponse)),
 	}
 
-	if finished, _ := contentCheck.isCurrentOperationFinished(newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()); !finished {
+	pm := newPublishMetricBuilder().withTID(currentTid).withPublishDate(publishDate).build()
+	if finished, _ := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, "", "", 0, 0, nil)); !finished {
 		t.Error("Expected success.")
 	}
 }
@@ -292,7 +303,7 @@ type testHTTPCaller struct {
 }
 
 // returns the mock responses of testHTTPCaller in order
-func (t *testHTTPCaller) doCall(url string) (*http.Response, error) {
+func (t *testHTTPCaller) doCall(url string, username string, password string) (*http.Response, error) {
 	response := t.mockResponses[t.current]
 	t.current = (t.current + 1) % len(t.mockResponses)
 	return response, nil

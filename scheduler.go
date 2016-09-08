@@ -9,32 +9,35 @@ import (
 	"github.com/Financial-Times/publish-availability-monitor/content"
 )
 
-func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid string, isMarkedDeleted bool, metricContainer *publishHistory) {
+func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid string, isMarkedDeleted bool, metricContainer *publishHistory, environments *map[string]Environment) {
 	for _, metric := range appConfig.MetricConf {
-		endpointURL, err := url.Parse(metric.Endpoint)
-		if err != nil {
-			errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
-			continue
-		}
 		if !validType(metric.ContentTypes, contentToCheck.GetType()) {
 			continue
 		}
 
-		var publishMetric = PublishMetric{
-			contentToCheck.GetUUID(),
-			false,
-			publishDate,
-			appConfig.Platform,
-			Interval{},
-			metric,
-			*endpointURL,
-			tid,
-			isMarkedDeleted,
-		}
+		for name, env := range *environments {
+			endpointURL, err := url.Parse(env.ReadUrl + metric.Endpoint)
+			if err != nil {
+				errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
+				continue
+			}
 
-		var checkInterval = appConfig.Threshold / metric.Granularity
-		var publishCheck = NewPublishCheck(publishMetric, appConfig.Threshold, checkInterval, metricSink)
-		go scheduleCheck(*publishCheck, metricContainer)
+			var publishMetric = PublishMetric{
+				contentToCheck.GetUUID(),
+				false,
+				publishDate,
+				name,
+				Interval{},
+				metric,
+				*endpointURL,
+				tid,
+				isMarkedDeleted,
+			}
+
+			var checkInterval = appConfig.Threshold / metric.Granularity
+			var publishCheck = NewPublishCheck(publishMetric, env.Username, env.Password, appConfig.Threshold, checkInterval, metricSink)
+			go scheduleCheck(*publishCheck, metricContainer)
+		}
 	}
 }
 
