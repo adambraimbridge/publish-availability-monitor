@@ -20,7 +20,6 @@
         "contentTypes": ["Image"]
     }
     ],
-    "platform": "ucs-test",
     "splunk-config": {
         "logFilePath": "pam.log"
     }

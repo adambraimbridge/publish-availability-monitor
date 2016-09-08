@@ -50,7 +50,6 @@
             "post"
         ]
     }],
-	"platform": "ENVIRONMENT",
 	"splunk-config": {
 		"logPrefix": "[splunkMetrics] "
 	},
