@@ -181,8 +181,8 @@ func handleMessage(msg consumer.Message) {
 	tid := msg.Headers["X-Request-Id"]
 	infoLogger.Printf("Received message with TID [%v]", tid)
 
-	if isSyntheticMessage(tid) {
-		infoLogger.Printf("Message [%v] is synthetic. Skipping...", tid)
+	if isIgnorableMessage(tid) {
+		infoLogger.Printf("Message [%v] is ignorable. Skipping...", tid)
 		return
 	}
 
@@ -258,7 +258,7 @@ func isMessagePastPublishSLA(date time.Time, threshold int) bool {
 	return time.Now().After(passedSLA)
 }
 
-func isSyntheticMessage(tid string) bool {
+func isIgnorableMessage(tid string) bool {
 	return strings.HasPrefix(tid, "SYNTHETIC")
 }
 

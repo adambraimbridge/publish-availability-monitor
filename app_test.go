@@ -25,14 +25,14 @@ func TestIsMessagePastPublishSLA_notPastSLA(t *testing.T) {
 	}
 }
 
-func TestIsSyntheticMessage_naturalMessage(t *testing.T) {
-	if isSyntheticMessage(naturalTID) {
-		t.Error("Normal message marked as synthetic")
+func TestIsIgnorableMessage_naturalMessage(t *testing.T) {
+	if isIgnorableMessage(naturalTID) {
+		t.Error("Normal message marked as ignorable")
 	}
 }
 
-func TestIsSyntheticMessage_syntheticMessage(t *testing.T) {
-	if !isSyntheticMessage(syntheticTID) {
+func TestIsIgnorableMessage_syntheticMessage(t *testing.T) {
+	if !isIgnorableMessage(syntheticTID) {
 		t.Error("Synthetic message marked as normal")
 	}
 }

@@ -61,6 +61,21 @@ func TestIsCurrentOperationFinished_ContentCheck_Finished(t *testing.T) {
 	}
 }
 
+func TestIsCurrentOperationFinished_ContentCheck_WithAuthentication(t *testing.T) {
+	currentTid := "tid_1234"
+	testResponse := fmt.Sprintf(`{ "uuid" : "1234-1234", "publishReference" : "%s"}`, currentTid)
+	username := "jdoe"
+	password := "frodo"
+	contentCheck := &ContentCheck{
+		mockAuthenticatedHTTPCaller(username, password, buildResponse(200, testResponse)),
+	}
+
+	pm := newPublishMetricBuilder().withTID(currentTid).build()
+	if finished, _ := contentCheck.isCurrentOperationFinished(NewPublishCheck(pm, username, password, 0, 0, nil)); !finished {
+		t.Error("Expected success.")
+	}
+}
+
 func TestIsCurrentOperationFinished_ContentCheck_NotFinished(t *testing.T) {
 	currentTid := "tid_1234"
 	testResponse := `{ "uuid" : "1234-1234", "publishReference" : "tid_1235"}`
@@ -298,12 +313,20 @@ func buildResponse(statusCode int, content string) *http.Response {
 
 // mock httpCaller implementation
 type testHTTPCaller struct {
+	authUser      string
+	authPass      string
 	mockResponses []*http.Response
 	current       int
 }
 
 // returns the mock responses of testHTTPCaller in order
 func (t *testHTTPCaller) doCall(url string, username string, password string) (*http.Response, error) {
+	if t.authUser != "" && t.authPass != "" {
+		if t.authUser != username || t.authPass != password {
+			return buildResponse(401, `{message: "Not authenticated"}`), nil
+		}
+	}
+
 	response := t.mockResponses[t.current]
 	t.current = (t.current + 1) % len(t.mockResponses)
 	return response, nil
@@ -311,7 +334,12 @@ func (t *testHTTPCaller) doCall(url string, username string, password string) (*
 
 // builds testHTTPCaller with the given mocked responses in the provided order
 func mockHTTPCaller(responses ...*http.Response) httpCaller {
-	return &testHTTPCaller{responses, 0}
+	return &testHTTPCaller{mockResponses: responses}
+}
+
+// builds testHTTPCaller with the given mocked responses in the provided order
+func mockAuthenticatedHTTPCaller(username string, password string, responses ...*http.Response) httpCaller {
+	return &testHTTPCaller{authUser: username, authPass: password, mockResponses: responses}
 }
 
 // this is necessary to be able to build an http.Response
