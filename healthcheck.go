@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Financial-Times/go-fthealth"
+	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 )
 
 // Healthcheck offers methods to measure application health.
@@ -30,10 +30,10 @@ func (h *Healthcheck) checkHealth() func(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Healthcheck) gtg(writer http.ResponseWriter, req *http.Request) {
-	healthChecks := []func() error{h.checkAggregateMessageQueueProxiesReachable, h.checkValidationServicesReachable}
+	healthChecks := []func() (string, error){h.checkAggregateMessageQueueProxiesReachable, h.checkValidationServicesReachable}
 
 	for _, hCheck := range healthChecks {
-		if err := hCheck(); err != nil {
+		if _, err := hCheck(); err != nil {
 			writer.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
@@ -52,27 +52,27 @@ func (h *Healthcheck) messageQueueProxyReachable() fthealth.Check {
 
 }
 
-func (h *Healthcheck) checkAggregateMessageQueueProxiesReachable() error {
+func (h *Healthcheck) checkAggregateMessageQueueProxiesReachable() (string, error) {
 
 	addresses := h.config.QueueConf.Addrs
 	errMsg := ""
 	for i := 0; i < len(addresses); i++ {
-		error := h.checkMessageQueueProxyReachable(addresses[i])
+		msg, error := h.checkMessageQueueProxyReachable(addresses[i])
 		if error == nil {
-			return nil
+			return msg, nil
 		}
 		errMsg = errMsg + fmt.Sprintf("For %s there is an error %v \n", addresses[i], error.Error())
 	}
 
-	return errors.New(errMsg)
+	return "", errors.New(errMsg)
 
 }
 
-func (h *Healthcheck) checkMessageQueueProxyReachable(address string) error {
+func (h *Healthcheck) checkMessageQueueProxyReachable(address string) (string, error) {
 	req, err := http.NewRequest("GET", address+"/topics", nil)
 	if err != nil {
 		warnLogger.Printf("Could not connect to proxy: %v", err.Error())
-		return err
+		return "", err
 	}
 
 	if len(h.config.QueueConf.AuthorizationKey) > 0 {
@@ -86,13 +86,13 @@ func (h *Healthcheck) checkMessageQueueProxyReachable(address string) error {
 	resp, err := h.client.Do(req)
 	if err != nil {
 		warnLogger.Printf("Could not connect to proxy: %v", err.Error())
-		return err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		errMsg := fmt.Sprintf("Proxy returned status: %d", resp.StatusCode)
-		return errors.New(errMsg)
+		return "", errors.New(errMsg)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -100,21 +100,21 @@ func (h *Healthcheck) checkMessageQueueProxyReachable(address string) error {
 
 }
 
-func checkIfTopicIsPresent(body []byte, searchedTopic string) error {
+func checkIfTopicIsPresent(body []byte, searchedTopic string) (string, error) {
 	var topics []string
 
 	err := json.Unmarshal(body, &topics)
 	if err != nil {
-		return fmt.Errorf("Error occured and topic could not be found. %v", err.Error())
+		return "", fmt.Errorf("Error occured and topic could not be found. %v", err.Error())
 	}
 
 	for _, topic := range topics {
 		if topic == searchedTopic {
-			return nil
+			return "", nil
 		}
 	}
 
-	return errors.New("Topic was not found")
+	return "", errors.New("Topic was not found")
 }
 
 func (h *Healthcheck) reflectPublishFailures() fthealth.Check {
@@ -129,7 +129,7 @@ func (h *Healthcheck) reflectPublishFailures() fthealth.Check {
 
 }
 
-func (h *Healthcheck) checkForPublishFailures() error {
+func (h *Healthcheck) checkForPublishFailures() (string, error) {
 	metricContainer.RLock()
 	failures := 0
 	for i := 0; i < len(metricContainer.publishMetrics); i++ {
@@ -144,9 +144,9 @@ func (h *Healthcheck) checkForPublishFailures() error {
 		failureThreshold = h.config.HealthConf.FailureThreshold
 	}
 	if failures >= failureThreshold {
-		return fmt.Errorf("%d publish failures happened during the last 10 publishes", failures)
+		return "", fmt.Errorf("%d publish failures happened during the last 10 publishes", failures)
 	}
-	return nil
+	return "", nil
 }
 
 func (h *Healthcheck) validationServicesReachable() fthealth.Check {
@@ -160,7 +160,7 @@ func (h *Healthcheck) validationServicesReachable() fthealth.Check {
 	}
 }
 
-func (h *Healthcheck) checkValidationServicesReachable() error {
+func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 	endpoints := h.config.ValidationEndpoints
 	var wg sync.WaitGroup
 	hcErrs := make(chan error, len(endpoints))
@@ -172,10 +172,10 @@ func (h *Healthcheck) checkValidationServicesReachable() error {
 	close(hcErrs)
 	for err := range hcErrs {
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
-	return nil
+	return "", nil
 }
 
 func checkValidationServiceReachable(validationURL string, hcRes chan<- error, wg *sync.WaitGroup) {
