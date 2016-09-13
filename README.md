@@ -17,7 +17,7 @@ With Docker:
 
 # Build and deploy
 __Note that deployment to FTP2 is no longer supported.__
-* Tagging a release in GitHub triggers a build in CircleCI.
+* Tagging a release in GitHub triggers a build in DockerHub.
 
 # Endpoint Check Configuration
 
