@@ -20,13 +20,30 @@ type Healthcheck struct {
 	metricContainer *publishHistory
 }
 
-func (h *Healthcheck) checkHealth() func(w http.ResponseWriter, r *http.Request) {
-	return fthealth.HandlerParallel(
+type readEnvironmentHealthcheck struct {
+	env    Environment
+	client http.Client
+}
+
+var readCheckEndpoints = map[string]func(string) (string, error){
+	"S3": buildAwsHealthcheckUrl,
+	// only exceptions need to be listed here - everything else will default to standard FT healthcheck URLs
+}
+
+func (h *Healthcheck) checkHealth(writer http.ResponseWriter, req *http.Request) {
+	checks := make([]fthealth.Check, 3)
+	checks[0] = h.messageQueueProxyReachable()
+	checks[1] = h.reflectPublishFailures()
+	checks[2] = h.validationServicesReachable()
+
+	for _, hc := range h.readEnvironmentsReachable() {
+		checks = append(checks, hc)
+	}
+
+	fthealth.HandlerParallel(
 		"Dependent services healthcheck", "Checks if all the dependent services are reachable and healthy.",
-		h.messageQueueProxyReachable(),
-		h.reflectPublishFailures(),
-		h.validationServicesReachable(),
-	)
+		checks...,
+	)(writer, req)
 }
 
 func (h *Healthcheck) gtg(writer http.ResponseWriter, req *http.Request) {
@@ -166,7 +183,7 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 	hcErrs := make(chan error, len(endpoints))
 	for _, url := range endpoints {
 		wg.Add(1)
-		go checkValidationServiceReachable(url, hcErrs, &wg)
+		go checkServiceReachable("validation", url, h.client, hcErrs, &wg)
 	}
 	wg.Wait()
 	close(hcErrs)
@@ -178,15 +195,22 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 	return "", nil
 }
 
-func checkValidationServiceReachable(validationURL string, hcRes chan<- error, wg *sync.WaitGroup) {
+func checkServiceReachable(serviceType string, serviceURL string, client http.Client, hcRes chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
-	healthURL, err := buildHealthURL(validationURL)
+
+	var healthURL string
+	var err error
+	if fn, ok := readCheckEndpoints[serviceType]; ok {
+		healthURL, err = fn(serviceURL)
+	} else {
+		healthURL, err = buildFtHealthcheckUrl(serviceURL)
+	}
 	if err != nil {
-		hcRes <- fmt.Errorf("Validation URL: [%s]. Error: [%v]", validationURL, err)
+		hcRes <- fmt.Errorf("Service URL: [%s]. Error: [%v]", serviceURL, err)
 		return
 	}
 
-	resp, err := http.Get(healthURL)
+	resp, err := client.Get(healthURL)
 	if err != nil {
 		hcRes <- fmt.Errorf("Healthcheck URL: [%s]. Error: [%v]", healthURL, err)
 		return
@@ -199,20 +223,74 @@ func checkValidationServiceReachable(validationURL string, hcRes chan<- error, w
 	hcRes <- nil
 }
 
-func buildHealthURL(rawURL string) (string, error) {
-	parsedURL, err := url.Parse(rawURL)
+func (h *Healthcheck) readEnvironmentsReachable() []fthealth.Check {
+	hc := make([]fthealth.Check, len(environments))
+
+	i := 0
+	for _, env := range environments {
+		hc[i] = fthealth.Check{
+			BusinessImpact:   "Publish metrics might not be correct. False positive failures might be recorded. This will impact the SLA measurement.",
+			Name:             env.Name + " readEndpointsReachable",
+			PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-run-book",
+			Severity:         1,
+			TechnicalSummary: "Read services are not reachable/healthy",
+			Checker:          (&readEnvironmentHealthcheck{env, h.client}).checkReadEnvironmentReachable,
+		}
+		i++
+	}
+	return hc
+}
+
+func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, error) {
+	var wg sync.WaitGroup
+	hcErrs := make(chan error, len(appConfig.MetricConf))
+
+	for _, metric := range appConfig.MetricConf {
+		var endpointURL *url.URL
+		var err error
+
+		if absoluteUrlRegex.MatchString(metric.Endpoint) {
+			endpointURL, err = url.Parse(metric.Endpoint)
+		} else {
+			endpointURL, err = url.Parse(h.env.ReadUrl + metric.Endpoint)
+		}
+
+		if err != nil {
+			errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
+			continue
+		}
+
+		wg.Add(1)
+		go checkServiceReachable(metric.Alias, endpointURL.String(), h.client, hcErrs, &wg)
+	}
+
+	wg.Wait()
+	close(hcErrs)
+	for err := range hcErrs {
+		if err != nil {
+			return "", err
+		}
+	}
+	return "", nil
+}
+
+func buildFtHealthcheckUrl(serviceUrl string) (string, error) {
+	parsedURL, err := url.Parse(serviceUrl)
 	if err != nil {
 		return "", err
 	}
-	parsedURL.Path = trimRightmostSubpath(parsedURL.Path) + "/__health"
+
+	var newPath string
+	if strings.HasPrefix(parsedURL.Path, "/__") {
+		newPath = strings.SplitN(parsedURL.Path[1:], "/", 2)[0] + "/__health"
+	} else {
+		newPath = "/__health"
+	}
+
+	parsedURL.Path = newPath
 	return parsedURL.String(), nil
 }
 
-func trimRightmostSubpath(urlPath string) string {
-	res := strings.TrimRight(urlPath, "/")
-	slashI := strings.LastIndex(res, "/")
-	if slashI != -1 {
-		res = res[:slashI]
-	}
-	return res
+func buildAwsHealthcheckUrl(serviceUrl string) (string, error) {
+	return serviceUrl + "healthCheckDummyFile", nil
 }

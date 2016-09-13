@@ -116,24 +116,29 @@ func main() {
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
-	go enableHealthchecks()
+	go startHttpListener()
 	startAggregator()
 	readMessages()
 }
 
-func enableHealthchecks() {
-
-	healthcheck := &Healthcheck{http.Client{}, *appConfig, &metricContainer}
+func startHttpListener() {
 	router := mux.NewRouter()
-	router.HandleFunc("/__health", healthcheck.checkHealth())
-	router.HandleFunc("/__gtg", healthcheck.gtg)
+	setupHealthchecks(router)
 	router.HandleFunc("/__history", loadHistory)
+
 	attachProfiler(router)
+
 	http.Handle("/", router)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		errorLogger.Panicf("Couldn't set up HTTP listener: %+v\n", err)
 	}
+}
+
+func setupHealthchecks(router *mux.Router) {
+	healthcheck := &Healthcheck{http.Client{}, *appConfig, &metricContainer}
+	router.HandleFunc("/__health", healthcheck.checkHealth)
+	router.HandleFunc("/__gtg", healthcheck.gtg)
 }
 
 func attachProfiler(router *mux.Router) {
