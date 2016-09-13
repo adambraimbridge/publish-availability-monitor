@@ -24,7 +24,7 @@ var (
 	etcdKeysAPI etcd.KeysAPI
 )
 
-func DiscoverEnvironments(etcdPeers *string) (map[string]Environment, error) {
+func DiscoverEnvironments(etcdPeers *string, environments map[string]Environment) error {
 	transport := &http.Transport{
 		Dial: proxy.Direct.Dial,
 		ResponseHeaderTimeout: 10 * time.Second,
@@ -38,22 +38,20 @@ func DiscoverEnvironments(etcdPeers *string) (map[string]Environment, error) {
 	etcdClient, err := etcd.New(etcdCfg)
 	if err != nil {
 		errorLogger.Printf("Cannot load etcd configuration: [%v]", err)
-		return nil, err
+		return err
 	}
 
 	etcdKeysAPI = etcd.NewKeysAPI(etcdClient)
 
-	environments = make(map[string]Environment)
-
 	err = redefineEnvironments(environments)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	go watchEnvironments(environments)
 	go watchCredentials(environments)
 
-	return environments, nil
+	return nil
 }
 
 func redefineEnvironments(environments map[string]Environment) error {

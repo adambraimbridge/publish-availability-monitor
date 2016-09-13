@@ -11,7 +11,7 @@ import (
 
 // Content is the interface for different type of contents from different CMSs.
 type Content interface {
-	IsValid(externalValidationEndpoint string) bool
+	IsValid(externalValidationEndpoint string, username string, password string) bool
 	IsMarkedDeleted() bool
 	GetType() string
 	GetUUID() string

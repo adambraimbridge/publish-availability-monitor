@@ -81,7 +81,7 @@ func TestUnmarshalContent_InvalidVideoMessage(t *testing.T) {
 		t.Errorf("Expected success, but error occured [%v]", err)
 		return
 	}
-	if content.IsValid("") {
+	if content.IsValid("", "", "") {
 		t.Errorf("Expected invalid content.")
 	}
 }

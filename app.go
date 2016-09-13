@@ -92,7 +92,7 @@ var configFileName = flag.String("config", "", "Path to configuration file")
 var etcdPeers = flag.String("etcd-peers", "http://localhost:2379", "Comma-separated list of addresses of etcd endpoints to connect to")
 
 var appConfig *AppConfig
-var environments map[string]Environment
+var environments = make(map[string]Environment)
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 
@@ -107,7 +107,7 @@ func main() {
 		return
 	}
 
-	environments, err = DiscoverEnvironments(etcdPeers)
+	err = DiscoverEnvironments(etcdPeers, environments)
 	if err != nil {
 		errorLogger.Printf("Cannot discover environments: [%v]", err)
 		return
@@ -194,7 +194,16 @@ func handleMessage(msg consumer.Message) {
 
 	uuid := publishedContent.GetUUID()
 	contentType := publishedContent.GetType()
-	if !publishedContent.IsValid(appConfig.ValidationEndpoints[contentType]) {
+
+	var validationEndpoint string
+	var found bool
+	var username string
+	var password string
+	if validationEndpoint, found = appConfig.ValidationEndpoints[contentType]; found {
+		username, password = getCredentials(validationEndpoint)
+	}
+
+	if !publishedContent.IsValid(validationEndpoint, username, password) {
 		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return
 	}
@@ -229,6 +238,16 @@ func handleMessage(msg consumer.Message) {
 			scheduleChecks(imageSetEomFile, publishDate, tid, false, &metricContainer, environments)
 		}
 	}
+}
+
+func getCredentials(url string) (string, string) {
+	for _, env := range environments {
+		if strings.HasPrefix(url, env.ReadUrl) {
+			return env.Username, env.Password
+		}
+	}
+
+	return "", ""
 }
 
 func spawnImageSet(imageEomFile content.EomFile) content.EomFile {

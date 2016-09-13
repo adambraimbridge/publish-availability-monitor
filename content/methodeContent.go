@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"launchpad.net/xmlpath"
 )
@@ -41,7 +42,11 @@ type EomFile struct {
 	WorkflowStatus   string `json:"workflowStatus"`
 }
 
-func (eomfile EomFile) IsValid(externalValidationEndpoint string) bool {
+var (
+	client = &http.Client{Timeout: time.Duration(10 * time.Second)}
+)
+
+func (eomfile EomFile) IsValid(externalValidationEndpoint string, username string, password string) bool {
 	contentUUID := eomfile.UUID
 	if !isUUIDValid(contentUUID) {
 		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]", contentUUID)
@@ -53,9 +58,9 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string) bool {
 	case webContainer:
 		return isListValid(eomfile)
 	case compoundStory:
-		return isCompoundStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint)
+		return isCompoundStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint, username, password)
 	case story:
-		return isStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint)
+		return isStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint, username, password)
 	case image:
 		return isImageValid(eomfile)
 	default:
@@ -216,7 +221,7 @@ func isSupportedStorySourceCode(eomfile EomFile) bool {
 	return false
 }
 
-func isExternalValidationSuccessful(eomfile EomFile, validationURL string) bool {
+func isExternalValidationSuccessful(eomfile EomFile, validationURL string, username string, password string) bool {
 	if validationURL == "" {
 		warnLogger.Printf("External validation for content uuid=[%s]. Validation endpoint URL is missing for content type=[%s]. Skipping external validation.", eomfile.UUID, eomfile.Type)
 		return true
@@ -226,7 +231,16 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string) bool 
 		warnLogger.Printf("External validation for content uuid=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, err)
 		return true
 	}
-	resp, err := http.Post(validationURL+"/"+eomfile.UUID, "application/json", bytes.NewBuffer(marshalled))
+
+	req, err := http.NewRequest("POST", validationURL+"/"+eomfile.UUID, bytes.NewReader(marshalled))
+	if username != "" && password != "" {
+		req.SetBasicAuth(username, password)
+	}
+	req.Header.Add("Content-type", "application/json")
+	req.Header.Add("User-Agent", "UPP Publish Availability Monitor")
+
+	resp, err := client.Do(req)
+
 	if err != nil {
 		warnLogger.Printf("External validation for content uuid=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, err)
 		return true

@@ -5,17 +5,18 @@ import (
 )
 
 const videoType = "video"
+
 var idRegexp, _ = regexp.Compile("^\\d+$")
 
 type Video struct {
-	UUID            string `json:"uuid"`
-	Id              string `json:"id"`
-	Name            string `json:"name"`
-	UpdatedAt       string `json:"updated_at"`
-	PublishedAt     string `json:"published_at"`
+	UUID        string `json:"uuid"`
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	UpdatedAt   string `json:"updated_at"`
+	PublishedAt string `json:"published_at"`
 }
 
-func (v Video) IsValid(externalValidationEndpoint string) bool {
+func (v Video) IsValid(externalValidationEndpoint string, username string, password string) bool {
 	contentUUID := v.UUID
 	if !isUUIDValid(contentUUID) {
 		warnLogger.Printf("Video invalid: invalid UUID: [%s]", contentUUID)
