@@ -242,9 +242,10 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string) bool 
 	if resp.StatusCode != 200 {
 		infoLogger.Printf("External validation for content uuid=[%s] received response body: [%v]", eomfile.UUID, string(bs))
 	}
-	if resp.StatusCode > 404 {
+	if resp.StatusCode == 418 {
 		return false
 	}
+
 	return true
 }
 
