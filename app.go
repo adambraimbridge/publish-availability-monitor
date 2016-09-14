@@ -109,10 +109,7 @@ func main() {
 		return
 	}
 
-	err = DiscoverEnvironments(etcdPeers, etcdEnvKey, etcdCredKey, environments)
-	if err != nil {
-		errorLogger.Printf("Cannot discover environments: [%v]", err)
-	}
+	go DiscoverEnvironments(etcdPeers, etcdEnvKey, etcdCredKey, environments)
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 

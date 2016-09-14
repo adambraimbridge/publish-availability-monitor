@@ -30,14 +30,30 @@ var readCheckEndpoints = map[string]func(string) (string, error){
 	// only exceptions need to be listed here - everything else will default to standard FT healthcheck URLs
 }
 
+var noReadEnvironments = fthealth.Check{
+	BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
+	Name:             "ReadEnvironments",
+	PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-run-book",
+	Severity:         1,
+	TechnicalSummary: "There are no read environments to monitor. This could be because none have been configured, or that etcd is not reachable/healthy",
+	Checker: func() (string, error) {
+		return "", errors.New("There are no read environments to monitor.")
+	},
+}
+
 func (h *Healthcheck) checkHealth(writer http.ResponseWriter, req *http.Request) {
 	checks := make([]fthealth.Check, 3)
 	checks[0] = h.messageQueueProxyReachable()
 	checks[1] = h.reflectPublishFailures()
 	checks[2] = h.validationServicesReachable()
 
-	for _, hc := range h.readEnvironmentsReachable() {
-		checks = append(checks, hc)
+	readEnvironmentChecks := h.readEnvironmentsReachable()
+	if len(readEnvironmentChecks) == 0 {
+		checks = append(checks, noReadEnvironments)
+	} else {
+		for _, hc := range readEnvironmentChecks {
+			checks = append(checks, hc)
+		}
 	}
 
 	fthealth.HandlerParallel(
