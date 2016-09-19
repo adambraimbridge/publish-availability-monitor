@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -12,19 +10,16 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-const (
-	environmentsKeyPre = "/ft/config/publish-availability-monitor/delivery-environments"
-	readUrlSuffix      = "/read_url"
-	credentialsKeyPre  = "/ft/_credentials/coco-delivery"
-	credUsernameKey    = credentialsKeyPre + "/%s/username"
-	credPasswordKey    = credentialsKeyPre + "/%s/password"
-)
-
 var (
 	etcdKeysAPI etcd.KeysAPI
+	envKey      *string
+	credKey     *string
 )
 
-func DiscoverEnvironments(etcdPeers *string, environments map[string]Environment) error {
+func DiscoverEnvironments(etcdPeers *string, etcdEnvKey *string, etcdCredKey *string, environments map[string]Environment) error {
+	envKey = etcdEnvKey
+	credKey = etcdCredKey
+
 	transport := &http.Transport{
 		Dial: proxy.Direct.Dial,
 		ResponseHeaderTimeout: 10 * time.Second,
@@ -43,55 +38,48 @@ func DiscoverEnvironments(etcdPeers *string, environments map[string]Environment
 
 	etcdKeysAPI = etcd.NewKeysAPI(etcdClient)
 
-	err = redefineEnvironments(environments)
-	if err != nil {
-		return err
-	}
+	redefineEnvironments(environments)
 
-	go watchEnvironments(environments)
-	go watchCredentials(environments)
+	go watch(envKey, environments)
+	go watch(credKey, environments)
 
 	return nil
 }
 
 func redefineEnvironments(environments map[string]Environment) error {
-	etcdResp, err := etcdKeysAPI.Get(context.Background(), environmentsKeyPre, &etcd.GetOptions{Sort: true})
+	etcdEnvResp, err := etcdKeysAPI.Get(context.Background(), *envKey, &etcd.GetOptions{Sort: true})
 	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", environmentsKeyPre, err.Error())
-		return err
-	}
-	if !etcdResp.Node.Dir {
-		errorLogger.Printf("[%v] is not a directory", etcdResp.Node.Key)
+		errorLogger.Printf("Failed to get value from %v: %v.", *envKey, err.Error())
 		return err
 	}
 
+	etcdCredResp, err := etcdKeysAPI.Get(context.Background(), *credKey, &etcd.GetOptions{Sort: true})
+	if err != nil {
+		errorLogger.Printf("Failed to get value from %v: %v.", *credKey, err.Error())
+		return err
+	}
+
+	envReadEndpoints := strings.Split(etcdEnvResp.Node.Value, ",")
+	envCredentials := strings.Split(etcdCredResp.Node.Value, ",")
+
 	seen := make(map[string]struct{})
-	for _, envNode := range etcdResp.Node.Nodes {
-		if !envNode.Dir {
-			warnLogger.Printf("[%v] is not a directory", envNode.Key)
-			continue
-		}
-		name := filepath.Base(envNode.Key)
+	for _, env := range envReadEndpoints {
+		nameAndUrl := strings.SplitN(env, ":", 2)
+
+		name := nameAndUrl[0]
+		readUrl := nameAndUrl[1]
 		seen[name] = struct{}{}
-		pathResp, err := etcdKeysAPI.Get(context.Background(), envNode.Key+readUrlSuffix, &etcd.GetOptions{Sort: true})
-		if err != nil {
-			warnLogger.Printf("Failed to get read url path from %v: %v.", envNode.Key, err.Error())
-			return err
-		}
-		readUrl := pathResp.Node.Value
 
 		var username string
 		var password string
-		credUserResp, err := etcdKeysAPI.Get(context.Background(), fmt.Sprintf(credUsernameKey, name), nil)
-		if err == nil {
-			credPassResp, err := etcdKeysAPI.Get(context.Background(), fmt.Sprintf(credPasswordKey, name), nil)
-
-			if err == nil {
-				username = credUserResp.Node.Value
-				password = credPassResp.Node.Value
+		for _, cred := range envCredentials {
+			if strings.HasPrefix(cred, name+":") {
+				nameAndCredentials := strings.Split(cred, ":")
+				username = nameAndCredentials[1]
+				password = nameAndCredentials[2]
+				break
 			}
 		}
-
 		infoLogger.Printf("adding environment to monitoring: %v", name)
 		if username == "" || password == "" {
 			infoLogger.Printf("no credentials supplied for access to environment %v", name)
@@ -115,16 +103,8 @@ func redefineEnvironments(environments map[string]Environment) error {
 	return nil
 }
 
-func watchEnvironments(environments map[string]Environment) {
-	watch(environmentsKeyPre, environments)
-}
-
-func watchCredentials(environments map[string]Environment) {
-	watch(credentialsKeyPre, environments)
-}
-
-func watch(etcdDir string, environments map[string]Environment) {
-	watcher := etcdKeysAPI.Watcher(etcdDir, &etcd.WatcherOptions{AfterIndex: 0, Recursive: true})
+func watch(etcdKey *string, environments map[string]Environment) {
+	watcher := etcdKeysAPI.Watcher(*etcdKey, &etcd.WatcherOptions{AfterIndex: 0, Recursive: true})
 	limiter := NewEventLimiter(func() {
 		redefineEnvironments(environments)
 	})
@@ -132,7 +112,7 @@ func watch(etcdDir string, environments map[string]Environment) {
 	for {
 		_, err := watcher.Next(context.Background())
 		if err != nil {
-			errorLogger.Printf("Error waiting for change under %v in etcd. %v\n Sleeping 10s...", environmentsKeyPre, err.Error())
+			errorLogger.Printf("Error waiting for change under %v in etcd. %v\n Sleeping 10s...", *etcdKey, err.Error())
 			time.Sleep(10 * time.Second)
 			continue
 		}

@@ -90,6 +90,8 @@ var warnLogger *log.Logger
 var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var etcdPeers = flag.String("etcd-peers", "http://localhost:2379", "Comma-separated list of addresses of etcd endpoints to connect to")
+var etcdEnvKey = flag.String("etcd-env-key", "/ft/config/monitoring/read-urls", "etcd key that lists the read environment URLs")
+var etcdCredKey = flag.String("etcd-cred-key", "/ft/_credentials/publish-read/read-credentials", "etcd key that lists the read environment credentials")
 
 var appConfig *AppConfig
 var environments = make(map[string]Environment)
@@ -107,10 +109,9 @@ func main() {
 		return
 	}
 
-	err = DiscoverEnvironments(etcdPeers, environments)
+	err = DiscoverEnvironments(etcdPeers, etcdEnvKey, etcdCredKey, environments)
 	if err != nil {
 		errorLogger.Printf("Cannot discover environments: [%v]", err)
-		return
 	}
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
