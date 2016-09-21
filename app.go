@@ -59,7 +59,6 @@ type AppConfig struct {
 	Threshold           int                  `json:"threshold"` //pub SLA in seconds, ex. 120
 	QueueConf           consumer.QueueConfig `json:"queueConfig"`
 	MetricConf          []MetricConfig       `json:"metricConfig"`
-	Platform            string               `json:"platform"`
 	SplunkConf          SplunkConfig         `json:"splunk-config"`
 	HealthConf          HealthConfig         `json:"healthConfig"`
 	ValidationEndpoints map[string]string    `json:"validationEndpoints"` //contentType to validation endpoint mapping, ex. { "EOM::Story": "http://methode-article-transformer/content-transform" }
@@ -68,6 +67,14 @@ type AppConfig struct {
 // HealthConfig holds the application's healthchecks configuration
 type HealthConfig struct {
 	FailureThreshold int `json:"failureThreshold"`
+}
+
+// Environment defines an environment in which the publish metrics should be checked
+type Environment struct {
+	Name     string
+	ReadUrl  string
+	Username string
+	Password string
 }
 
 type publishHistory struct {
@@ -82,7 +89,12 @@ var infoLogger *log.Logger
 var warnLogger *log.Logger
 var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
+var etcdPeers = flag.String("etcd-peers", "http://localhost:2379", "Comma-separated list of addresses of etcd endpoints to connect to")
+var etcdEnvKey = flag.String("etcd-env-key", "/ft/config/monitoring/read-urls", "etcd key that lists the read environment URLs")
+var etcdCredKey = flag.String("etcd-cred-key", "/ft/_credentials/publish-read/read-credentials", "etcd key that lists the read environment credentials")
+
 var appConfig *AppConfig
+var environments = make(map[string]Environment)
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 
@@ -96,6 +108,12 @@ func main() {
 		errorLogger.Printf("Cannot load configuration: [%v]", err)
 		return
 	}
+
+	err = DiscoverEnvironments(etcdPeers, etcdEnvKey, etcdCredKey, environments)
+	if err != nil {
+		errorLogger.Printf("Cannot discover environments: [%v]", err)
+	}
+
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
 	go enableHealthchecks()
@@ -164,8 +182,8 @@ func handleMessage(msg consumer.Message) {
 	tid := msg.Headers["X-Request-Id"]
 	infoLogger.Printf("Received message with TID [%v]", tid)
 
-	if isSyntheticMessage(tid) {
-		infoLogger.Printf("Message [%v] is synthetic. Skipping...", tid)
+	if isIgnorableMessage(tid) {
+		infoLogger.Printf("Message [%v] is ignorable. Skipping...", tid)
 		return
 	}
 
@@ -177,7 +195,16 @@ func handleMessage(msg consumer.Message) {
 
 	uuid := publishedContent.GetUUID()
 	contentType := publishedContent.GetType()
-	if !publishedContent.IsValid(appConfig.ValidationEndpoints[contentType]) {
+
+	var validationEndpoint string
+	var found bool
+	var username string
+	var password string
+	if validationEndpoint, found = appConfig.ValidationEndpoints[contentType]; found {
+		username, password = getCredentials(validationEndpoint)
+	}
+
+	if !publishedContent.IsValid(validationEndpoint, username, password) {
 		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return
 	}
@@ -197,7 +224,7 @@ func handleMessage(msg consumer.Message) {
 		return
 	}
 
-	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted(), &metricContainer)
+	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted(), &metricContainer, environments)
 
 	// for images we need to check their corresponding image sets
 	// the image sets don't have messages of their own so we need to create one
@@ -209,9 +236,19 @@ func handleMessage(msg consumer.Message) {
 		}
 		imageSetEomFile := spawnImageSet(eomFile)
 		if imageSetEomFile.UUID != "" {
-			scheduleChecks(imageSetEomFile, publishDate, tid, false, &metricContainer)
+			scheduleChecks(imageSetEomFile, publishDate, tid, false, &metricContainer, environments)
 		}
 	}
+}
+
+func getCredentials(url string) (string, string) {
+	for _, env := range environments {
+		if strings.HasPrefix(url, env.ReadUrl) {
+			return env.Username, env.Password
+		}
+	}
+
+	return "", ""
 }
 
 func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
@@ -241,7 +278,7 @@ func isMessagePastPublishSLA(date time.Time, threshold int) bool {
 	return time.Now().After(passedSLA)
 }
 
-func isSyntheticMessage(tid string) bool {
+func isIgnorableMessage(tid string) bool {
 	return strings.HasPrefix(tid, "SYNTHETIC")
 }
 
@@ -255,9 +292,10 @@ func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer)
 }
 
 func (pm PublishMetric) String() string {
-	return fmt.Sprintf("Tid: %s, UUID: %s, Endpoint: %s, PublishDate: %s, Duration: %d, Succeeded: %t.",
+	return fmt.Sprintf("Tid: %s, UUID: %s, Platform: %s, Endpoint: %s, PublishDate: %s, Duration: %d, Succeeded: %t.",
 		pm.tid,
 		pm.UUID,
+		pm.platform,
 		pm.config.Alias,
 		pm.publishDate.String(),
 		pm.publishInterval.upperBound,

@@ -13,21 +13,13 @@ With Docker:
 
 `docker build -t coco/publish-availability-monitor .`
 
-`docker run -ti --env QUEUE_ADDR=<addr> --env URLS=<endpoint1>,<endpoint2> coco/publish-availability-monitor`
-
-# Puppet module
-If you want a new puppet module version:
-* manually increment the version in `puppet/ft-publish_availability_monitor/Modulefile`
-* create a `git tag <version>` corresponding to the module version
-The preferrable way for the second step is to create a github release with the module version (this will automatically create the git tag, as well).
+`docker run -ti --env QUEUE_ADDR=<addr> --env S3_URL=<S3 bucket URL> --env CONTENT_URL=<document store api article endpoint path> --env LISTS_URL=<document store api lists endpoint path> --env NOTIFICATIONS_URL=<notifications read path> --env NOTIFICATIONS_PUSH_URL=<notifications push path> --env METHODE_ARTICLE_TRANSFORMER_URL=<methode article transformer URL> coco/publish-availability-monitor`
 
 # Build and deploy
-### UCS
-* prepare a new puppet module (follow the steps above)
-* build puppet module using the Jenkins job `publish-availability-monitor-build`
-* deploy the puppet module using the Jenkins job `publish-availability-monitor-deploy`
+__Note that deployment to FTP2 is no longer supported.__
+* Tagging a release in GitHub triggers a build in DockerHub.
 
-# Configuration
+# Endpoint Check Configuration
 
 ```
 //this is the SLA for content publish, in seconds
@@ -54,7 +46,8 @@ The preferrable way for the second step is to create a github release with the m
 //for each endpoint we want to check content against, we need a metricConfig entry
 "metricConfig": [
 {
-	//the URL of the endpoint
+	//the path (or absolute URL) of the endpoint.
+	//paths are resolved relative to the read_url setting (see below) on a per-environment basis
 	//to check content, the UUID is appended at the end of this URL
 	//should end with /
 	"endpoint": "endpointURL",
@@ -79,12 +72,6 @@ The preferrable way for the second step is to create a github release with the m
 ```
 
 ```
-//identifier of the platform the app is running on
-//should also contain the environment
-"platform": "aws-prod",
-```
-
-```
 //feeder-specific configuration
 //for each feeder, we need a new struct, new field in AppConfig for it, and
 //handling for the feeder in startAggregator()
@@ -92,3 +79,20 @@ The preferrable way for the second step is to create a github release with the m
 	"logFilePath": "/var/log/apps/pam.log"
 }
 ```
+
+# Environment Configuration
+The monitor can check publication across several different environments, provided each environment can be accessed by a single host URL. The monitor reads from `etcd` and watches for changes in the following paths:
+
+```
+/ft
+   /config/publish-availability-monitor/delivery-environments
+                                                             /[env-name]           // environment name
+                                                                        /read_url  // base URL for reading
+
+   /_credentials/coco-delivery
+                              /[env-name]            // if HTTP basic authentication is required for [env-name]
+                                         /username
+                                         /password
+```
+
+Checks that have already been initiated are unaffected by changes to the values above.

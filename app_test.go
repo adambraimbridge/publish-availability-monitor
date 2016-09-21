@@ -25,15 +25,35 @@ func TestIsMessagePastPublishSLA_notPastSLA(t *testing.T) {
 	}
 }
 
-func TestIsSyntheticMessage_naturalMessage(t *testing.T) {
-	if isSyntheticMessage(naturalTID) {
-		t.Error("Normal message marked as synthetic")
+func TestIsIgnorableMessage_naturalMessage(t *testing.T) {
+	if isIgnorableMessage(naturalTID) {
+		t.Error("Normal message marked as ignorable")
 	}
 }
 
-func TestIsSyntheticMessage_syntheticMessage(t *testing.T) {
-	if !isSyntheticMessage(syntheticTID) {
+func TestIsIgnorableMessage_syntheticMessage(t *testing.T) {
+	if !isIgnorableMessage(syntheticTID) {
 		t.Error("Synthetic message marked as normal")
+	}
+}
+
+func TestGetCredentials(t *testing.T) {
+	environments["env1"] = Environment{"env1", "http://env1.example.org", "user1", "pass1"}
+	environments["env2"] = Environment{"env2", "http://env2.example.org", "user2", "pass2"}
+
+	username, password := getCredentials("http://env2.example.org/__some-service")
+	if username != "user2" || password != "pass2" {
+		t.Error("incorrect credentials returned")
+	}
+}
+
+func TestGetCredentials_Unauthenticated(t *testing.T) {
+	environments["env1"] = Environment{"env1", "http://env1.example.org", "user1", "pass1"}
+	environments["env2"] = Environment{"env2", "http://env2.example.org", "user2", "pass2"}
+
+	username, password := getCredentials("http://env3.example.org/__some-service")
+	if username != "" || password != "" {
+		t.Error("incorrect credentials returned")
 	}
 }
 
