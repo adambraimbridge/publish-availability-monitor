@@ -6,9 +6,7 @@ ADD config.json.template /publish-availability-monitor/config.json
 ADD startup.sh /
 
 RUN apk update \
-  && apk add bash \
-  && apk add git bzr \
-  && apk add go \
+  && apk add bash git bzr go ca-certificates \
   && export GOPATH=/gopath \
   && REPO_PATH="github.com/Financial-Times/publish-availability-monitor" \
   && mkdir -p $GOPATH/src/${REPO_PATH} \
