@@ -4,7 +4,7 @@
 		"address": ["QUEUE_ADDR"],
 		"group": "PubMonitor",
 		"topic": "NativeCmsPublicationEvents",
-		"queue": "kafka",
+		"queue": "KAFKA_PROXY_HOST",
 		"concurrentProcessing": true
 	},
 	"metricConfig": [{
