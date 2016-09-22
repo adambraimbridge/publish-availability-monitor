@@ -38,7 +38,12 @@ func DiscoverEnvironments(etcdPeers *string, etcdEnvKey *string, etcdCredKey *st
 
 	etcdKeysAPI = etcd.NewKeysAPI(etcdClient)
 
-	redefineEnvironments(environments)
+	for len(environments) == 0 {
+		if err = redefineEnvironments(environments); err != nil {
+			infoLogger.Print("retry in 60s...")
+			time.Sleep(time.Minute)
+		}
+	}
 
 	go watch(envKey, environments)
 	go watch(credKey, environments)

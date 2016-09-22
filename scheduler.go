@@ -19,36 +19,53 @@ func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid s
 			continue
 		}
 
-		for name, env := range environments {
-			var endpointURL *url.URL
-			var err error
+		if len(environments) > 0 {
+			for name, env := range environments {
+				var endpointURL *url.URL
+				var err error
 
-			if absoluteUrlRegex.MatchString(metric.Endpoint) {
-				endpointURL, err = url.Parse(metric.Endpoint)
-			} else {
-				endpointURL, err = url.Parse(env.ReadUrl + metric.Endpoint)
+				if absoluteUrlRegex.MatchString(metric.Endpoint) {
+					endpointURL, err = url.Parse(metric.Endpoint)
+				} else {
+					endpointURL, err = url.Parse(env.ReadUrl + metric.Endpoint)
+				}
+
+				if err != nil {
+					errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
+					continue
+				}
+
+				var publishMetric = PublishMetric{
+					contentToCheck.GetUUID(),
+					false,
+					publishDate,
+					name,
+					Interval{},
+					metric,
+					*endpointURL,
+					tid,
+					isMarkedDeleted,
+				}
+
+				var checkInterval = appConfig.Threshold / metric.Granularity
+				var publishCheck = NewPublishCheck(publishMetric, env.Username, env.Password, appConfig.Threshold, checkInterval, metricSink)
+				go scheduleCheck(*publishCheck, metricContainer)
 			}
-
-			if err != nil {
-				errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
-				continue
-			}
-
+		} else {
+			// generate a generic failure metric so that the absence of monitoring is logged
 			var publishMetric = PublishMetric{
 				contentToCheck.GetUUID(),
 				false,
 				publishDate,
-				name,
+				"none",
 				Interval{},
 				metric,
-				*endpointURL,
+				url.URL{},
 				tid,
 				isMarkedDeleted,
 			}
-
-			var checkInterval = appConfig.Threshold / metric.Granularity
-			var publishCheck = NewPublishCheck(publishMetric, env.Username, env.Password, appConfig.Threshold, checkInterval, metricSink)
-			go scheduleCheck(*publishCheck, metricContainer)
+			metricSink <- publishMetric
+			updateHistory(metricContainer, publishMetric)
 		}
 	}
 }
