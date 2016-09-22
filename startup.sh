@@ -1,4 +1,5 @@
 #!/bin/sh
+sed -i "s KAFKA_PROXY_HOST $KAFKA_PROXY_HOST " /config.json
 sed -i "s QUEUE_ADDR $QUEUE_ADDR " /config.json
 sed -i "s S3_URL $S3_URL " /config.json
 sed -i "s CONTENT_URL $CONTENT_URL " /config.json
