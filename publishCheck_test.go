@@ -19,6 +19,19 @@ func TestIsCurrentOperationFinished_S3Check_Finished(t *testing.T) {
 	}
 }
 
+func TestIsCurrentOperationFinished_S3Check_DoesNotSendAuthentication(t *testing.T) {
+	currentTid := "tid_1234"
+	s3Check := &S3Check{
+		mockHTTPCaller(buildResponse(200, "imagebytes")),
+	}
+
+	pm := newPublishMetricBuilder().withTID(currentTid).build()
+	pc := NewPublishCheck(pm, "jdoe", "frodo", 0, 0, nil)
+	if finished, _ := s3Check.isCurrentOperationFinished(pc); !finished {
+		t.Error("Expected success.")
+	}
+}
+
 func TestIsCurrentOperationFinished_S3Check_Empty(t *testing.T) {
 	s3Check := &S3Check{
 		mockHTTPCaller(buildResponse(200, "")),
@@ -321,10 +334,8 @@ type testHTTPCaller struct {
 
 // returns the mock responses of testHTTPCaller in order
 func (t *testHTTPCaller) doCall(url string, username string, password string) (*http.Response, error) {
-	if t.authUser != "" && t.authPass != "" {
-		if t.authUser != username || t.authPass != password {
-			return buildResponse(401, `{message: "Not authenticated"}`), nil
-		}
+	if t.authUser != username || t.authPass != password {
+		return buildResponse(401, `{message: "Not authenticated"}`), nil
 	}
 
 	response := t.mockResponses[t.current]
