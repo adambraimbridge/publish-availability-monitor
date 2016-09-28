@@ -83,16 +83,8 @@ __Note that deployment to FTP2 is no longer supported.__
 # Environment Configuration
 The monitor can check publication across several different environments, provided each environment can be accessed by a single host URL. The monitor reads from `etcd` and watches for changes in the following paths:
 
-```
-/ft
-   /config/publish-availability-monitor/delivery-environments
-                                                             /[env-name]           // environment name
-                                                                        /read_url  // base URL for reading
+`/ft/config/monitoring/read-urls`: a comma-separated list of _name_`:`_value_ pairs, mapping from environment name to base read URL, e.g. `env1:http://foo.example.org,env2:http://bar.example.org`
 
-   /_credentials/coco-delivery
-                              /[env-name]            // if HTTP basic authentication is required for [env-name]
-                                         /username
-                                         /password
-```
+`/ft/_credentials/publish-read/read-credentials`: a comma-separated list of _name_`:`_username_`:`_password_ tuples, mapping from environment name to basic HTTP credentials, e.g. `env1:scott:tiger,env2:friend:frodo`. The _name_ must match a name in the read-urls key; if an environment does not require authentication, credentials should be omitted.
 
 Checks that have already been initiated are unaffected by changes to the values above.
