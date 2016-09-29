@@ -25,6 +25,8 @@ type readEnvironmentHealthcheck struct {
 	client http.Client
 }
 
+const pam_run_book_url = "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/publish-availability-monitor"
+
 var readCheckEndpoints = map[string]func(string) (string, error){
 	"S3": buildAwsHealthcheckUrl,
 	// only exceptions need to be listed here - everything else will default to standard FT healthcheck URLs
@@ -33,7 +35,7 @@ var readCheckEndpoints = map[string]func(string) (string, error){
 var noReadEnvironments = fthealth.Check{
 	BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
 	Name:             "ReadEnvironments",
-	PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-run-book",
+	PanicGuide:       pam_run_book_url,
 	Severity:         1,
 	TechnicalSummary: "There are no read environments to monitor. This could be because none have been configured, or that etcd is not reachable/healthy",
 	Checker: func() (string, error) {
@@ -77,7 +79,7 @@ func (h *Healthcheck) messageQueueProxyReachable() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
 		Name:             "MessageQueueProxyReachable",
-		PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-run-book",
+		PanicGuide:       pam_run_book_url,
 		Severity:         1,
 		TechnicalSummary: "Message queue proxy is not reachable/healthy",
 		Checker:          h.checkAggregateMessageQueueProxiesReachable,
@@ -154,7 +156,7 @@ func (h *Healthcheck) reflectPublishFailures() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   "At least two of the last 10 publishes failed. This will reflect in the SLA measurement.",
 		Name:             "ReflectPublishFailures",
-		PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-run-book",
+		PanicGuide:       pam_run_book_url,
 		Severity:         1,
 		TechnicalSummary: "Publishes did not meet the SLA measurments",
 		Checker:          h.checkForPublishFailures,
@@ -186,7 +188,7 @@ func (h *Healthcheck) validationServicesReachable() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   "Publish metrics might not be correct. False positive failures might be recorded. This will impact the SLA measurement.",
 		Name:             "validationServicesReachable",
-		PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-run-book",
+		PanicGuide:       pam_run_book_url,
 		Severity:         1,
 		TechnicalSummary: "Validation services are not reachable/healthy",
 		Checker:          h.checkValidationServicesReachable,
@@ -247,7 +249,7 @@ func (h *Healthcheck) readEnvironmentsReachable() []fthealth.Check {
 		hc[i] = fthealth.Check{
 			BusinessImpact:   "Publish metrics might not be correct. False positive failures might be recorded. This will impact the SLA measurement.",
 			Name:             env.Name + " readEndpointsReachable",
-			PanicGuide:       "https://sites.google.com/a/ft.com/technology/systems/dynamic-semantic-publishing/extra-publishing/publish-availability-monitor-run-book",
+			PanicGuide:       pam_run_book_url,
 			Severity:         1,
 			TechnicalSummary: "Read services are not reachable/healthy",
 			Checker:          (&readEnvironmentHealthcheck{env, h.client}).checkReadEnvironmentReachable,
