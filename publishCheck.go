@@ -150,13 +150,18 @@ func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFin
 		return false, false
 	}
 
-	if jsonResp["publishReference"] == pm.tid {
+	return isSamePublishEvent(jsonResp, pc)
+}
+
+func isSamePublishEvent(jsonContent map[string]interface{}, pc *PublishCheck) (operationFinished, ignoreCheck bool) {
+	pm := pc.Metric
+	if jsonContent["publishReference"] == pm.tid {
 		infoLogger.Printf("Checking %s. Matched publish reference.", pc)
 		return true, false
 	}
 
 	// look for rapid-fire publishes
-	lastModifiedDate, ok := parseLastModifiedDate(jsonResp)
+	lastModifiedDate, ok := parseLastModifiedDate(jsonContent)
 	if ok {
 		if (*lastModifiedDate).After(pm.publishDate) {
 			infoLogger.Printf("Checking %s. Last modified date [%v] is after publish date [%v]", pc, lastModifiedDate, pm.publishDate)
@@ -168,7 +173,7 @@ func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFin
 		}
 		infoLogger.Printf("Checking %s. Last modified date [%v] is before publish date [%v]", pc, lastModifiedDate, pm.publishDate)
 	} else {
-		warnLogger.Printf("The field 'lastModified' is not valid: [%v]. Skip checking rapid-fire publishes for %s.", jsonResp["lastModified"], pc)
+		warnLogger.Printf("The field 'lastModified' is not valid: [%v]. Skip checking rapid-fire publishes for %s.", jsonContent["lastModified"], pc)
 	}
 
 	return false, false
@@ -317,31 +322,18 @@ func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL string, p
 		warnLogger.Printf("Checking %s. Cannot decode json response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
 		return defaultResult
 	}
-	return checkNotificationItems(notifications, pm, defaultResult)
+	return checkNotificationItems(notifications, pc, defaultResult)
 }
 
-func checkNotificationItems(notifications notificationsContent, pm PublishMetric, defaultResult notificationCheckResult) notificationCheckResult {
+func checkNotificationItems(notifications notificationsContent, pc *PublishCheck, defaultResult notificationCheckResult) notificationCheckResult {
+	pm := pc.Metric
 	for _, n := range notifications.Notifications {
 		if !strings.Contains(n.ID, pm.UUID) {
 			continue
 		}
-
-		lastModifiedDate, err := time.Parse(dateLayout, n.LastModified)
-		if err != nil {
-			warnLogger.Printf("The field 'lastModified' is not valid: [%v]. Skip checking rapid-fire publishes for %s.", n.LastModified, loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid))
-			//fallback check
-			infoLogger.Printf("Checking %s. Fallback checking publishReference [%v] from response.", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), n.PublishReference)
-			return notificationCheckResult{operationFinished: pm.tid == n.PublishReference, ignoreCheck: false, nextNotificationsURL: ""}
-		}
-		if lastModifiedDate.After(pm.publishDate) {
-			infoLogger.Printf("Checking %s. Last modified date [%v] is after publish date [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), lastModifiedDate, pm.publishDate)
-			return notificationCheckResult{operationFinished: false, ignoreCheck: true, nextNotificationsURL: ""}
-		}
-		if lastModifiedDate.Equal(pm.publishDate) {
-			infoLogger.Printf("Checking %s. Last modified date [%v] is equal to publish date [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), lastModifiedDate, pm.publishDate)
-			return notificationCheckResult{operationFinished: true, ignoreCheck: false, nextNotificationsURL: ""}
-		}
-		infoLogger.Printf("Checking %s. Last modified date [%v] is before publish date [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), lastModifiedDate, pm.publishDate)
+		checkData := map[string]interface{}{"publishReference": n.PublishReference, "lastModified": n.LastModified}
+		operationFinished, ignoreCheck := isSamePublishEvent(checkData, pc)
+		return notificationCheckResult{operationFinished: operationFinished, ignoreCheck: ignoreCheck, nextNotificationsURL: ""}
 	}
 
 	if len(notifications.Notifications) > 0 {
