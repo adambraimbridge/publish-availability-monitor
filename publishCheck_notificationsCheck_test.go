@@ -130,6 +130,7 @@ func TestCheckBatchOfNotifications_ResponseDoesContainUUIDLastModifiedFieldIsAft
 						"type": "http://www.ft.com/thing/ThingChangeType/UPDATE",
 						"id": "http://www.ft.com/thing/%s",
 						"apiUrl": "http://api.ft.com/content/%s",
+						"publishReference": "tid_foo",
 						"lastModified": "2015-12-08T16:16:48.391Z"
 					}
 				],
@@ -163,7 +164,8 @@ func TestCheckBatchOfNotifications_ResponseDoesContainUUIDLastModifiedFieldEqual
 						"type": "http://www.ft.com/thing/ThingChangeType/UPDATE",
 						"id": "http://www.ft.com/thing/%s",
 						"apiUrl": "http://api.ft.com/content/%s",
-						"lastModified": "2015-12-08T16:16:47.391Z"
+						"lastModified": "2015-12-08T16:16:47.391Z",
+						"publishReference":"tid_foo"
 					}
 				],
 			"links": [
@@ -196,7 +198,8 @@ func TestCheckBatchOfNotifications_ResponseDoesContainUUIDLastModifiedFieldBefor
 						"type": "http://www.ft.com/thing/ThingChangeType/UPDATE",
 						"id": "http://www.ft.com/thing/%s",
 						"apiUrl": "http://api.ft.com/content/%s",
-						"lastModified": "2015-12-08T16:16:46.391Z"
+						"lastModified": "2015-12-08T16:16:46.391Z",
+						"publishReference": "tid_foo"
 					}
 				],
 			"links": [
@@ -447,42 +450,6 @@ func TestShouldSkipCheck_ContentIsMarkedAsDeletedPreviousNotificationsDoesNotExi
 	}
 }
 
-func TestCheckNotificationItems_ShouldIterateUponMultipleMatchingUuids(t *testing.T) {
-	notifications := notificationsContent{
-		Notifications: []notification{
-			notification{
-				ID:               "0dda9446-4367-11e6-b22f-79eb4891c97d",
-				LastModified:     "2016-07-07T07:07:07.000Z",
-				PublishReference: "tid_testtest1",
-			},
-			notification{
-				ID:               "0dda9446-4367-11e6-b22f-79eb4891c97d",
-				LastModified:     "2016-07-07T07:07:08.000Z",
-				PublishReference: "tid_testtest2",
-			},
-		},
-	}
-	pubDate, err := time.Parse(dateLayout, "2016-07-07T07:07:08.000Z")
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	var pm PublishMetric
-	pm = PublishMetric{
-		UUID:        "0dda9446-4367-11e6-b22f-79eb4891c97d",
-		publishDate: pubDate,
-		platform:    "test",
-		//publishInterval:
-		tid:             "tid_testtest2",
-		isMarkedDeleted: false,
-	}
-	var defaultResult = notificationCheckResult{operationFinished: false, ignoreCheck: false, nextNotificationsURL: ""}
-	actual := checkNotificationItems(notifications, pm, defaultResult)
-
-	if !(actual.operationFinished && !actual.ignoreCheck) {
-		t.Errorf("Should have finished finding the second occurence and result as operation finished and not ignore check. Actual: %v", actual)
-	}
-}
-
 func TestCheckNotificationItems_ShouldNotFinishOpIfNotFound(t *testing.T) {
 	notifications := notificationsContent{
 		Notifications: []notification{
@@ -516,8 +483,9 @@ func TestCheckNotificationItems_ShouldNotFinishOpIfNotFound(t *testing.T) {
 		tid:             "tid_testtest99",
 		isMarkedDeleted: false,
 	}
+	pc := NewPublishCheck(pm, "", "", 0, 0, nil)
 	var defaultResult = notificationCheckResult{operationFinished: false, ignoreCheck: false, nextNotificationsURL: ""}
-	actual := checkNotificationItems(notifications, pm, defaultResult)
+	actual := checkNotificationItems(notifications, pc, defaultResult)
 
 	if actual != defaultResult {
 		t.Errorf("Should not signal the finish of operation or ignore the check. Actual: %v", actual)
