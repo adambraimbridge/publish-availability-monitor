@@ -64,12 +64,21 @@ func redefineEnvironments(environments map[string]Environment) error {
 		return err
 	}
 
-	envReadEndpoints := strings.Split(etcdEnvResp.Node.Value, ",")
-	envCredentials := strings.Split(etcdCredResp.Node.Value, ",")
+	parseEnvironmentsIntoMap(etcdEnvResp.Node.Value, etcdCredResp.Node.Value, environments)
+	return nil
+}
+
+func parseEnvironmentsIntoMap(etcdEnv string, etcdCred string, environments map[string]Environment) {
+	envReadEndpoints := strings.Split(etcdEnv, ",")
+	envCredentials := strings.Split(etcdCred, ",")
 
 	seen := make(map[string]struct{})
 	for _, env := range envReadEndpoints {
 		nameAndUrl := strings.SplitN(env, ":", 2)
+		if len(nameAndUrl) != 2 {
+			warnLogger.Printf("etcd read-urls contain an invalid value")
+			continue
+		}
 
 		name := nameAndUrl[0]
 		readUrl := nameAndUrl[1]
@@ -104,8 +113,6 @@ func redefineEnvironments(environments map[string]Environment) error {
 		infoLogger.Printf("removing environment from monitoring: %v", name)
 		delete(environments, name)
 	}
-
-	return nil
 }
 
 func watch(etcdKey *string, environments map[string]Environment) {
