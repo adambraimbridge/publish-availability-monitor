@@ -12,10 +12,10 @@ RUN apk update \
   && mkdir -p $GOPATH/src/${REPO_PATH} \
   && mv /publish-availability-monitor/* $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
-  && go get \
-  && go test ./... \
+  && go get -t -d -v ./... \
   && go build \
-  && mv publish-availability-monitor /app \
+  && go test ./... \
+  && mv publish-availability-monitor / \
   && mv config.json /config.json \
   && apk del go git bzr \
   && rm -rf $GOPATH /var/cache/apk/*
