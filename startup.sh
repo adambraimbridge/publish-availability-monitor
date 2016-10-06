@@ -8,4 +8,4 @@ sed -i "s NOTIFICATIONS_URL $NOTIFICATIONS_URL " /config.json
 sed -i "s NOTIFICATIONS_PUSH_URL $NOTIFICATIONS_PUSH_URL " /config.json
 sed -i "s METHODE_ARTICLE_TRANSFORMER_URL $METHODE_ARTICLE_TRANSFORMER_URL " /config.json
 
-exec ./app -etcd-peers $ETCD_PEERS -config /config.json
+exec ./publish-availability-monitor -etcd-peers $ETCD_PEERS -config /config.json
