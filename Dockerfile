@@ -1,8 +1,8 @@
 FROM alpine:3.4
 
-ADD *.go /publish-availability-monitor/
-ADD content/*.go /publish-availability-monitor/content/
-ADD config.json.template /publish-availability-monitor/config.json
+ADD *.go /app/
+ADD content/*.go /app/content/
+ADD config.json.template /config.json
 ADD startup.sh /
 
 RUN apk update \
@@ -10,14 +10,13 @@ RUN apk update \
   && export GOPATH=/gopath \
   && REPO_PATH="github.com/Financial-Times/publish-availability-monitor" \
   && mkdir -p $GOPATH/src/${REPO_PATH} \
-  && mv /publish-availability-monitor/* $GOPATH/src/${REPO_PATH} \
+  && mv /app/* $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
   && go get -t -d -v ./... \
   && go build \
   && go test ./... \
   && mv publish-availability-monitor / \
-  && mv config.json /config.json \
   && apk del go git bzr \
-  && rm -rf $GOPATH /var/cache/apk/*
+  && rm -rf /app $GOPATH /var/cache/apk/*
 
 CMD [ "/startup.sh" ]
