@@ -11,14 +11,16 @@ import (
 )
 
 var (
-	etcdKeysAPI etcd.KeysAPI
-	envKey      *string
-	credKey     *string
+	etcdKeysAPI  etcd.KeysAPI
+	envKey       *string
+	credKey      *string
+	validatorKey *string
 )
 
-func DiscoverEnvironments(etcdPeers *string, etcdEnvKey *string, etcdCredKey *string, environments map[string]Environment) error {
+func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdEnvKey *string, etcdCredKey *string, etcdValidatorCredKey *string, environments map[string]Environment) error {
 	envKey = etcdEnvKey
 	credKey = etcdCredKey
+	validatorKey = etcdValidatorCredKey
 
 	transport := &http.Transport{
 		Dial: proxy.Direct.Dial,
@@ -45,8 +47,16 @@ func DiscoverEnvironments(etcdPeers *string, etcdEnvKey *string, etcdCredKey *st
 		}
 	}
 
-	go watch(envKey, environments)
-	go watch(credKey, environments)
+	fn := func() {
+		redefineEnvironments(environments)
+	}
+	go watch(envKey, fn)
+	go watch(credKey, fn)
+
+	validatorCredentials = redefineValidatorCredentials()
+	go watch(validatorKey, func() {
+		validatorCredentials = redefineValidatorCredentials()
+	})
 
 	return nil
 }
@@ -115,11 +125,19 @@ func parseEnvironmentsIntoMap(etcdEnv string, etcdCred string, environments map[
 	}
 }
 
-func watch(etcdKey *string, environments map[string]Environment) {
+func redefineValidatorCredentials() string {
+	etcdCredResp, err := etcdKeysAPI.Get(context.Background(), *validatorKey, &etcd.GetOptions{Sort: true})
+	if err != nil {
+		errorLogger.Printf("Failed to get value from %v: %v.", *validatorKey, err.Error())
+		return ""
+	}
+
+	return etcdCredResp.Node.Value
+}
+
+func watch(etcdKey *string, fn func()) {
 	watcher := etcdKeysAPI.Watcher(*etcdKey, &etcd.WatcherOptions{AfterIndex: 0, Recursive: true})
-	limiter := NewEventLimiter(func() {
-		redefineEnvironments(environments)
-	})
+	limiter := NewEventLimiter(fn)
 
 	for {
 		_, err := watcher.Next(context.Background())

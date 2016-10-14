@@ -92,11 +92,13 @@ var configFileName = flag.String("config", "", "Path to configuration file")
 var etcdPeers = flag.String("etcd-peers", "http://localhost:2379", "Comma-separated list of addresses of etcd endpoints to connect to")
 var etcdEnvKey = flag.String("etcd-env-key", "/ft/config/monitoring/read-urls", "etcd key that lists the read environment URLs")
 var etcdCredKey = flag.String("etcd-cred-key", "/ft/_credentials/publish-read/read-credentials", "etcd key that lists the read environment credentials")
+var etcdValidatorCredKey = flag.String("etcd-validator-cred-key", "/ft/_credentials/publish-read/validator-credentials", "etcd key that specifies the validator credentials")
 
 var appConfig *AppConfig
 var environments = make(map[string]Environment)
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
+var validatorCredentials string
 
 func main() {
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
@@ -109,7 +111,7 @@ func main() {
 		return
 	}
 
-	go DiscoverEnvironments(etcdPeers, etcdEnvKey, etcdCredKey, environments)
+	go DiscoverEnvironmentsAndValidators(etcdPeers, etcdEnvKey, etcdCredKey, etcdValidatorCredKey, environments)
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
@@ -203,7 +205,7 @@ func handleMessage(msg consumer.Message) {
 	var username string
 	var password string
 	if validationEndpoint, found = appConfig.ValidationEndpoints[contentType]; found {
-		username, password = getCredentials(validationEndpoint)
+		username, password = getValidationCredentials(validationEndpoint)
 	}
 
 	if !publishedContent.IsValid(validationEndpoint, username, password) {
@@ -248,6 +250,15 @@ func getCredentials(url string) (string, string) {
 		if strings.HasPrefix(url, env.ReadUrl) {
 			return env.Username, env.Password
 		}
+	}
+
+	return "", ""
+}
+
+func getValidationCredentials(url string) (string, string) {
+	if strings.Contains(validatorCredentials, ":") {
+		unpw := strings.SplitN(validatorCredentials, ":", 2)
+		return unpw[0], unpw[1]
 	}
 
 	return "", ""
