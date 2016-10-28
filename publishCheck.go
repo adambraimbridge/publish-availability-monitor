@@ -5,9 +5,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
+
+	"github.com/Financial-Times/publish-availability-monitor/feeds"
 )
 
 // PublishCheck performs an availability  check on a piece of content, at a
@@ -44,7 +44,9 @@ type S3Check struct {
 // NotificationsCheck implements the EndpointSpecificCheck interface to build the endpoint URL and
 // to check the operation is present in the notification feed
 type NotificationsCheck struct {
-	httpCaller httpCaller
+	httpCaller      httpCaller
+	subscribedFeeds map[string][]feeds.Feed
+	feedName        string
 }
 
 // httpCaller abstracts http calls
@@ -86,8 +88,8 @@ func init() {
 		"S3":                 S3Check{hC},
 		"enrichedContent":    ContentCheck{hC},
 		"lists":              ContentCheck{hC},
-		"notifications":      NotificationsCheck{hC},
-		"notifications-push": NotificationsCheck{hC},
+		"notifications":      NotificationsCheck{hC, subscribedFeeds, feeds.NotificationsPull},
+		"notifications-push": NotificationsCheck{hC, make(map[string][]feeds.Feed), ""},
 	}
 }
 
@@ -219,41 +221,17 @@ func (s S3Check) isCurrentOperationFinished(pc *PublishCheck) (operationFinished
 	return true, false
 }
 
-// ignore unused field (e.g. requestUrl)
-type notificationsContent struct {
-	Notifications []notification
-	Links         []link
-}
-
-// ignore unused fields (e.g. type, apiUrl)
-type notification struct {
-	PublishReference string
-	LastModified     string
-	ID               string
-}
-
-// ignore unused field (e.g. rel)
-type link struct {
-	Href string
-}
-
 func (n NotificationsCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFinished, ignoreCheck bool) {
-	if n.shouldSkipCheck(pc) {
-		return false, true
-	}
-	notificationsURL := buildNotificationsURL(pc.Metric)
-	var err error
-	for {
-		result := n.checkBatchOfNotifications(notificationsURL, pc)
-		if result.operationFinished || result.nextNotificationsURL == "" {
-			return result.operationFinished, result.ignoreCheck
-		}
-		//replace nextNotificationsURL host, as by default it's the API gateway host
-		notificationsURL, err = adjustNextNotificationsURL(notificationsURL, result.nextNotificationsURL)
-		if err != nil {
-			return false, false
+	notifications := n.checkFeed(pc.Metric.UUID, pc.Metric.platform)
+	for _, e := range notifications {
+		checkData := map[string]interface{}{"publishReference": e.PublishReference, "lastModified": e.LastModified}
+		operationFinished, ignoreCheck := isSamePublishEvent(checkData, pc)
+		if operationFinished || ignoreCheck {
+			return operationFinished, ignoreCheck
 		}
 	}
+
+	return false, n.shouldSkipCheck(pc)
 }
 
 func (n NotificationsCheck) shouldSkipCheck(pc *PublishCheck) bool {
@@ -273,7 +251,7 @@ func (n NotificationsCheck) shouldSkipCheck(pc *PublishCheck) bool {
 		return false
 	}
 
-	var notifications []notification
+	var notifications []feeds.Notification
 	err = json.NewDecoder(resp.Body).Decode(&notifications)
 	if err != nil {
 		return false
@@ -286,86 +264,18 @@ func (n NotificationsCheck) shouldSkipCheck(pc *PublishCheck) bool {
 	return false
 }
 
-// Bundles the result of a single check of batch of notifications
-// Note: the next notifications URL has the host set to the API gateway host, as returned by the notifications service.
-type notificationCheckResult struct {
-	// the status of the check
-	operationFinished bool
-	// true, if there is a more recent notification found for the current content
-	ignoreCheck bool
-	// the URL for the next batch of notifications to be checked (if it is applicable), otherwise empty string ""
-	nextNotificationsURL string
-}
-
-// Check the notification content with the provided publishReference from the batch of notifications from the provided URL.
-// Returns the status of the check and the
-func (n NotificationsCheck) checkBatchOfNotifications(notificationsURL string, pc *PublishCheck) notificationCheckResult {
-	// return this check result where is appropriate (e.g. in case of errors): operation not finished, ignore checks false, empty next notifications URL
-	var defaultResult = notificationCheckResult{operationFinished: false, ignoreCheck: false, nextNotificationsURL: ""}
-
-	pm := pc.Metric
-	resp, err := n.httpCaller.doCall(notificationsURL, pc.username, pc.password)
-	if err != nil {
-		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), notificationsURL, err.Error())
-		return defaultResult
-	}
-	defer cleanupResp(resp)
-
-	if resp.StatusCode != 200 {
-		warnLogger.Printf("Checking %s. Status NOT OK: [%d]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), resp.StatusCode)
-		return defaultResult
-	}
-
-	var notifications notificationsContent
-	err = json.NewDecoder(resp.Body).Decode(&notifications)
-	if err != nil {
-		warnLogger.Printf("Checking %s. Cannot decode json response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
-		return defaultResult
-	}
-	return checkNotificationItems(notifications, pc, defaultResult)
-}
-
-func checkNotificationItems(notifications notificationsContent, pc *PublishCheck, defaultResult notificationCheckResult) notificationCheckResult {
-	pm := pc.Metric
-	for _, n := range notifications.Notifications {
-		if !strings.Contains(n.ID, pm.UUID) {
-			continue
+func (n NotificationsCheck) checkFeed(uuid string, envName string) []*feeds.Notification {
+	envFeeds, found := n.subscribedFeeds[envName]
+	if found {
+		for _, f := range envFeeds {
+			if f.Name() == n.feedName {
+				notifications := f.NotificationsFor(uuid)
+				return notifications
+			}
 		}
-		checkData := map[string]interface{}{"publishReference": n.PublishReference, "lastModified": n.LastModified}
-		operationFinished, ignoreCheck := isSamePublishEvent(checkData, pc)
-		return notificationCheckResult{operationFinished: operationFinished, ignoreCheck: ignoreCheck, nextNotificationsURL: ""}
 	}
 
-	if len(notifications.Notifications) > 0 {
-		return notificationCheckResult{operationFinished: false, ignoreCheck: false, nextNotificationsURL: notifications.Links[0].Href}
-	}
-	return defaultResult
-}
-
-func buildNotificationsURL(pm PublishMetric) string {
-	base := pm.endpoint.String()
-	queryParam := url.Values{}
-	//e.g. 2015-07-23T00:00:00.000Z
-	since := pm.publishDate.Format(dateLayout)
-	queryParam.Add("since", since)
-	return base + "?" + queryParam.Encode()
-}
-
-// Replace next URL host with current URL's host
-func adjustNextNotificationsURL(current, next string) (string, error) {
-	currentNotificationsURLValue, err := url.Parse(current)
-	if err != nil {
-		warnLogger.Printf("Cannot parse current notifications URL: [%s].", current)
-		return "", err
-	}
-	nextNotificationsURLValue, err := url.Parse(next)
-	if err != nil {
-		warnLogger.Printf("Cannot parse next notifications URL: [%s].", next)
-		return "", err
-	}
-	nextNotificationsURLValue.Host = currentNotificationsURLValue.Host
-	nextNotificationsURLValue.Scheme = currentNotificationsURLValue.Scheme
-	return nextNotificationsURLValue.String(), nil
+	return []*feeds.Notification{}
 }
 
 func cleanupResp(resp *http.Response) {

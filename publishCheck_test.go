@@ -262,6 +262,7 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsEmptyStringCu
 type publishMetricBuilder interface {
 	withUUID(string) publishMetricBuilder
 	withEndpoint(string) publishMetricBuilder
+	withPlatform(string) publishMetricBuilder
 	withTID(string) publishMetricBuilder
 	withMarkedDeleted(bool) publishMetricBuilder
 	withPublishDate(time.Time) publishMetricBuilder
@@ -272,6 +273,7 @@ type publishMetricBuilder interface {
 type pmBuilder struct {
 	UUID          string
 	endpoint      url.URL
+	platform      string
 	tid           string
 	markedDeleted bool
 	publishDate   time.Time
@@ -285,6 +287,11 @@ func (b *pmBuilder) withUUID(uuid string) publishMetricBuilder {
 func (b *pmBuilder) withEndpoint(endpoint string) publishMetricBuilder {
 	e, _ := url.Parse(endpoint)
 	b.endpoint = *e
+	return b
+}
+
+func (b *pmBuilder) withPlatform(platform string) publishMetricBuilder {
+	b.platform = platform
 	return b
 }
 
@@ -307,6 +314,7 @@ func (b *pmBuilder) build() PublishMetric {
 	return PublishMetric{
 		UUID:            b.UUID,
 		endpoint:        b.endpoint,
+		platform:        b.platform,
 		tid:             b.tid,
 		isMarkedDeleted: b.markedDeleted,
 		publishDate:     b.publishDate,

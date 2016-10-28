@@ -2,12 +2,16 @@ package main
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	etcd "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 	"golang.org/x/net/proxy"
+
+	"github.com/Financial-Times/publish-availability-monitor/checks"
+	"github.com/Financial-Times/publish-availability-monitor/feeds"
 )
 
 var (
@@ -75,6 +79,9 @@ func redefineEnvironments(environments map[string]Environment) error {
 	}
 
 	parseEnvironmentsIntoMap(etcdEnvResp.Node.Value, etcdCredResp.Node.Value, environments)
+
+	startFeeds()
+
 	return nil
 }
 
@@ -147,5 +154,35 @@ func watch(etcdKey *string, fn func()) {
 			continue
 		}
 		limiter.trigger <- true
+	}
+}
+
+func startFeeds() {
+	for _, metric := range appConfig.MetricConf {
+		if metric.Alias == "notifications" {
+			for _, env := range environments {
+				httpCaller := checks.NewHttpCaller()
+				endpointUrl, err := url.Parse(env.ReadUrl + metric.Endpoint)
+				if err != nil {
+					errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
+					continue
+				}
+
+				sinceDate := time.Now().Format(time.RFC3339)
+				infoLogger.Printf("since %v", sinceDate)
+				interval := appConfig.Threshold / metric.Granularity
+
+				f := feeds.NewNotificationsPullFeed(httpCaller, endpointUrl, sinceDate, interval, env.Username, env.Password)
+
+				var envFeeds []feeds.Feed
+				var found bool
+				if envFeeds, found = subscribedFeeds[env.Name]; !found {
+					envFeeds = make([]feeds.Feed, 0)
+				}
+				subscribedFeeds[env.Name] = append(envFeeds, f)
+
+				f.Start()
+			}
+		}
 	}
 }
