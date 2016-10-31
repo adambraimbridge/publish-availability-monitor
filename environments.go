@@ -172,7 +172,7 @@ func startFeeds() {
 				infoLogger.Printf("since %v", sinceDate)
 				interval := appConfig.Threshold / metric.Granularity
 
-				f := feeds.NewNotificationsPullFeed(httpCaller, endpointUrl, sinceDate, interval, env.Username, env.Password)
+				f := feeds.NewNotificationsPullFeed(httpCaller, endpointUrl, sinceDate, appConfig.Threshold, interval, env.Username, env.Password)
 
 				var envFeeds []feeds.Feed
 				var found bool

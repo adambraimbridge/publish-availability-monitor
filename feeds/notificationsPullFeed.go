@@ -22,6 +22,7 @@ type NotificationsPullFeed struct {
 	username      string
 	password      string
 	sinceDate     string
+	expiry        int
 	interval      int
 	ticker        *time.Ticker
 	poller        chan struct{}
@@ -53,10 +54,11 @@ func cleanupResp(resp *http.Response) {
 	}
 }
 
-func NewNotificationsPullFeed(httpCaller checks.HttpCaller, baseUrl *url.URL, sinceDate string, interval int, username string, password string) *NotificationsPullFeed {
+func NewNotificationsPullFeed(httpCaller checks.HttpCaller, baseUrl *url.URL, sinceDate string, expiry int, interval int, username string, password string) *NotificationsPullFeed {
 	return &NotificationsPullFeed{httpCaller: httpCaller,
 		baseUrl:       baseUrl.String(),
 		sinceDate:     sinceDate,
+		expiry:        expiry + 2*interval,
 		interval:      interval,
 		username:      username,
 		password:      password,
@@ -70,7 +72,10 @@ func (f *NotificationsPullFeed) Start() {
 		for {
 			select {
 			case <-f.ticker.C:
-				go f.pollNotificationsFeed()
+				go func() {
+					f.pollNotificationsFeed()
+					f.purgeObsoleteNotifications()
+				}()
 			case <-f.poller:
 				f.ticker.Stop()
 				return
@@ -124,6 +129,30 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 
 	nextPageUrl, _ := url.Parse(notifications.Links[0].Href)
 	f.sinceDate = nextPageUrl.Query().Get("since")
+}
+
+func (f *NotificationsPullFeed) purgeObsoleteNotifications() {
+	earliest := time.Now().Add(time.Duration(-f.expiry) * time.Second).Format(time.RFC3339)
+	empty := make([]string, 0)
+	for u, n := range f.notifications {
+		earliestIndex := 0
+		for _, e := range n {
+			if strings.Compare(e.LastModified, earliest) >= 0 {
+				break
+			} else {
+				earliestIndex++
+			}
+		}
+		f.notifications[u] = n[earliestIndex:]
+
+		if len(f.notifications[u]) == 0 {
+			empty = append(empty, u)
+		}
+	}
+
+	for _, u := range empty {
+		delete(f.notifications, u)
+	}
 }
 
 func (f *NotificationsPullFeed) buildNotificationsURL() string {
