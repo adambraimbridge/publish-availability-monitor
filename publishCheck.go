@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 )
 
@@ -32,43 +33,21 @@ type EndpointSpecificCheck interface {
 // ContentCheck implements the EndpointSpecificCheck interface to check operation
 // status for the content endpoint.
 type ContentCheck struct {
-	httpCaller httpCaller
+	httpCaller checks.HttpCaller
 }
 
 // S3Check implements the EndpointSpecificCheck interface to check operation
 // status for the S3 endpoint.
 type S3Check struct {
-	httpCaller httpCaller
+	httpCaller checks.HttpCaller
 }
 
 // NotificationsCheck implements the EndpointSpecificCheck interface to build the endpoint URL and
 // to check the operation is present in the notification feed
 type NotificationsCheck struct {
-	httpCaller      httpCaller
+	httpCaller      checks.HttpCaller
 	subscribedFeeds map[string][]feeds.Feed
 	feedName        string
-}
-
-// httpCaller abstracts http calls
-type httpCaller interface {
-	doCall(url string, username string, password string) (*http.Response, error)
-}
-
-// Default implementation of httpCaller
-type defaultHTTPCaller struct {
-	client *http.Client
-}
-
-// Performs http GET calls using the default http client
-func (c defaultHTTPCaller) doCall(url string, username string, password string) (resp *http.Response, err error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if username != "" && password != "" {
-		req.SetBasicAuth(username, password)
-	}
-
-	req.Header.Add("User-Agent", "UPP Publish Availability Monitor")
-
-	return c.client.Do(req)
 }
 
 // NewPublishCheck returns a PublishCheck ready to perform a check for pm.UUID, at the
@@ -80,7 +59,7 @@ func NewPublishCheck(pm PublishMetric, username string, password string, t int, 
 var endpointSpecificChecks map[string]EndpointSpecificCheck
 
 func init() {
-	hC := defaultHTTPCaller{&http.Client{Timeout: time.Duration(10 * time.Second)}}
+	hC := checks.NewHttpCaller()
 
 	//key is the endpoint alias from the config
 	endpointSpecificChecks = map[string]EndpointSpecificCheck{
@@ -114,7 +93,7 @@ func (pc PublishCheck) String() string {
 func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFinished, ignoreCheck bool) {
 	pm := pc.Metric
 	url := pm.endpoint.String() + pm.UUID
-	resp, err := c.httpCaller.doCall(url, pc.username, pc.password)
+	resp, err := c.httpCaller.DoCall(url, pc.username, pc.password)
 	if err != nil {
 		warnLogger.Printf("Error calling URL: [%v] for %s : [%v]", url, pc, err.Error())
 		return false, false
@@ -194,7 +173,7 @@ func parseLastModifiedDate(jsonContent map[string]interface{}) (*time.Time, bool
 func (s S3Check) isCurrentOperationFinished(pc *PublishCheck) (operationFinished, ignoreCheck bool) {
 	pm := pc.Metric
 	url := pm.endpoint.String() + pm.UUID
-	resp, err := s.httpCaller.doCall(url, "", "")
+	resp, err := s.httpCaller.DoCall(url, "", "")
 	if err != nil {
 		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, err.Error())
 		return false, false
@@ -240,7 +219,7 @@ func (n NotificationsCheck) shouldSkipCheck(pc *PublishCheck) bool {
 		return false
 	}
 	url := pm.endpoint.String() + "/" + pm.UUID
-	resp, err := n.httpCaller.doCall(url, pc.username, pc.password)
+	resp, err := n.httpCaller.DoCall(url, pc.username, pc.password)
 	if err != nil {
 		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, err.Error())
 		return false
