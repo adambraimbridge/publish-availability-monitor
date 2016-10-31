@@ -16,5 +16,6 @@ type Feed interface {
 	Start()
 	Stop()
 	Name() string
+	SetCredentials(username string, password string)
 	NotificationsFor(uuid string) []*Notification
 }

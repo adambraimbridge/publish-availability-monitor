@@ -25,6 +25,7 @@ func (f testFeed) Stop()  {}
 func (f testFeed) Name() string {
 	return f.feedName
 }
+func (f testFeed) SetCredentials(string, string) {}
 func (f testFeed) NotificationsFor(uuid string) []*feeds.Notification {
 	return f.notifications
 }

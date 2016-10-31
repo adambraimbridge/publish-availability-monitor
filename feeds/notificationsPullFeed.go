@@ -93,6 +93,11 @@ func (f *NotificationsPullFeed) Name() string {
 	return NotificationsPull
 }
 
+func (f *NotificationsPullFeed) SetCredentials(username string, password string) {
+	f.username = username
+	f.password = password
+}
+
 func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	notificationsUrl := f.buildNotificationsURL()
 	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password)
