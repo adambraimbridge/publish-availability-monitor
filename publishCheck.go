@@ -68,7 +68,8 @@ func init() {
 		"enrichedContent":    ContentCheck{hC},
 		"lists":              ContentCheck{hC},
 		"notifications":      NotificationsCheck{hC, subscribedFeeds, feeds.NotificationsPull},
-		"notifications-push": NotificationsCheck{hC, make(map[string][]feeds.Feed), ""},
+		"notifications-push": NotificationsCheck{hC, subscribedFeeds, "notifications-push"},
+		"list-notifications": NotificationsCheck{hC, subscribedFeeds, "list-notifications"},
 	}
 }
 
@@ -247,7 +248,7 @@ func (n NotificationsCheck) checkFeed(uuid string, envName string) []*feeds.Noti
 	envFeeds, found := n.subscribedFeeds[envName]
 	if found {
 		for _, f := range envFeeds {
-			if f.Name() == n.feedName {
+			if f.FeedName() == n.feedName {
 				notifications := f.NotificationsFor(uuid)
 				return notifications
 			}

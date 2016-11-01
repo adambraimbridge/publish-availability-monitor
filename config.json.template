@@ -49,6 +49,13 @@
             "EOM::CompoundStory",
             "post"
         ]
+    }, {
+        "endpoint": "LISTS_NOTIFICATIONS_URL",
+        "granularity": 40,
+        "alias": "list-notifications",
+        "contentTypes": [
+            "EOM::WebContainer"
+        ]
     }],
 	"splunk-config": {
 		"logPrefix": "[splunkMetrics] "

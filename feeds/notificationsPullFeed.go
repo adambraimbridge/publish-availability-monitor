@@ -17,6 +17,7 @@ import (
 const NotificationsPull = "Notifications-Pull"
 
 type NotificationsPullFeed struct {
+	feedName      string
 	httpCaller    checks.HttpCaller
 	baseUrl       string
 	username      string
@@ -54,15 +55,26 @@ func cleanupResp(resp *http.Response) {
 	}
 }
 
-func NewNotificationsPullFeed(httpCaller checks.HttpCaller, baseUrl *url.URL, sinceDate string, expiry int, interval int, username string, password string) *NotificationsPullFeed {
-	return &NotificationsPullFeed{httpCaller: httpCaller,
-		baseUrl:       baseUrl.String(),
-		sinceDate:     sinceDate,
-		expiry:        expiry + 2*interval,
-		interval:      interval,
-		username:      username,
-		password:      password,
-		notifications: make(map[string][]*Notification)}
+func NewNotificationsFeed(name string, httpCaller checks.HttpCaller, baseUrl *url.URL, sinceDate string, expiry int, interval int, username string, password string) *NotificationsPullFeed {
+	if isNotificationsPullFeed(name) {
+		return &NotificationsPullFeed{httpCaller: httpCaller,
+			feedName:      name,
+			baseUrl:       baseUrl.String(),
+			sinceDate:     sinceDate,
+			expiry:        expiry + 2*interval,
+			interval:      interval,
+			username:      username,
+			password:      password,
+			notifications: make(map[string][]*Notification)}
+	}
+
+	return nil
+}
+
+func isNotificationsPullFeed(feedName string) bool {
+	return feedName == "notifications" ||
+		feedName == "notifications-push" ||
+		feedName == "list-notifications"
 }
 
 func (f *NotificationsPullFeed) Start() {
@@ -89,7 +101,11 @@ func (f *NotificationsPullFeed) Stop() {
 	close(f.poller)
 }
 
-func (f *NotificationsPullFeed) Name() string {
+func (f *NotificationsPullFeed) FeedName() string {
+	return f.feedName
+}
+
+func (f *NotificationsPullFeed) FeedType() string {
 	return NotificationsPull
 }
 

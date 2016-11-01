@@ -16,14 +16,18 @@ const (
 
 type testFeed struct {
 	feedName      string
+	feedType      string
 	uuid          string
 	notifications []*feeds.Notification
 }
 
 func (f testFeed) Start() {}
 func (f testFeed) Stop()  {}
-func (f testFeed) Name() string {
+func (f testFeed) FeedName() string {
 	return f.feedName
+}
+func (f testFeed) FeedType() string {
+	return f.feedType
 }
 func (f testFeed) SetCredentials(string, string) {}
 func (f testFeed) NotificationsFor(uuid string) []*feeds.Notification {
@@ -31,7 +35,7 @@ func (f testFeed) NotificationsFor(uuid string) []*feeds.Notification {
 }
 
 func mockFeed(name string, uuid string, notifications []*feeds.Notification) testFeed {
-	return testFeed{name, uuid, notifications}
+	return testFeed{name, feeds.NotificationsPull, uuid, notifications}
 }
 
 func TestFeedContainsMatchingNotification(t *testing.T) {
