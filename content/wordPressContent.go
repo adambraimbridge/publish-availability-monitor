@@ -16,7 +16,6 @@ const notFoundError = "Not found."
 // WordPressMessage models messages from Wordpress
 type WordPressMessage struct {
 	Status      string `json:"status"`
-	APIURL      string `json:"apiUrl"`
 	Error       string `json:"error"`
 	Post        Post   `json:"post"`
 	PreviousURL string `json:"previousUrl"`
@@ -27,6 +26,7 @@ type WordPressMessage struct {
 type Post struct {
 	Type string `json:"type"`
 	UUID string `json:"uuid"`
+	Url  string `json:"url"`
 }
 
 func (wordPressMessage WordPressMessage) IsValid(extValEndpoint string, username string, password string) bool {
@@ -41,9 +41,9 @@ func (wordPressMessage WordPressMessage) IsValid(extValEndpoint string, username
 		return false
 	}
 
-	apiURL := wordPressMessage.APIURL
-	if !isValidBrand(apiURL) {
-		warnLogger.Printf("WordPress message invalid: failed to resolve brand for uri [%s].", apiURL)
+	postURL := wordPressMessage.Post.Url
+	if !isValidBrand(postURL) {
+		warnLogger.Printf("WordPress message invalid: failed to resolve brand for uri [%s].", postURL)
 		return false
 	}
 
