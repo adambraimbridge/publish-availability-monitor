@@ -18,6 +18,7 @@ import (
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/content"
+	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	"github.com/gorilla/mux"
 )
 
@@ -96,6 +97,7 @@ var etcdValidatorCredKey = flag.String("etcd-validator-cred-key", "/ft/_credenti
 
 var appConfig *AppConfig
 var environments = make(map[string]Environment)
+var subscribedFeeds = make(map[string][]feeds.Feed)
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 var validatorCredentials string
@@ -116,6 +118,7 @@ func main() {
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
 	go startHttpListener()
+
 	startAggregator()
 	readMessages()
 }

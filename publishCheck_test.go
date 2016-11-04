@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/Financial-Times/publish-availability-monitor/checks"
 )
 
 func TestIsCurrentOperationFinished_S3Check_Finished(t *testing.T) {
@@ -262,6 +264,7 @@ func TestIsCurrentOperationFinished_ContentCheck_LastModifiedDateIsEmptyStringCu
 type publishMetricBuilder interface {
 	withUUID(string) publishMetricBuilder
 	withEndpoint(string) publishMetricBuilder
+	withPlatform(string) publishMetricBuilder
 	withTID(string) publishMetricBuilder
 	withMarkedDeleted(bool) publishMetricBuilder
 	withPublishDate(time.Time) publishMetricBuilder
@@ -272,6 +275,7 @@ type publishMetricBuilder interface {
 type pmBuilder struct {
 	UUID          string
 	endpoint      url.URL
+	platform      string
 	tid           string
 	markedDeleted bool
 	publishDate   time.Time
@@ -285,6 +289,11 @@ func (b *pmBuilder) withUUID(uuid string) publishMetricBuilder {
 func (b *pmBuilder) withEndpoint(endpoint string) publishMetricBuilder {
 	e, _ := url.Parse(endpoint)
 	b.endpoint = *e
+	return b
+}
+
+func (b *pmBuilder) withPlatform(platform string) publishMetricBuilder {
+	b.platform = platform
 	return b
 }
 
@@ -307,6 +316,7 @@ func (b *pmBuilder) build() PublishMetric {
 	return PublishMetric{
 		UUID:            b.UUID,
 		endpoint:        b.endpoint,
+		platform:        b.platform,
 		tid:             b.tid,
 		isMarkedDeleted: b.markedDeleted,
 		publishDate:     b.publishDate,
@@ -333,7 +343,7 @@ type testHTTPCaller struct {
 }
 
 // returns the mock responses of testHTTPCaller in order
-func (t *testHTTPCaller) doCall(url string, username string, password string) (*http.Response, error) {
+func (t *testHTTPCaller) DoCall(url string, username string, password string) (*http.Response, error) {
 	if t.authUser != username || t.authPass != password {
 		return buildResponse(401, `{message: "Not authenticated"}`), nil
 	}
@@ -344,12 +354,12 @@ func (t *testHTTPCaller) doCall(url string, username string, password string) (*
 }
 
 // builds testHTTPCaller with the given mocked responses in the provided order
-func mockHTTPCaller(responses ...*http.Response) httpCaller {
+func mockHTTPCaller(responses ...*http.Response) checks.HttpCaller {
 	return &testHTTPCaller{mockResponses: responses}
 }
 
 // builds testHTTPCaller with the given mocked responses in the provided order
-func mockAuthenticatedHTTPCaller(username string, password string, responses ...*http.Response) httpCaller {
+func mockAuthenticatedHTTPCaller(username string, password string, responses ...*http.Response) checks.HttpCaller {
 	return &testHTTPCaller{authUser: username, authPass: password, mockResponses: responses}
 }
 

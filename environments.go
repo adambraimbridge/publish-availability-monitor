@@ -2,12 +2,16 @@ package main
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	etcd "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 	"golang.org/x/net/proxy"
+
+	"github.com/Financial-Times/publish-availability-monitor/checks"
+	"github.com/Financial-Times/publish-availability-monitor/feeds"
 )
 
 var (
@@ -74,11 +78,14 @@ func redefineEnvironments(environments map[string]Environment) error {
 		return err
 	}
 
-	parseEnvironmentsIntoMap(etcdEnvResp.Node.Value, etcdCredResp.Node.Value, environments)
+	removedEnvs := parseEnvironmentsIntoMap(etcdEnvResp.Node.Value, etcdCredResp.Node.Value, environments)
+
+	configureFeeds(removedEnvs)
+
 	return nil
 }
 
-func parseEnvironmentsIntoMap(etcdEnv string, etcdCred string, environments map[string]Environment) {
+func parseEnvironmentsIntoMap(etcdEnv string, etcdCred string, environments map[string]Environment) []string {
 	envReadEndpoints := strings.Split(etcdEnv, ",")
 	envCredentials := strings.Split(etcdCred, ",")
 
@@ -123,6 +130,8 @@ func parseEnvironmentsIntoMap(etcdEnv string, etcdCred string, environments map[
 		infoLogger.Printf("removing environment from monitoring: %v", name)
 		delete(environments, name)
 	}
+
+	return toDelete
 }
 
 func redefineValidatorCredentials() string {
@@ -147,5 +156,55 @@ func watch(etcdKey *string, fn func()) {
 			continue
 		}
 		limiter.trigger <- true
+	}
+}
+
+func configureFeeds(removedEnvs []string) {
+	for _, envName := range removedEnvs {
+		feeds, found := subscribedFeeds[envName]
+		if found {
+			for _, f := range feeds {
+				f.Stop()
+			}
+		}
+
+		delete(subscribedFeeds, envName)
+	}
+
+	for _, metric := range appConfig.MetricConf {
+		for _, env := range environments {
+			var envFeeds []feeds.Feed
+			var found bool
+			if envFeeds, found = subscribedFeeds[env.Name]; !found {
+				envFeeds = make([]feeds.Feed, 0)
+			}
+
+			found = false
+			for _, f := range envFeeds {
+				if f.FeedName() == metric.Alias {
+					f.SetCredentials(env.Username, env.Password)
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				httpCaller := checks.NewHttpCaller()
+				endpointUrl, err := url.Parse(env.ReadUrl + metric.Endpoint)
+				if err != nil {
+					errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
+					continue
+				}
+
+				sinceDate := time.Now().Format(time.RFC3339)
+				infoLogger.Printf("since %v", sinceDate)
+				interval := appConfig.Threshold / metric.Granularity
+
+				if f := feeds.NewNotificationsFeed(metric.Alias, httpCaller, endpointUrl, sinceDate, appConfig.Threshold, interval, env.Username, env.Password); f != nil {
+					subscribedFeeds[env.Name] = append(envFeeds, f)
+					f.Start()
+				}
+			}
+		}
 	}
 }
