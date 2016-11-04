@@ -209,7 +209,7 @@ func configureFeeds(removedEnvs []string) {
 			}
 
 			if !found {
-				httpCaller := checks.NewHttpCaller()
+				httpCaller := checks.NewHttpCaller(10)
 				endpointUrl, err := url.Parse(env.ReadUrl + metric.Endpoint)
 				if err != nil {
 					errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())

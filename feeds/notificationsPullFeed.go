@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -39,14 +37,6 @@ type notificationsResponse struct {
 	Links         []Link
 }
 
-const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
-
-var infoLogger *log.Logger
-
-func init() {
-	infoLogger = log.New(os.Stdout, "INFO  - ", logPattern)
-}
-
 func cleanupResp(resp *http.Response) {
 	_, err := io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
@@ -56,33 +46,6 @@ func cleanupResp(resp *http.Response) {
 	if err != nil {
 		infoLogger.Printf("[%v]", err)
 	}
-}
-
-func NewNotificationsFeed(name string, httpCaller checks.HttpCaller, baseUrl *url.URL, sinceDate string, expiry int, interval int, username string, password string) *NotificationsPullFeed {
-	if isNotificationsPullFeed(name) {
-		return &NotificationsPullFeed{name,
-			httpCaller,
-			baseUrl.String(),
-			username,
-			password,
-			sinceDate,
-			&sync.Mutex{},
-			expiry + 2*interval,
-			interval,
-			nil,
-			nil,
-			make(map[string][]*Notification),
-			&sync.RWMutex{},
-		}
-	}
-
-	return nil
-}
-
-func isNotificationsPullFeed(feedName string) bool {
-	return feedName == "notifications" ||
-		feedName == "notifications-push" ||
-		feedName == "list-notifications"
 }
 
 func (f *NotificationsPullFeed) Start() {
