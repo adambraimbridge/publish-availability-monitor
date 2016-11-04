@@ -1,7 +1,6 @@
 FROM alpine:3.4
 
-ADD *.go /app/
-ADD content/*.go /app/content/
+COPY . /app
 ADD config.json.template /config.json
 ADD startup.sh /
 
