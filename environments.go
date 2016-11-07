@@ -16,13 +16,15 @@ import (
 
 var (
 	etcdKeysAPI  etcd.KeysAPI
-	envKey       *string
+	readEnvKey   *string
+	s3EnvKey     *string
 	credKey      *string
 	validatorKey *string
 )
 
-func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdEnvKey *string, etcdCredKey *string, etcdValidatorCredKey *string, environments map[string]Environment) error {
-	envKey = etcdEnvKey
+func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string, etcdS3EnvKey *string, etcdCredKey *string, etcdValidatorCredKey *string, environments map[string]Environment) error {
+	readEnvKey = etcdReadEnvKey
+	s3EnvKey = etcdS3EnvKey
 	credKey = etcdCredKey
 	validatorKey = etcdValidatorCredKey
 
@@ -54,7 +56,8 @@ func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdEnvKey *string, et
 	fn := func() {
 		redefineEnvironments(environments)
 	}
-	go watch(envKey, fn)
+	go watch(readEnvKey, fn)
+	go watch(s3EnvKey, fn)
 	go watch(credKey, fn)
 
 	validatorCredentials = redefineValidatorCredentials()
@@ -66,9 +69,9 @@ func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdEnvKey *string, et
 }
 
 func redefineEnvironments(environments map[string]Environment) error {
-	etcdEnvResp, err := etcdKeysAPI.Get(context.Background(), *envKey, &etcd.GetOptions{Sort: true})
+	etcdReadEnvResp, err := etcdKeysAPI.Get(context.Background(), *readEnvKey, &etcd.GetOptions{Sort: true})
 	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", *envKey, err.Error())
+		errorLogger.Printf("Failed to get value from %v: %v.", *readEnvKey, err.Error())
 		return err
 	}
 
@@ -78,16 +81,22 @@ func redefineEnvironments(environments map[string]Environment) error {
 		return err
 	}
 
-	removedEnvs := parseEnvironmentsIntoMap(etcdEnvResp.Node.Value, etcdCredResp.Node.Value, environments)
+	etcdS3EnvResp, err := etcdKeysAPI.Get(context.Background(), *s3EnvKey, &etcd.GetOptions{Sort: true})
+	if err != nil {
+		errorLogger.Printf("Failed to get value from %v: %v.", *etcdS3EnvResp, err.Error())
+		return err
+	}
+	removedEnvs := parseEnvironmentsIntoMap(etcdReadEnvResp.Node.Value, etcdCredResp.Node.Value, etcdS3EnvResp.Node.Value, environments)
 
 	configureFeeds(removedEnvs)
 
 	return nil
 }
 
-func parseEnvironmentsIntoMap(etcdEnv string, etcdCred string, environments map[string]Environment) []string {
-	envReadEndpoints := strings.Split(etcdEnv, ",")
+func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env string, environments map[string]Environment) []string {
+	envReadEndpoints := strings.Split(etcdReadEnv, ",")
 	envCredentials := strings.Split(etcdCred, ",")
+	envS3Endpoints := strings.Split(etcdS3Env, ",")
 
 	seen := make(map[string]struct{})
 	for _, env := range envReadEndpoints {
@@ -116,7 +125,19 @@ func parseEnvironmentsIntoMap(etcdEnv string, etcdCred string, environments map[
 			infoLogger.Printf("no credentials supplied for access to environment %v", name)
 		}
 
-		environments[name] = Environment{name, readUrl, username, password}
+		var s3Url string
+		for _, endpoint := range envS3Endpoints {
+			if strings.HasPrefix(endpoint, name+":") {
+				s3Url = strings.TrimPrefix(endpoint, name+":")
+				break
+			}
+		}
+
+		if s3Url == "" {
+			infoLogger.Printf("No S3 url supplied for access to environment %v", name)
+		}
+
+		environments[name] = Environment{name, readUrl, s3Url, username, password}
 	}
 
 	// now remove unseen environments
