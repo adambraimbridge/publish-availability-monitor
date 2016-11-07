@@ -67,7 +67,7 @@ func init() {
 		"S3":                 S3Check{hC},
 		"enrichedContent":    ContentCheck{hC},
 		"lists":              ContentCheck{hC},
-		"notifications":      NotificationsCheck{hC, subscribedFeeds, feeds.NotificationsPull},
+		"notifications":      NotificationsCheck{hC, subscribedFeeds, "notifications"},
 		"notifications-push": NotificationsCheck{hC, subscribedFeeds, "notifications-push"},
 		"list-notifications": NotificationsCheck{hC, subscribedFeeds, "list-notifications"},
 	}
@@ -245,12 +245,10 @@ func (n NotificationsCheck) shouldSkipCheck(pc *PublishCheck) bool {
 }
 
 func (n NotificationsCheck) checkFeed(uuid string, envName string) []*feeds.Notification {
-	infoLogger.Printf("checkFeed %v in %v for uuid %v", n.feedName, envName, uuid)
 	envFeeds, found := n.subscribedFeeds[envName]
 	if found {
 		for _, f := range envFeeds {
 			if f.FeedName() == n.feedName {
-				infoLogger.Printf("checking feed")
 				notifications := f.NotificationsFor(uuid)
 				return notifications
 			}

@@ -49,6 +49,10 @@ func cleanupResp(resp *http.Response) {
 }
 
 func (f *NotificationsPullFeed) Start() {
+	if f.httpCaller == nil {
+		f.httpCaller = checks.NewHttpCaller(10)
+	}
+
 	f.ticker = time.NewTicker(time.Duration(f.interval) * time.Second)
 	f.poller = make(chan struct{})
 	go func() {
@@ -83,6 +87,10 @@ func (f *NotificationsPullFeed) FeedType() string {
 func (f *NotificationsPullFeed) SetCredentials(username string, password string) {
 	f.username = username
 	f.password = password
+}
+
+func (f *NotificationsPullFeed) SetHttpCaller(httpCaller checks.HttpCaller) {
+	f.httpCaller = httpCaller
 }
 
 func (f *NotificationsPullFeed) pollNotificationsFeed() {

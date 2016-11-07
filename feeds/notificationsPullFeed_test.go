@@ -94,7 +94,8 @@ func TestNotificationsArePolled(t *testing.T) {
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
-	f := NewNotificationsFeed("notifications", httpCaller, baseUrl, sinceDate, 10, 1, "", "")
+	f := NewNotificationsFeed("notifications", baseUrl, sinceDate, 10, 1, "", "")
+	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
 	f.Start()
 	defer f.Stop()
 
@@ -106,11 +107,9 @@ func TestNotificationsArePolled(t *testing.T) {
 }
 
 func TestNotificationsForReturnsEmptyIfNotFound(t *testing.T) {
-	httpCaller := mockHTTPCaller(buildResponse(200, ""))
-
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
-	f := NewNotificationsFeed("notifications", httpCaller, baseUrl, sinceDate, 10, 1, "", "")
+	f := NewNotificationsFeed("notifications", baseUrl, sinceDate, 10, 1, "", "")
 
 	response := f.NotificationsFor("1cb14245-5185-4ed5-9188-4d2a86085599")
 	assert.Len(t, response, 0, "notifications for item")
@@ -134,7 +133,8 @@ func TestNotificationsForReturnsAllMatches(t *testing.T) {
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
-	f := NewNotificationsFeed("notifications", httpCaller, baseUrl, sinceDate, 10, 1, "", "")
+	f := NewNotificationsFeed("notifications", baseUrl, sinceDate, 10, 1, "", "")
+	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
 	f.Start()
 	defer f.Stop()
 	time.Sleep(time.Duration(2200) * time.Millisecond)
@@ -157,7 +157,8 @@ func TestNotificationsPollingContinuesAfterErrorResponse(t *testing.T) {
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
-	f := NewNotificationsFeed("notifications", httpCaller, baseUrl, sinceDate, 10, 1, "", "")
+	f := NewNotificationsFeed("notifications", baseUrl, sinceDate, 10, 1, "", "")
+	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
 	f.Start()
 	defer f.Stop()
 	time.Sleep(time.Duration(2200) * time.Millisecond)
@@ -179,7 +180,8 @@ func TestNotificationsArePurged(t *testing.T) {
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
-	f := NewNotificationsFeed("notifications", httpCaller, baseUrl, sinceDate, 1, 1, "", "")
+	f := NewNotificationsFeed("notifications", baseUrl, sinceDate, 1, 1, "", "")
+	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
 	f.Start()
 	defer f.Stop()
 

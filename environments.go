@@ -10,7 +10,6 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/net/proxy"
 
-	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 )
 
@@ -209,7 +208,6 @@ func configureFeeds(removedEnvs []string) {
 			}
 
 			if !found {
-				httpCaller := checks.NewHttpCaller(10)
 				endpointUrl, err := url.Parse(env.ReadUrl + metric.Endpoint)
 				if err != nil {
 					errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
@@ -220,7 +218,7 @@ func configureFeeds(removedEnvs []string) {
 				infoLogger.Printf("since %v", sinceDate)
 				interval := appConfig.Threshold / metric.Granularity
 
-				if f := feeds.NewNotificationsFeed(metric.Alias, httpCaller, endpointUrl, sinceDate, appConfig.Threshold, interval, env.Username, env.Password); f != nil {
+				if f := feeds.NewNotificationsFeed(metric.Alias, endpointUrl, sinceDate, appConfig.Threshold, interval, env.Username, env.Password); f != nil {
 					subscribedFeeds[env.Name] = append(envFeeds, f)
 					f.Start()
 				}

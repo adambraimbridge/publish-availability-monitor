@@ -5,8 +5,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-
-	"github.com/Financial-Times/publish-availability-monitor/checks"
 )
 
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
@@ -17,9 +15,9 @@ func init() {
 	infoLogger = log.New(os.Stdout, "INFO  - ", logPattern)
 }
 
-func NewNotificationsFeed(name string, httpCaller checks.HttpCaller, baseUrl *url.URL, sinceDate string, expiry int, interval int, username string, password string) Feed {
+func NewNotificationsFeed(name string, baseUrl *url.URL, sinceDate string, expiry int, interval int, username string, password string) Feed {
 	if isNotificationsPullFeed(name) {
-		return &NotificationsPullFeed{httpCaller: httpCaller,
+		return &NotificationsPullFeed{
 			feedName:      name,
 			baseUrl:       baseUrl.String(),
 			sinceDate:     sinceDate,
@@ -29,12 +27,14 @@ func NewNotificationsFeed(name string, httpCaller checks.HttpCaller, baseUrl *ur
 			password:      password,
 			notifications: make(map[string][]*Notification)}
 	} else if isNotificationsPushFeed(name) {
-		return &NotificationsPushFeed{httpCaller: httpCaller,
+		return &NotificationsPushFeed{
 			feedName:      name,
-			baseUrl:       "http://localhost:9090/content/notifications-push",
-			username:      "",
-			password:      "",
-			notifications: make(map[string][]*Notification)}
+			baseUrl:       baseUrl.String(),
+			username:      username,
+			password:      password,
+			notifications: make(map[string][]*Notification),
+			expiry:        expiry + 2*interval,
+		}
 	}
 
 	return nil
