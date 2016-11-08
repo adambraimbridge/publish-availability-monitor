@@ -100,7 +100,6 @@ func TestScheduleChecksForContentAreCorrect(testing *testing.T) {
 
 func runScheduleChecks(testing *testing.T, mockEnvironments map[string]Environment) *publishHistory {
 	capturingMetrics := &publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
-
 	tid := "tid_1234"
 	publishDate, err := time.Parse(dateLayout, "2016-01-08T14:22:06.271Z")
 	if err != nil {

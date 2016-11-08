@@ -132,7 +132,6 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 				break
 			}
 		}
-
 		if s3Url == "" {
 			infoLogger.Printf("No S3 url supplied for access to environment %v", name)
 		}
