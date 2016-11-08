@@ -59,14 +59,15 @@ func TestScheduleChecksForS3AreCorrect(testing *testing.T) {
 	}
 
 	var mockEnvironments = make(map[string]Environment)
-	s3ReadURL1 := "http://s1.example.org"
-	mockEnvironments["env1"] = Environment{"env1", "http://env1.example.org", s3ReadURL1, "user1", "pass1"}
+	readURL := "http://env1.example.org"
+	s3URL := "http://s1.example.org"
+	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
 
 	capturingMetrics := runScheduleChecks(testing, mockEnvironments)
 
 	require.NotNil(testing, capturingMetrics)
 	require.Equal(testing, 1, len(capturingMetrics.publishMetrics))
-	require.Equal(testing, s3ReadURL1+"/whatever/", capturingMetrics.publishMetrics[0].endpoint.String())
+	require.Equal(testing, s3URL+"/whatever/", capturingMetrics.publishMetrics[0].endpoint.String())
 }
 
 func TestScheduleChecksForContentAreCorrect(testing *testing.T) {
@@ -87,7 +88,8 @@ func TestScheduleChecksForContentAreCorrect(testing *testing.T) {
 
 	var mockEnvironments = make(map[string]Environment)
 	readURL := "http://env1.example.org"
-	mockEnvironments["env1"] = Environment{"env1", readURL, "http://s1.example.org", "user1", "pass1"}
+	s3URL := "http://s1.example.org"
+	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
 
 	capturingMetrics := runScheduleChecks(testing, mockEnvironments)
 
