@@ -85,7 +85,7 @@ The monitor can check publication across several different environments, provide
 
 `/ft/config/monitoring/read-urls`: a comma-separated list of _name_`:`_value_ pairs, mapping from environment name to base read URL, e.g. `env1:http://foo.example.org,env2:http://bar.example.org`
 
-`/ft/config/monitoring/s3-urls`: a comma-separated list of _name_`:`_value_ pairs, mapping from environment name to base S3 URL, e.g. `env1:http://foo.example.org,env2:http://bar.example.org`
+`/ft/config/monitoring/s3-image-bucket-urls`: a comma-separated list of _name_`:`_value_ pairs, mapping from environment name to base S3 URL, e.g. `env1:http://s3bucket1.org,env2:http://s3bucket2.org`
 
 `/ft/_credentials/publish-read/read-credentials`: a comma-separated list of _name_`:`_username_`:`_password_ tuples, mapping from environment name to basic HTTP credentials, e.g. `env1:scott:tiger,env2:friend:frodo`. The _name_ must match a name in the read-urls key; if an environment does not require authentication, credentials should be omitted.
 
