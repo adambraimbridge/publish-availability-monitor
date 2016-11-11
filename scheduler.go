@@ -27,7 +27,11 @@ func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid s
 				if absoluteUrlRegex.MatchString(metric.Endpoint) {
 					endpointURL, err = url.Parse(metric.Endpoint)
 				} else {
-					endpointURL, err = url.Parse(env.ReadUrl + metric.Endpoint)
+					if metric.Alias == "S3" {
+						endpointURL, err = url.Parse(env.S3Url + metric.Endpoint)
+					} else {
+						endpointURL, err = url.Parse(env.ReadUrl + metric.Endpoint)
+					}
 				}
 
 				if err != nil {
