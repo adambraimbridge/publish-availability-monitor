@@ -1,0 +1,28 @@
+package: github.com/Financial-Times/publish-availability-monitor
+import:
+- package: github.com/Financial-Times/go-fthealth
+  subpackages:
+  - v1a
+- package: github.com/Financial-Times/message-queue-gonsumer
+  version: 7c4f36dc9174fceff4b4ea19e3227f77b68039de
+  subpackages:
+  - consumer
+- package: github.com/coreos/etcd
+  version: ^3.1.0-rc.0
+  subpackages:
+  - client
+- package: github.com/gorilla/mux
+  version: v1.1
+- package: github.com/kr/pretty
+- package: github.com/satori/go.uuid
+- package: github.com/willf/bitset
+- package: golang.org/x/net
+  subpackages:
+  - context
+  - proxy
+- package: launchpad.net/xmlpath
+testImport:
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert
+  - require
