@@ -1,8 +1,14 @@
 dependencies:
+  override:
+    - sudo add-apt-repository ppa:masterminds/glide -y
+    - sudo apt-get update
+    - sudo apt-get install glide -y
   pre:
     - go get github.com/axw/gocov/gocov; go get github.com/matm/gocov-html
 test:
+  pre:
+    - glide install
   override:
-    - gocov test ./... > coverage.json
+    - gocov test $(glide nv) > coverage.json
   post:
     - gocov-html coverage.json > $CIRCLE_ARTIFACTS/coverage.html
