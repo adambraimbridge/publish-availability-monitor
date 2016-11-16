@@ -64,6 +64,7 @@ func TestScheduleChecksForS3AreCorrect(testing *testing.T) {
 	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
 
 	capturingMetrics := runScheduleChecks(testing, mockEnvironments)
+	defer capturingMetrics.RUnlock()
 
 	require.NotNil(testing, capturingMetrics)
 	require.Equal(testing, 1, len(capturingMetrics.publishMetrics))
@@ -92,6 +93,7 @@ func TestScheduleChecksForContentAreCorrect(testing *testing.T) {
 	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
 
 	capturingMetrics := runScheduleChecks(testing, mockEnvironments)
+	defer capturingMetrics.RUnlock()
 
 	require.NotNil(testing, capturingMetrics)
 	require.Equal(testing, 1, len(capturingMetrics.publishMetrics))
@@ -113,8 +115,13 @@ func runScheduleChecks(testing *testing.T, mockEnvironments map[string]Environme
 	metricSink = make(chan PublishMetric, 2)
 
 	scheduleChecks(validImageEomFile, publishDate, tid, validImageEomFile.IsMarkedDeleted(), capturingMetrics, mockEnvironments)
-	for len(capturingMetrics.publishMetrics) != len(mockEnvironments) {
+	for {
+		capturingMetrics.RLock()
+		if len(capturingMetrics.publishMetrics) == len(mockEnvironments) {
+			return capturingMetrics // with a read lock
+		}
+
+		capturingMetrics.RUnlock()
 		time.Sleep(1 * time.Second)
 	}
-	return capturingMetrics
 }
