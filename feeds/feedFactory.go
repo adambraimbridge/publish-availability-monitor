@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 )
 
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
@@ -18,22 +19,32 @@ func init() {
 func NewNotificationsFeed(name string, baseUrl *url.URL, sinceDate string, expiry int, interval int, username string, password string) Feed {
 	if isNotificationsPullFeed(name) {
 		return &NotificationsPullFeed{
-			feedName:      name,
-			baseUrl:       baseUrl.String(),
-			sinceDate:     sinceDate,
-			expiry:        expiry + 2*interval,
-			interval:      interval,
-			username:      username,
-			password:      password,
-			notifications: make(map[string][]*Notification)}
+			name,
+			nil,
+			baseUrl.String(),
+			username,
+			password,
+			sinceDate,
+			&sync.Mutex{},
+			expiry + 2*interval,
+			interval,
+			nil,
+			nil,
+			make(map[string][]*Notification),
+			&sync.RWMutex{},
+		}
 	} else if isNotificationsPushFeed(name) {
 		return &NotificationsPushFeed{
-			feedName:      name,
-			baseUrl:       baseUrl.String(),
-			username:      username,
-			password:      password,
-			notifications: make(map[string][]*Notification),
-			expiry:        expiry + 2*interval,
+			name,
+			nil,
+			baseUrl.String(),
+			username,
+			password,
+			expiry + 2*interval,
+			make(map[string][]*Notification),
+			&sync.RWMutex{},
+			true,
+			&sync.RWMutex{},
 		}
 	}
 

@@ -13,33 +13,39 @@ import (
 const NotificationsPush = "Notifications-Push"
 
 type NotificationsPushFeed struct {
-	sync.Mutex
-	feedName      string
-	httpCaller    checks.HttpCaller
-	baseUrl       string
-	username      string
-	password      string
-	notifications map[string][]*Notification
-	expiry        int
-	stopFeed      bool
+	feedName          string
+	httpCaller        checks.HttpCaller
+	baseUrl           string
+	username          string
+	password          string
+	expiry            int
+	notifications     map[string][]*Notification
+	notificationsLock *sync.RWMutex
+	stopFeed          bool
+	stopFeedLock      *sync.RWMutex
 }
 
 func (f *NotificationsPushFeed) Start() {
 	infoLogger.Printf("starting notifications-push feed from %v", f.baseUrl)
+	f.stopFeedLock.Lock()
+	defer f.stopFeedLock.Unlock()
+
 	f.stopFeed = false
 	go func() {
 		if f.httpCaller == nil {
 			f.httpCaller = checks.NewHttpCaller(0)
 		}
 
-		for !f.stopFeed {
-			f.consumeFeed()
+		for !f.consumeFeed() {
 		}
 	}()
 }
 
 func (f *NotificationsPushFeed) Stop() {
 	infoLogger.Printf("shutting down notifications push feed for %s", f.baseUrl)
+	f.stopFeedLock.Lock()
+	defer f.stopFeedLock.Unlock()
+
 	f.stopFeed = true
 }
 
@@ -57,8 +63,8 @@ func (f *NotificationsPushFeed) SetCredentials(username string, password string)
 }
 
 func (f *NotificationsPushFeed) NotificationsFor(uuid string) []*Notification {
-	f.Lock()
-	defer f.Unlock()
+	f.notificationsLock.RLock()
+	defer f.notificationsLock.RUnlock()
 
 	var history []*Notification
 	var found bool
@@ -74,23 +80,30 @@ func (f *NotificationsPushFeed) SetHttpCaller(httpCaller checks.HttpCaller) {
 	f.httpCaller = httpCaller
 }
 
-func (f *NotificationsPushFeed) consumeFeed() {
+func (f *NotificationsPushFeed) isConsuming() bool {
+	f.stopFeedLock.RLock()
+	defer f.stopFeedLock.RUnlock()
+
+	return !f.stopFeed
+}
+
+func (f *NotificationsPushFeed) consumeFeed() bool {
 	resp, err := f.httpCaller.DoCall(f.baseUrl, f.username, f.password)
 
 	if err != nil {
 		infoLogger.Printf("Sending request: [%v]", err)
-		return
+		return f.isConsuming()
 	}
 
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		infoLogger.Printf("Received invalid statusCode: [%v]", resp.StatusCode)
-		return
+		return f.isConsuming()
 	}
 
 	br := bufio.NewReader(resp.Body)
 	for {
-		if f.stopFeed {
+		if !f.isConsuming() {
 			infoLogger.Printf("stop consuming feed")
 			break
 		}
@@ -122,6 +135,8 @@ func (f *NotificationsPushFeed) consumeFeed() {
 
 		f.storeNotifications(notifications)
 	}
+
+	return false
 }
 
 func (f *NotificationsPushFeed) parseUuidFromUrl(url string) string {
@@ -133,8 +148,8 @@ func (f *NotificationsPushFeed) purgeObsoleteNotifications() {
 	earliest := time.Now().Add(time.Duration(-f.expiry) * time.Second).Format(time.RFC3339)
 	empty := make([]string, 0)
 
-	f.Lock()
-	defer f.Unlock()
+	f.notificationsLock.Lock()
+	defer f.notificationsLock.Unlock()
 
 	for u, n := range f.notifications {
 		earliestIndex := 0
@@ -158,8 +173,8 @@ func (f *NotificationsPushFeed) purgeObsoleteNotifications() {
 }
 
 func (f *NotificationsPushFeed) storeNotifications(notifications []Notification) {
-	f.Lock()
-	defer f.Unlock()
+	f.notificationsLock.Lock()
+	defer f.notificationsLock.Unlock()
 
 	for _, n := range notifications {
 		uuid := f.parseUuidFromUrl(n.ID)
