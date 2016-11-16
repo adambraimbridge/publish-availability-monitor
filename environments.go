@@ -21,7 +21,7 @@ var (
 	validatorKey *string
 )
 
-func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string, etcdS3EnvKey *string, etcdCredKey *string, etcdValidatorCredKey *string, environments map[string]Environment) error {
+func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string, etcdCredKey *string, etcdS3EnvKey *string, etcdValidatorCredKey *string, environments map[string]Environment) error {
 	readEnvKey = etcdReadEnvKey
 	s3EnvKey = etcdS3EnvKey
 	credKey = etcdCredKey
