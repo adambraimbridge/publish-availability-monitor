@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/checks"
@@ -17,17 +18,19 @@ import (
 const NotificationsPull = "Notifications-Pull"
 
 type NotificationsPullFeed struct {
-	feedName      string
-	httpCaller    checks.HttpCaller
-	baseUrl       string
-	username      string
-	password      string
-	sinceDate     string
-	expiry        int
-	interval      int
-	ticker        *time.Ticker
-	poller        chan struct{}
-	notifications map[string][]*Notification
+	feedName          string
+	httpCaller        checks.HttpCaller
+	baseUrl           string
+	username          string
+	password          string
+	sinceDate         string
+	sinceDateLock     *sync.Mutex
+	expiry            int
+	interval          int
+	ticker            *time.Ticker
+	poller            chan struct{}
+	notifications     map[string][]*Notification
+	notificationsLock *sync.RWMutex
 }
 
 // ignore unused field (e.g. requestUrl)
@@ -57,15 +60,20 @@ func cleanupResp(resp *http.Response) {
 
 func NewNotificationsFeed(name string, httpCaller checks.HttpCaller, baseUrl *url.URL, sinceDate string, expiry int, interval int, username string, password string) *NotificationsPullFeed {
 	if isNotificationsPullFeed(name) {
-		return &NotificationsPullFeed{httpCaller: httpCaller,
-			feedName:      name,
-			baseUrl:       baseUrl.String(),
-			sinceDate:     sinceDate,
-			expiry:        expiry + 2*interval,
-			interval:      interval,
-			username:      username,
-			password:      password,
-			notifications: make(map[string][]*Notification)}
+		return &NotificationsPullFeed{name,
+			httpCaller,
+			baseUrl.String(),
+			username,
+			password,
+			sinceDate,
+			&sync.Mutex{},
+			expiry + 2*interval,
+			interval,
+			nil,
+			nil,
+			make(map[string][]*Notification),
+			&sync.RWMutex{},
+		}
 	}
 
 	return nil
@@ -115,6 +123,9 @@ func (f *NotificationsPullFeed) SetCredentials(username string, password string)
 }
 
 func (f *NotificationsPullFeed) pollNotificationsFeed() {
+	f.sinceDateLock.Lock()
+	defer f.sinceDateLock.Unlock()
+
 	notificationsUrl := f.buildNotificationsURL()
 	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password)
 
@@ -136,6 +147,9 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 		return
 	}
 
+	f.notificationsLock.Lock()
+	defer f.notificationsLock.Unlock()
+
 	for _, n := range notifications.Notifications {
 		uuid := f.parseUuidFromUrl(n.ID)
 		var history []*Notification
@@ -155,6 +169,10 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 func (f *NotificationsPullFeed) purgeObsoleteNotifications() {
 	earliest := time.Now().Add(time.Duration(-f.expiry) * time.Second).Format(time.RFC3339)
 	empty := make([]string, 0)
+
+	f.notificationsLock.Lock()
+	defer f.notificationsLock.Unlock()
+
 	for u, n := range f.notifications {
 		earliestIndex := 0
 		for _, e := range n {
@@ -191,6 +209,9 @@ func (f *NotificationsPullFeed) parseUuidFromUrl(url string) string {
 func (f *NotificationsPullFeed) NotificationsFor(uuid string) []*Notification {
 	var history []*Notification
 	var found bool
+
+	f.notificationsLock.RLock()
+	defer f.notificationsLock.RUnlock()
 
 	if history, found = f.notifications[uuid]; !found {
 		history = make([]*Notification, 0)
