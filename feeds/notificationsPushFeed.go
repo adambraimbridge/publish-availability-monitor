@@ -36,8 +36,7 @@ func (f *NotificationsPushFeed) Start() {
 			f.httpCaller = checks.NewHttpCaller(0)
 		}
 
-		for !f.consumeFeed() {
-		}
+		for f.consumeFeed() {}
 	}()
 }
 
