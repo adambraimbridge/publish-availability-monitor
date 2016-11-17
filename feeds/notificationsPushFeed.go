@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/checks"
 )
@@ -13,16 +12,9 @@ import (
 const NotificationsPush = "Notifications-Push"
 
 type NotificationsPushFeed struct {
-	feedName          string
-	httpCaller        checks.HttpCaller
-	baseUrl           string
-	username          string
-	password          string
-	expiry            int
-	notifications     map[string][]*Notification
-	notificationsLock *sync.RWMutex
-	stopFeed          bool
-	stopFeedLock      *sync.RWMutex
+	baseNotificationsFeed
+	stopFeed     bool
+	stopFeedLock *sync.RWMutex
 }
 
 func (f *NotificationsPushFeed) Start() {
@@ -36,7 +28,8 @@ func (f *NotificationsPushFeed) Start() {
 			f.httpCaller = checks.NewHttpCaller(0)
 		}
 
-		for f.consumeFeed() {}
+		for f.consumeFeed() {
+		}
 	}()
 }
 
@@ -48,35 +41,8 @@ func (f *NotificationsPushFeed) Stop() {
 	f.stopFeed = true
 }
 
-func (f *NotificationsPushFeed) FeedName() string {
-	return f.feedName
-}
-
 func (f *NotificationsPushFeed) FeedType() string {
 	return NotificationsPush
-}
-
-func (f *NotificationsPushFeed) SetCredentials(username string, password string) {
-	f.username = username
-	f.password = password
-}
-
-func (f *NotificationsPushFeed) NotificationsFor(uuid string) []*Notification {
-	f.notificationsLock.RLock()
-	defer f.notificationsLock.RUnlock()
-
-	var history []*Notification
-	var found bool
-
-	if history, found = f.notifications[uuid]; !found {
-		history = make([]*Notification, 0)
-	}
-
-	return history
-}
-
-func (f *NotificationsPushFeed) SetHttpCaller(httpCaller checks.HttpCaller) {
-	f.httpCaller = httpCaller
 }
 
 func (f *NotificationsPushFeed) isConsuming() bool {
@@ -138,45 +104,12 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 	return false
 }
 
-func (f *NotificationsPushFeed) parseUuidFromUrl(url string) string {
-	i := strings.LastIndex(url, "/")
-	return url[i+1:]
-}
-
-func (f *NotificationsPushFeed) purgeObsoleteNotifications() {
-	earliest := time.Now().Add(time.Duration(-f.expiry) * time.Second).Format(time.RFC3339)
-	empty := make([]string, 0)
-
-	f.notificationsLock.Lock()
-	defer f.notificationsLock.Unlock()
-
-	for u, n := range f.notifications {
-		earliestIndex := 0
-		for _, e := range n {
-			if strings.Compare(e.LastModified, earliest) >= 0 {
-				break
-			} else {
-				earliestIndex++
-			}
-		}
-		f.notifications[u] = n[earliestIndex:]
-
-		if len(f.notifications[u]) == 0 {
-			empty = append(empty, u)
-		}
-	}
-
-	for _, u := range empty {
-		delete(f.notifications, u)
-	}
-}
-
 func (f *NotificationsPushFeed) storeNotifications(notifications []Notification) {
 	f.notificationsLock.Lock()
 	defer f.notificationsLock.Unlock()
 
 	for _, n := range notifications {
-		uuid := f.parseUuidFromUrl(n.ID)
+		uuid := parseUuidFromUrl(n.ID)
 		var history []*Notification
 		var found bool
 		if history, found = f.notifications[uuid]; !found {

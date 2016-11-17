@@ -19,30 +19,34 @@ func init() {
 func NewNotificationsFeed(name string, baseUrl *url.URL, sinceDate string, expiry int, interval int, username string, password string) Feed {
 	if isNotificationsPullFeed(name) {
 		return &NotificationsPullFeed{
-			name,
-			nil,
-			baseUrl.String(),
-			username,
-			password,
+			baseNotificationsFeed{
+				name,
+				nil,
+				baseUrl.String(),
+				username,
+				password,
+				expiry + 2*interval,
+				make(map[string][]*Notification),
+				&sync.RWMutex{},
+			},
 			sinceDate,
 			&sync.Mutex{},
-			expiry + 2*interval,
 			interval,
 			nil,
 			nil,
-			make(map[string][]*Notification),
-			&sync.RWMutex{},
 		}
 	} else if isNotificationsPushFeed(name) {
 		return &NotificationsPushFeed{
-			name,
-			nil,
-			baseUrl.String(),
-			username,
-			password,
-			expiry + 2*interval,
-			make(map[string][]*Notification),
-			&sync.RWMutex{},
+			baseNotificationsFeed{
+				name,
+				nil,
+				baseUrl.String(),
+				username,
+				password,
+				expiry + 2*interval,
+				make(map[string][]*Notification),
+				&sync.RWMutex{},
+			},
 			true,
 			&sync.RWMutex{},
 		}
