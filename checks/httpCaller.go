@@ -18,7 +18,7 @@ type defaultHttpCaller struct {
 func NewHttpCaller(timeoutSeconds int) HttpCaller {
 	var client http.Client
 	if timeoutSeconds > 0 {
-		client = http.Client{Timeout: time.Duration(10 * time.Second)}
+		client = http.Client{Timeout: time.Duration(timeoutSeconds) * time.Second}
 	} else {
 		client = http.Client{}
 	}
