@@ -18,7 +18,7 @@ func TestUnauthenticated(t *testing.T) {
 	}))
 	defer server.Close()
 
-	httpCaller := NewHttpCaller()
+	httpCaller := NewHttpCaller(10)
 	resp, err := httpCaller.DoCall(server.URL, "", "")
 	assert.Nil(t, err, "unexpected error")
 
@@ -45,7 +45,7 @@ func TestAuthenticated(t *testing.T) {
 	}))
 	defer server.Close()
 
-	httpCaller := NewHttpCaller()
+	httpCaller := NewHttpCaller(10)
 	resp, err := httpCaller.DoCall(server.URL, username, password)
 	assert.Nil(t, err, "unexpected error")
 

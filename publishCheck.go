@@ -59,7 +59,7 @@ func NewPublishCheck(pm PublishMetric, username string, password string, t int, 
 var endpointSpecificChecks map[string]EndpointSpecificCheck
 
 func init() {
-	hC := checks.NewHttpCaller()
+	hC := checks.NewHttpCaller(10)
 
 	//key is the endpoint alias from the config
 	endpointSpecificChecks = map[string]EndpointSpecificCheck{
@@ -67,7 +67,7 @@ func init() {
 		"S3":                 S3Check{hC},
 		"enrichedContent":    ContentCheck{hC},
 		"lists":              ContentCheck{hC},
-		"notifications":      NotificationsCheck{hC, subscribedFeeds, feeds.NotificationsPull},
+		"notifications":      NotificationsCheck{hC, subscribedFeeds, "notifications"},
 		"notifications-push": NotificationsCheck{hC, subscribedFeeds, "notifications-push"},
 		"list-notifications": NotificationsCheck{hC, subscribedFeeds, "list-notifications"},
 	}

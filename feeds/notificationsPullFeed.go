@@ -2,13 +2,7 @@ package feeds
 
 import (
 	"encoding/json"
-	"io"
-	"io/ioutil"
-	"log"
-	"net/http"
 	"net/url"
-	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -18,19 +12,12 @@ import (
 const NotificationsPull = "Notifications-Pull"
 
 type NotificationsPullFeed struct {
-	feedName          string
-	httpCaller        checks.HttpCaller
-	baseUrl           string
-	username          string
-	password          string
-	sinceDate         string
-	sinceDateLock     *sync.Mutex
-	expiry            int
-	interval          int
-	ticker            *time.Ticker
-	poller            chan struct{}
-	notifications     map[string][]*Notification
-	notificationsLock *sync.RWMutex
+	baseNotificationsFeed
+	sinceDate     string
+	sinceDateLock *sync.Mutex
+	interval      int
+	ticker        *time.Ticker
+	poller        chan struct{}
 }
 
 // ignore unused field (e.g. requestUrl)
@@ -39,53 +26,11 @@ type notificationsResponse struct {
 	Links         []Link
 }
 
-const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
-
-var infoLogger *log.Logger
-
-func init() {
-	infoLogger = log.New(os.Stdout, "INFO  - ", logPattern)
-}
-
-func cleanupResp(resp *http.Response) {
-	_, err := io.Copy(ioutil.Discard, resp.Body)
-	if err != nil {
-		infoLogger.Printf("[%v]", err)
-	}
-	err = resp.Body.Close()
-	if err != nil {
-		infoLogger.Printf("[%v]", err)
-	}
-}
-
-func NewNotificationsFeed(name string, httpCaller checks.HttpCaller, baseUrl *url.URL, sinceDate string, expiry int, interval int, username string, password string) *NotificationsPullFeed {
-	if isNotificationsPullFeed(name) {
-		return &NotificationsPullFeed{name,
-			httpCaller,
-			baseUrl.String(),
-			username,
-			password,
-			sinceDate,
-			&sync.Mutex{},
-			expiry + 2*interval,
-			interval,
-			nil,
-			nil,
-			make(map[string][]*Notification),
-			&sync.RWMutex{},
-		}
-	}
-
-	return nil
-}
-
-func isNotificationsPullFeed(feedName string) bool {
-	return feedName == "notifications" ||
-		feedName == "notifications-push" ||
-		feedName == "list-notifications"
-}
-
 func (f *NotificationsPullFeed) Start() {
+	if f.httpCaller == nil {
+		f.httpCaller = checks.NewHttpCaller(10)
+	}
+
 	f.ticker = time.NewTicker(time.Duration(f.interval) * time.Second)
 	f.poller = make(chan struct{})
 	go func() {
@@ -109,17 +54,8 @@ func (f *NotificationsPullFeed) Stop() {
 	close(f.poller)
 }
 
-func (f *NotificationsPullFeed) FeedName() string {
-	return f.feedName
-}
-
 func (f *NotificationsPullFeed) FeedType() string {
 	return NotificationsPull
-}
-
-func (f *NotificationsPullFeed) SetCredentials(username string, password string) {
-	f.username = username
-	f.password = password
 }
 
 func (f *NotificationsPullFeed) pollNotificationsFeed() {
@@ -151,7 +87,7 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	defer f.notificationsLock.Unlock()
 
 	for _, n := range notifications.Notifications {
-		uuid := f.parseUuidFromUrl(n.ID)
+		uuid := parseUuidFromUrl(n.ID)
 		var history []*Notification
 		var found bool
 		if history, found = f.notifications[uuid]; !found {
@@ -166,56 +102,9 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	f.sinceDate = nextPageUrl.Query().Get("since")
 }
 
-func (f *NotificationsPullFeed) purgeObsoleteNotifications() {
-	earliest := time.Now().Add(time.Duration(-f.expiry) * time.Second).Format(time.RFC3339)
-	empty := make([]string, 0)
-
-	f.notificationsLock.Lock()
-	defer f.notificationsLock.Unlock()
-
-	for u, n := range f.notifications {
-		earliestIndex := 0
-		for _, e := range n {
-			if strings.Compare(e.LastModified, earliest) >= 0 {
-				break
-			} else {
-				earliestIndex++
-			}
-		}
-		f.notifications[u] = n[earliestIndex:]
-
-		if len(f.notifications[u]) == 0 {
-			empty = append(empty, u)
-		}
-	}
-
-	for _, u := range empty {
-		delete(f.notifications, u)
-	}
-}
-
 func (f *NotificationsPullFeed) buildNotificationsURL() string {
 	q := url.Values{}
 	q.Add("since", f.sinceDate)
 
 	return f.baseUrl + "?" + q.Encode()
-}
-
-func (f *NotificationsPullFeed) parseUuidFromUrl(url string) string {
-	i := strings.LastIndex(url, "/")
-	return url[i+1:]
-}
-
-func (f *NotificationsPullFeed) NotificationsFor(uuid string) []*Notification {
-	var history []*Notification
-	var found bool
-
-	f.notificationsLock.RLock()
-	defer f.notificationsLock.RUnlock()
-
-	if history, found = f.notifications[uuid]; !found {
-		history = make([]*Notification, 0)
-	}
-
-	return history
 }
