@@ -82,7 +82,7 @@ func redefineEnvironments(environments map[string]Environment) error {
 
 	etcdS3EnvResp, err := etcdKeysAPI.Get(context.Background(), *s3EnvKey, &etcd.GetOptions{Sort: true})
 	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", *etcdS3EnvResp, err.Error())
+		errorLogger.Printf("Failed to get value from %v: %v.", *s3EnvKey, err.Error())
 		return err
 	}
 	removedEnvs := parseEnvironmentsIntoMap(etcdReadEnvResp.Node.Value, etcdCredResp.Node.Value, etcdS3EnvResp.Node.Value, environments)
