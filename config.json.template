@@ -20,7 +20,7 @@
 			"video"
 		]
 	}, {
-		"endpoint": "S3_URL",
+		"endpoint": "/",
 		"granularity": 40,
 		"alias": "S3",
 		"contentTypes": [
