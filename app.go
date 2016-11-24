@@ -115,7 +115,7 @@ func main() {
 		return
 	}
 
-	go DiscoverEnvironmentsAndValidators(etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey, environments)
+	go DiscoverEnvironmentsAndValidators(etcdPeers, etcdReadEnvKey, etcdS3EnvKey, etcdCredKey, etcdValidatorCredKey, environments)
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
