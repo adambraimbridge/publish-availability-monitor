@@ -270,7 +270,11 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		if absoluteUrlRegex.MatchString(metric.Endpoint) {
 			endpointURL, err = url.Parse(metric.Endpoint)
 		} else {
-			endpointURL, err = url.Parse(h.env.ReadUrl + metric.Endpoint)
+			if (metric.Alias == "S3") {
+				endpointURL, err = url.Parse(h.env.S3Url + metric.Endpoint)
+			} else {
+				endpointURL, err = url.Parse(h.env.ReadUrl + metric.Endpoint)
+			}
 		}
 
 		if err != nil {
