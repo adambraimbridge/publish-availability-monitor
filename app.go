@@ -19,6 +19,7 @@ import (
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/gorilla/mux"
 )
 
@@ -129,6 +130,12 @@ func startHttpListener() {
 	router := mux.NewRouter()
 	setupHealthchecks(router)
 	router.HandleFunc("/__history", loadHistory)
+
+	router.HandleFunc(status.PingPath, status.PingHandler)
+	router.HandleFunc(status.PingPathDW, status.PingHandler)
+
+	router.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
+	router.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
 
 	attachProfiler(router)
 
