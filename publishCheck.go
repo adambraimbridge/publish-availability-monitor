@@ -63,13 +63,14 @@ func init() {
 
 	//key is the endpoint alias from the config
 	endpointSpecificChecks = map[string]EndpointSpecificCheck{
-		"content":            ContentCheck{hC},
-		"S3":                 S3Check{hC},
-		"enrichedContent":    ContentCheck{hC},
-		"lists":              ContentCheck{hC},
-		"notifications":      NotificationsCheck{hC, subscribedFeeds, "notifications"},
-		"notifications-push": NotificationsCheck{hC, subscribedFeeds, "notifications-push"},
-		"list-notifications": NotificationsCheck{hC, subscribedFeeds, "list-notifications"},
+		"content":                 ContentCheck{hC},
+		"S3":                      S3Check{hC},
+		"enrichedContent":         ContentCheck{hC},
+		"lists":                   ContentCheck{hC},
+		"notifications":           NotificationsCheck{hC, subscribedFeeds, "notifications"},
+		"notifications-push":      NotificationsCheck{hC, subscribedFeeds, "notifications-push"},
+		"list-notifications":      NotificationsCheck{hC, subscribedFeeds, "list-notifications"},
+		"list-notifications-push": NotificationsCheck{hC, subscribedFeeds, "list-notifications-push"},
 	}
 }
 
