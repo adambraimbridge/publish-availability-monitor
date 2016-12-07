@@ -29,6 +29,9 @@ func (f testFeed) FeedName() string {
 func (f testFeed) FeedType() string {
 	return f.feedType
 }
+func (f testFeed) FeedURL() string {
+	return f.feedName
+}
 func (f testFeed) SetCredentials(string, string) {}
 func (f testFeed) NotificationsFor(uuid string) []*feeds.Notification {
 	return f.notifications
