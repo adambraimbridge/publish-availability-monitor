@@ -1,77 +1,90 @@
 {
-	"threshold": 120,
-	"queueConfig": {
-		"address": ["QUEUE_ADDR"],
-		"group": "PubMonitor",
-		"topic": "NativeCmsPublicationEvents",
-		"queue": "KAFKA_PROXY_HOST",
-		"concurrentProcessing": true
-	},
-	"metricConfig": [{
-		"endpoint": "CONTENT_URL",
-		"alias": "content",
-		"granularity": 40,
-		"contentTypes": [
-			"EOM::CompoundStory",
-			"EOM::Story",
-			"Image",
-			"ImageSet",
-			"post", "webchat-markets-live", "webchat-live-blogs", "webchat-live-qa",
-			"video"
-		]
-	}, {
-		"endpoint": "/",
-		"granularity": 40,
-		"alias": "S3",
-		"contentTypes": [
-			"Image"
-		]
-	}, {
-		"endpoint": "LISTS_URL",
-		"granularity": 40,
-		"alias": "lists",
-		"contentTypes": [
-			"EOM::WebContainer"
-		]
-	}, {
-		"endpoint": "NOTIFICATIONS_URL",
-		"granularity": 40,
-		"alias": "notifications",
-		"contentTypes": [
-			"EOM::CompoundStory",
-			"post"
-		]
-	}, {
-        "endpoint": "NOTIFICATIONS_PUSH_URL",
-        "granularity": 40,
-        "alias": "notifications-push",
-        "contentTypes": [
-            "EOM::CompoundStory",
-            "post"
-        ]
-    }, {
-        "endpoint": "LISTS_NOTIFICATIONS_URL",
-        "granularity": 40,
-        "alias": "list-notifications",
-        "contentTypes": [
-            "EOM::WebContainer"
-        ]
-    }, {
-        "endpoint": "LISTS_NOTIFICATIONS_PUSH_URL",
-        "granularity": 40,
-        "alias": "list-notifications-push",
-        "contentTypes": [
-            "EOM::WebContainer"
-        ]
-    }],
-	"splunk-config": {
-		"logPrefix": "[splunkMetrics] "
-	},
-	"healthConfig": {
-		"failureThreshold" : 2
-	},
-	"validationEndpoints": {
-		"EOM::CompoundStory": "METHODE_ARTICLE_TRANSFORMER_URL",
-		"EOM::Story": "METHODE_ARTICLE_TRANSFORMER_URL"
-	}
+   "threshold": 120,
+   "queueConfig": {
+      "address": ["QUEUE_ADDR"],
+      "group": "PubMonitor",
+      "topic": "NativeCmsPublicationEvents",
+      "queue": "KAFKA_PROXY_HOST",
+      "concurrentProcessing": true
+   },
+   "metricConfig": [{
+      "endpoint": "CONTENT_URL",
+      "alias": "content",
+      "health": "/__document-store-api/__health",
+      "granularity": 40,
+      "contentTypes": [
+         "EOM::CompoundStory",
+         "EOM::Story",
+         "Image",
+         "ImageSet",
+         "post", "webchat-markets-live", "webchat-live-blogs", "webchat-live-qa",
+         "video"
+      ]
+   },
+   {
+      "endpoint": "/",
+      "granularity": 40,
+      "alias": "S3",
+      "contentTypes": [
+         "Image"
+      ]
+   },
+   {
+      "endpoint": "LISTS_URL",
+      "granularity": 40,
+      "alias": "lists",
+      "health": "/__document-store-api/__health",
+      "contentTypes": [
+         "EOM::WebContainer"
+      ]
+   },
+   {
+      "endpoint": "NOTIFICATIONS_URL",
+      "granularity": 40,
+      "alias": "notifications",
+      "health": "/__notifications-rw/__health",
+      "contentTypes": [
+         "EOM::CompoundStory",
+         "post"
+      ]
+   },
+   {
+      "endpoint": "NOTIFICATIONS_PUSH_URL",
+      "granularity": 40,
+      "alias": "notifications-push",
+      "health": "/__notifications-push/__health",
+      "contentTypes": [
+         "EOM::CompoundStory",
+         "post"
+      ]
+   },
+   {
+      "endpoint": "LISTS_NOTIFICATIONS_URL",
+      "granularity": 40,
+      "alias": "list-notifications",
+      "health": "/__list-notifications-rw/__health",
+      "contentTypes": [
+         "EOM::WebContainer"
+      ]
+   },
+   {
+      "endpoint": "LISTS_NOTIFICATIONS_PUSH_URL",
+      "granularity": 40,
+      "alias": "list-notifications-push",
+      "health": "/__list-notifications-push/__health",
+      "contentTypes": [
+         "EOM::WebContainer"
+      ]
+   }
+],
+"splunk-config": {
+   "logPrefix": "[splunkMetrics] "
+},
+"healthConfig": {
+   "failureThreshold" : 2
+},
+"validationEndpoints": {
+   "EOM::CompoundStory": "METHODE_ARTICLE_TRANSFORMER_URL",
+   "EOM::Story": "METHODE_ARTICLE_TRANSFORMER_URL"
+}
 }

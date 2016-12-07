@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
+	"github.com/Financial-Times/publish-availability-monitor/feeds"
 )
 
 // Healthcheck offers methods to measure application health.
@@ -44,10 +45,11 @@ var noReadEnvironments = fthealth.Check{
 }
 
 func (h *Healthcheck) checkHealth(writer http.ResponseWriter, req *http.Request) {
-	checks := make([]fthealth.Check, 3)
+	checks := make([]fthealth.Check, 4)
 	checks[0] = h.messageQueueProxyReachable()
 	checks[1] = h.reflectPublishFailures()
 	checks[2] = h.validationServicesReachable()
+	checks[3] = isConsumingFromPushFeeds()
 
 	readEnvironmentChecks := h.readEnvironmentsReachable()
 	if len(readEnvironmentChecks) == 0 {
@@ -75,6 +77,35 @@ func (h *Healthcheck) gtg(writer http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func isConsumingFromPushFeeds() fthealth.Check {
+	return fthealth.Check{
+		BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
+		Name:             "IsConsumingFromNotificationsPushFeeds",
+		PanicGuide:       pam_run_book_url,
+		Severity:         1,
+		TechnicalSummary: "The connections to the configured notifications-push feeds are operating correctly.",
+		Checker: func() (string, error) {
+			var failing []string
+			result := true
+			for _, val := range subscribedFeeds {
+				for _, feed := range val {
+					push, ok := feed.(*feeds.NotificationsPushFeed)
+					if ok && !push.IsConnected() {
+						warnLogger.Println("Feed \"" + feed.FeedName() + "\" with URL \"" + feed.FeedURL() + "\" is not connected!")
+						failing = append(failing, feed.FeedURL())
+						result = false
+					}
+				}
+			}
+
+			if !result {
+				return "Disconnection detected.", errors.New("At least one of our Notifcations Push feeds in the delivery cluster is disconnected! Please review the logs, and check delivery healthchecks. We will attempt reconnection indefinitely, but there could be an issue with the delivery cluster's notifications-push services. Failing connections: " + strings.Join(failing, ","))
+			}
+			return "", nil
+		},
+	}
+}
+
 func (h *Healthcheck) messageQueueProxyReachable() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
@@ -84,7 +115,6 @@ func (h *Healthcheck) messageQueueProxyReachable() fthealth.Check {
 		TechnicalSummary: "Message queue proxy is not reachable/healthy",
 		Checker:          h.checkAggregateMessageQueueProxiesReachable,
 	}
-
 }
 
 func (h *Healthcheck) checkAggregateMessageQueueProxiesReachable() (string, error) {
@@ -201,8 +231,15 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 	hcErrs := make(chan error, len(endpoints))
 	for _, url := range endpoints {
 		wg.Add(1)
-		go checkServiceReachable("validation", url, h.client, hcErrs, &wg)
+		healthcheckURL, err := inferHealthCheckUrl(url)
+		if err != nil {
+			errorLogger.Printf("Validation Service URL: [%s]. Err: [%v]", url, err.Error())
+			continue
+		}
+
+		go checkServiceReachable(healthcheckURL, h.client, hcErrs, &wg)
 	}
+
 	wg.Wait()
 	close(hcErrs)
 	for err := range hcErrs {
@@ -213,29 +250,18 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 	return "", nil
 }
 
-func checkServiceReachable(serviceType string, serviceURL string, client http.Client, hcRes chan<- error, wg *sync.WaitGroup) {
+func checkServiceReachable(healthcheckURL string, client http.Client, hcRes chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
+	infoLogger.Println("Checking: " + healthcheckURL)
 
-	var healthURL string
-	var err error
-	if fn, ok := readCheckEndpoints[serviceType]; ok {
-		healthURL, err = fn(serviceURL)
-	} else {
-		healthURL, err = buildFtHealthcheckUrl(serviceURL)
-	}
+	resp, err := client.Get(healthcheckURL)
 	if err != nil {
-		hcRes <- fmt.Errorf("Service URL: [%s]. Error: [%v]", serviceURL, err)
-		return
-	}
-
-	resp, err := client.Get(healthURL)
-	if err != nil {
-		hcRes <- fmt.Errorf("Healthcheck URL: [%s]. Error: [%v]", healthURL, err)
+		hcRes <- fmt.Errorf("Healthcheck URL: [%s]. Error: [%v]", healthcheckURL, err)
 		return
 	}
 	defer cleanupResp(resp)
 	if resp.StatusCode != 200 {
-		hcRes <- fmt.Errorf("Not healthy statusCode received: [%d]", resp.StatusCode)
+		hcRes <- fmt.Errorf("Unhealthy statusCode received: [%d] for URL [%s]", resp.StatusCode, healthcheckURL)
 		return
 	}
 	hcRes <- nil
@@ -270,7 +296,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		if absoluteUrlRegex.MatchString(metric.Endpoint) {
 			endpointURL, err = url.Parse(metric.Endpoint)
 		} else {
-			if (metric.Alias == "S3") {
+			if metric.Alias == "S3" {
 				endpointURL, err = url.Parse(h.env.S3Url + metric.Endpoint)
 			} else {
 				endpointURL, err = url.Parse(h.env.ReadUrl + metric.Endpoint)
@@ -278,12 +304,24 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		}
 
 		if err != nil {
-			errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
+			errorLogger.Printf("Cannot parse url [%v], Err: [%v]", metric.Endpoint, err.Error())
+			continue
+		}
+
+		var healthcheckURL string
+		if fn, ok := readCheckEndpoints[metric.Alias]; ok {
+			healthcheckURL, err = fn(endpointURL.String())
+		} else {
+			healthcheckURL, err = buildFtHealthcheckUrl(*endpointURL, metric.Health)
+		}
+
+		if err != nil {
+			errorLogger.Printf("Service URL: [%s]. Err: [%v]", endpointURL.String(), err.Error())
 			continue
 		}
 
 		wg.Add(1)
-		go checkServiceReachable(metric.Alias, endpointURL.String(), h.client, hcErrs, &wg)
+		go checkServiceReachable(healthcheckURL, h.client, hcErrs, &wg)
 	}
 
 	wg.Wait()
@@ -296,7 +334,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 	return "", nil
 }
 
-func buildFtHealthcheckUrl(serviceUrl string) (string, error) {
+func inferHealthCheckUrl(serviceUrl string) (string, error) {
 	parsedURL, err := url.Parse(serviceUrl)
 	if err != nil {
 		return "", err
@@ -311,6 +349,12 @@ func buildFtHealthcheckUrl(serviceUrl string) (string, error) {
 
 	parsedURL.Path = newPath
 	return parsedURL.String(), nil
+}
+
+func buildFtHealthcheckUrl(endpoint url.URL, health string) (string, error) {
+	endpoint.Path = health
+	endpoint.RawQuery = "" // strip query params
+	return endpoint.String(), nil
 }
 
 func buildAwsHealthcheckUrl(serviceUrl string) (string, error) {

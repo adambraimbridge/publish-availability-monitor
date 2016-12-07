@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/checks"
 )
@@ -15,6 +16,7 @@ type NotificationsPushFeed struct {
 	baseNotificationsFeed
 	stopFeed     bool
 	stopFeedLock *sync.RWMutex
+	connected    bool
 }
 
 func (f *NotificationsPushFeed) Start() {
@@ -29,6 +31,8 @@ func (f *NotificationsPushFeed) Start() {
 		}
 
 		for f.consumeFeed() {
+			time.Sleep(500 * time.Millisecond)
+			infoLogger.Println("Disconnected from Push feed! Attempting to reconnect.")
 		}
 	}()
 }
@@ -43,6 +47,10 @@ func (f *NotificationsPushFeed) Stop() {
 
 func (f *NotificationsPushFeed) FeedType() string {
 	return NotificationsPush
+}
+
+func (f *NotificationsPushFeed) IsConnected() bool {
+	return f.connected
 }
 
 func (f *NotificationsPushFeed) isConsuming() bool {
@@ -66,6 +74,10 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 		return f.isConsuming()
 	}
 
+	infoLogger.Println("Reconnected to push feed!")
+	f.connected = true
+	defer func() { f.connected = false }()
+
 	br := bufio.NewReader(resp.Body)
 	for {
 		if !f.isConsuming() {
@@ -76,9 +88,8 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 
 		event, err := br.ReadString('\n')
 		if err != nil {
-			infoLogger.Printf("Error: [%v]", err)
-			panic("foo")
-			continue
+			infoLogger.Printf("Error: [%v] - disconnected from push feed!", err)
+			return f.isConsuming()
 		}
 
 		trimmed := strings.TrimSpace(event)
