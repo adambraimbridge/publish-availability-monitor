@@ -122,7 +122,7 @@ func TestPushNotificationsPollingContinuesAfterErrorResponse(t *testing.T) {
 	f.(*NotificationsPushFeed).SetHttpCaller(httpCaller)
 	f.Start()
 	defer f.Stop()
-	time.Sleep(time.Duration(50) * time.Millisecond)
+	time.Sleep(time.Duration(550) * time.Millisecond)
 
 	response := f.NotificationsFor(uuid)
 	assert.Len(t, response, 1, "notifications for item")

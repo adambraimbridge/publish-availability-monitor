@@ -10,6 +10,7 @@
 	"metricConfig": [{
 		"endpoint": "CONTENT_URL",
 		"alias": "content",
+		"health": "/__document-store-api/__health",
 		"granularity": 40,
 		"contentTypes": [
 			"EOM::CompoundStory",
@@ -30,6 +31,7 @@
 		"endpoint": "LISTS_URL",
 		"granularity": 40,
 		"alias": "lists",
+		"health": "/__document-store-api/__health",
 		"contentTypes": [
 			"EOM::WebContainer"
 		]
@@ -37,6 +39,7 @@
 		"endpoint": "NOTIFICATIONS_URL",
 		"granularity": 40,
 		"alias": "notifications",
+		"health": "/__notifications-rw/__health",
 		"contentTypes": [
 			"EOM::CompoundStory",
 			"post"
@@ -45,6 +48,7 @@
         "endpoint": "NOTIFICATIONS_PUSH_URL",
         "granularity": 40,
         "alias": "notifications-push",
+		  "health": "/__notifications-push/__health",
         "contentTypes": [
             "EOM::CompoundStory",
             "post"
@@ -53,6 +57,7 @@
         "endpoint": "LISTS_NOTIFICATIONS_URL",
         "granularity": 40,
         "alias": "list-notifications",
+		  "health": "/__list-notifications-rw/__health",
         "contentTypes": [
             "EOM::WebContainer"
         ]
@@ -60,6 +65,7 @@
         "endpoint": "LISTS_NOTIFICATIONS_PUSH_URL",
         "granularity": 40,
         "alias": "list-notifications-push",
+		  "health": "/__list-notifications-push/__health",
         "contentTypes": [
             "EOM::WebContainer"
         ]

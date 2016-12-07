@@ -15,6 +15,7 @@ type Link struct {
 type Feed interface {
 	Start()
 	Stop()
+	IsConnected() bool
 	FeedName() string
 	FeedType() string
 	SetCredentials(username string, password string)

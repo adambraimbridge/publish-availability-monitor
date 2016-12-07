@@ -49,6 +49,7 @@ func NewNotificationsFeed(name string, baseUrl *url.URL, sinceDate string, expir
 			},
 			true,
 			&sync.RWMutex{},
+			false,
 		}
 	}
 
