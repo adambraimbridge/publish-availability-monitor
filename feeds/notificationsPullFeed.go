@@ -54,10 +54,6 @@ func (f *NotificationsPullFeed) Stop() {
 	close(f.poller)
 }
 
-func (f *NotificationsPullFeed) IsConnected() bool {
-	return true // faking it for pull
-}
-
 func (f *NotificationsPullFeed) FeedType() string {
 	return NotificationsPull
 }

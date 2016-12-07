@@ -15,8 +15,8 @@ type Link struct {
 type Feed interface {
 	Start()
 	Stop()
-	IsConnected() bool
 	FeedName() string
+	FeedURL() string
 	FeedType() string
 	SetCredentials(username string, password string)
 	NotificationsFor(uuid string) []*Notification

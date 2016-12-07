@@ -92,3 +92,7 @@ func (f *baseNotificationsFeed) NotificationsFor(uuid string) []*Notification {
 
 	return history
 }
+
+func (f *baseNotificationsFeed) FeedURL() string {
+	return f.baseUrl
+}

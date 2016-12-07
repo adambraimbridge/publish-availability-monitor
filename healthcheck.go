@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
+	"github.com/Financial-Times/publish-availability-monitor/feeds"
 )
 
 // Healthcheck offers methods to measure application health.
@@ -84,18 +85,21 @@ func isConsumingFromPushFeeds() fthealth.Check {
 		Severity:         1,
 		TechnicalSummary: "The connections to the configured notifications-push feeds are operating correctly.",
 		Checker: func() (string, error) {
+			var failing []string
 			result := true
 			for _, val := range subscribedFeeds {
 				for _, feed := range val {
-					if !feed.IsConnected() {
-						warnLogger.Println("Feed \"" + feed.FeedName() + "\" is not connected!")
+					push, ok := feed.(*feeds.NotificationsPushFeed)
+					if ok && !push.IsConnected() {
+						warnLogger.Println("Feed \"" + feed.FeedName() + "\" with URL \"" + feed.FeedURL() + "\" is not connected!")
+						failing = append(failing, feed.FeedURL())
 						result = false
 					}
 				}
 			}
 
 			if !result {
-				return "Disconnection detected.", errors.New("At least one of our Notifcations Push feeds in the delivery cluster is disconnected! Please review the logs, and check delivery healthchecks. We will attempt reconnection indefinitely, but there could be an issue with the delivery cluster's notifications-push services.")
+				return "Disconnection detected.", errors.New("At least one of our Notifcations Push feeds in the delivery cluster is disconnected! Please review the logs, and check delivery healthchecks. We will attempt reconnection indefinitely, but there could be an issue with the delivery cluster's notifications-push services. Failing connections: " + strings.Join(failing, ","))
 			}
 			return "", nil
 		},

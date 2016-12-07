@@ -76,6 +76,7 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 
 	infoLogger.Println("Reconnected to push feed!")
 	f.connected = true
+	defer func() { f.connected = false }()
 
 	br := bufio.NewReader(resp.Body)
 	for {
@@ -88,7 +89,6 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 		event, err := br.ReadString('\n')
 		if err != nil {
 			infoLogger.Printf("Error: [%v] - disconnected from push feed!", err)
-			f.connected = false
 			return f.isConsuming()
 		}
 
