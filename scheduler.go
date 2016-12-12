@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/content"
+	"github.com/Financial-Times/publish-availability-monitor/history"
 )
 
 var (
@@ -91,6 +92,8 @@ func scheduleCheck(check PublishCheck, metricContainer *publishHistory) {
 		close(quitChan)
 	}()
 
+	history.MonitorPublishCheck(check.Metric.tid, check.Metric.UUID, check.Metric.config.Alias, check.Metric.platform)
+
 	secondsSincePublish := time.Since(check.Metric.publishDate).Seconds()
 	infoLogger.Printf("Checking %s. [%v] seconds elapsed since publish.", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.platform, check.Metric.tid), int(secondsSincePublish))
 
@@ -105,6 +108,7 @@ func scheduleCheck(check PublishCheck, metricContainer *publishHistory) {
 		if ignoreCheck {
 			infoLogger.Printf("Ignore check for %s", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.platform, check.Metric.tid))
 			tickerChan.Stop()
+			history.HandlePublishCheckResult(check.Metric.tid, check.Metric.UUID, check.Metric.config.Alias, check.Metric.platform, history.IGNORED)
 			return
 		}
 		if checkSuccessful {
@@ -142,6 +146,14 @@ func updateHistory(metricContainer *publishHistory, newPublishResult PublishMetr
 	}
 	metricContainer.publishMetrics = append(metricContainer.publishMetrics, newPublishResult)
 	metricContainer.Unlock()
+
+	var status history.PublishStatus
+	if newPublishResult.publishOK {
+		status = history.SUCCESS
+	} else {
+		status = history.FAILED
+	}
+	history.HandlePublishCheckResult(newPublishResult.tid, newPublishResult.UUID, newPublishResult.config.Alias, newPublishResult.platform, status)
 }
 
 func validType(validTypes []string, eomType string) bool {

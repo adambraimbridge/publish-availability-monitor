@@ -17,8 +17,10 @@ import (
 	"fmt"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	"github.com/Financial-Times/publish-availability-monitor/history"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/gorilla/mux"
 )
@@ -129,6 +131,7 @@ func main() {
 func startHttpListener() {
 	router := mux.NewRouter()
 	setupHealthchecks(router)
+	router.HandleFunc("/__history/forget", forget).Methods("POST")
 	router.HandleFunc("/__history", loadHistory)
 
 	router.HandleFunc(status.PingPath, status.PingHandler)
@@ -189,15 +192,18 @@ func startAggregator() {
 func handleMessage(msg consumer.Message) {
 	tid := msg.Headers["X-Request-Id"]
 	infoLogger.Printf("Received message with TID [%v]", tid)
+	history.MonitorPublish(tid)
 
-	if isIgnorableMessage(tid) {
+	if checks.IsIgnorableMessage(tid) {
 		infoLogger.Printf("Message [%v] is ignorable. Skipping...", tid)
+		history.HandlePublishResult(tid, history.IGNORED)
 		return
 	}
 
 	publishedContent, err := content.UnmarshalContent(msg)
 	if err != nil {
 		warnLogger.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
+		history.HandlePublishResult(tid, history.INVALID)
 		return
 	}
 
@@ -214,6 +220,7 @@ func handleMessage(msg consumer.Message) {
 
 	if !publishedContent.IsValid(validationEndpoint, username, password) {
 		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
+		history.HandlePublishResult(tid, history.INVALID)
 		return
 	}
 
@@ -224,11 +231,13 @@ func handleMessage(msg consumer.Message) {
 	if err != nil {
 		errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
 			publishDateString, tid, err.Error())
+		history.HandlePublishResult(tid, history.INVALID)
 		return
 	}
 
 	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
 		infoLogger.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
+		history.HandlePublishResult(tid, history.IGNORED)
 		return
 	}
 
@@ -240,6 +249,7 @@ func handleMessage(msg consumer.Message) {
 		eomFile, ok := publishedContent.(content.EomFile)
 		if !ok {
 			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
+			history.HandlePublishResult(tid, history.INVALID)
 			return
 		}
 		imageSetEomFile := spawnImageSet(eomFile)
@@ -293,10 +303,6 @@ func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
 func isMessagePastPublishSLA(date time.Time, threshold int) bool {
 	passedSLA := date.Add(time.Duration(threshold) * time.Second)
 	return time.Now().After(passedSLA)
-}
-
-func isIgnorableMessage(tid string) bool {
-	return strings.HasPrefix(tid, "SYNTHETIC")
 }
 
 func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
