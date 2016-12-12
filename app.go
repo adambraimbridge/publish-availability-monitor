@@ -186,14 +186,6 @@ func startAggregator() {
 	go aggregator.Run()
 }
 
-func loadHistory(w http.ResponseWriter, r *http.Request) {
-	metricContainer.RLock()
-	for i := len(metricContainer.publishMetrics) - 1; i >= 0; i-- {
-		fmt.Fprintf(w, "%d. %v\n\n", len(metricContainer.publishMetrics)-i, metricContainer.publishMetrics[i])
-	}
-	metricContainer.RUnlock()
-}
-
 func handleMessage(msg consumer.Message) {
 	tid := msg.Headers["X-Request-Id"]
 	infoLogger.Printf("Received message with TID [%v]", tid)
