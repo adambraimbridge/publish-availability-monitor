@@ -22,14 +22,14 @@ const titleXPath = "/doc/lead/lead-headline/headline/ln"
 const channelXPath = "/props/productInfo/name"
 const webTypeXPath = "//ObjectMetadata/FTcom/DIFTcomWebType"
 const filePathXPath = "//ObjectMetadata/EditorialNotes/ObjectLocation"
-const sourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
+const SourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
 const markDeletedFlagXPath = "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMarkDeleted"
 
 const expectedWebChannel = "FTcom"
 const expectedFTChannel = "Financial Times"
 const expectedWebTypePrefix = "digitalList"
 const expectedFilePathSuffix = ".xml"
-const expectedSourceCode = "FT"
+
 
 // EomFile models Methode content
 type EomFile struct {
@@ -41,6 +41,8 @@ type EomFile struct {
 	UsageTickets     string `json:"usageTickets"`
 	WorkflowStatus   string `json:"workflowStatus"`
 }
+
+var expectedSourceCode =map[string]bool { "FT":true, "ContentPlaceholder":true}
 
 var (
 	client = &http.Client{Timeout: time.Duration(10 * time.Second)}
@@ -73,7 +75,7 @@ func (eomfile EomFile) IsMarkedDeleted() bool {
 	if eomfile.Type == "Image" || eomfile.Type == "EOM::WebContainer" {
 		return false
 	}
-	markDeletedFlag, ok := getXPathValue(eomfile.Attributes, eomfile, markDeletedFlagXPath)
+	markDeletedFlag, ok := GetXPathValue(eomfile.Attributes, eomfile, markDeletedFlagXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", markDeletedFlagXPath)
 		return false
@@ -94,7 +96,7 @@ func (eomfile EomFile) GetUUID() string {
 }
 
 func isListValid(eomfile EomFile) bool {
-	webType, ok := getXPathValue(eomfile.Attributes, eomfile, webTypeXPath)
+	webType, ok := GetXPathValue(eomfile.Attributes, eomfile, webTypeXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", webTypeXPath)
 		return false
@@ -120,7 +122,7 @@ func isStoryValid(eomfile EomFile) bool {
 }
 
 func isSupportedFileType(eomfile EomFile) bool {
-	filePath, ok := getXPathValue(eomfile.Attributes, eomfile, filePathXPath)
+	filePath, ok := GetXPathValue(eomfile.Attributes, eomfile, filePathXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", filePathXPath)
 		return false
@@ -132,7 +134,7 @@ func isSupportedFileType(eomfile EomFile) bool {
 }
 
 func isSupportedChannel(eomfile EomFile) bool {
-	channel, ok := getXPathValue(eomfile.SystemAttributes, eomfile, channelXPath)
+	channel, ok := GetXPathValue(eomfile.SystemAttributes, eomfile, channelXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", channelXPath)
 		return false
@@ -159,7 +161,7 @@ func hasTitle(eomfile EomFile) bool {
 	}
 	articleXML := string(decoded[:])
 
-	title, ok := getXPathValue(articleXML, eomfile, titleXPath)
+	title, ok := GetXPathValue(articleXML, eomfile, titleXPath)
 	if !ok {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", titleXPath)
 		return false
@@ -182,18 +184,18 @@ func isImageValid(eomfile EomFile) bool {
 }
 
 func isSupportedCompoundStorySourceCode(eomfile EomFile) bool {
-	sourceCode, ok := getXPathValue(eomfile.Attributes, eomfile, sourceXPath)
+	sourceCode, ok := GetXPathValue(eomfile.Attributes, eomfile, SourceXPath)
 	if !ok {
-		warnLogger.Printf("Cannot match node in XML using xpath [%v]", sourceXPath)
+		warnLogger.Printf("Cannot match node in XML using xpath [%v]", SourceXPath)
 		return false
 	}
-	if sourceCode == expectedSourceCode {
+	if  expectedSourceCode[sourceCode] {
 		return true
 	}
 	return false
 }
 
-func getXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool) {
+func GetXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool) {
 	path := xmlpath.MustCompile(lookupPath)
 	root, err := xmlpath.Parse(strings.NewReader(xml))
 	if err != nil {
@@ -208,9 +210,9 @@ func getXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool
 func isSupportedStorySourceCode(eomfile EomFile) bool {
 	validSourceCodes := [1]string{"FT"}
 
-	sourceCode, ok := getXPathValue(eomfile.Attributes, eomfile, sourceXPath)
+	sourceCode, ok := GetXPathValue(eomfile.Attributes, eomfile, SourceXPath)
 	if !ok {
-		warnLogger.Printf("Cannot match node in XML using xpath [%v]", sourceXPath)
+		warnLogger.Printf("Cannot match node in XML using xpath [%v]", SourceXPath)
 		return false
 	}
 	for _, expected := range validSourceCodes {
