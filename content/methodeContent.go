@@ -30,7 +30,6 @@ const expectedFTChannel = "Financial Times"
 const expectedWebTypePrefix = "digitalList"
 const expectedFilePathSuffix = ".xml"
 
-
 // EomFile models Methode content
 type EomFile struct {
 	UUID             string `json:"uuid"`
@@ -42,7 +41,7 @@ type EomFile struct {
 	WorkflowStatus   string `json:"workflowStatus"`
 }
 
-var expectedSourceCode =map[string]bool { "FT":true, "ContentPlaceholder":true}
+var expectedSourceCode = map[string]bool{"FT": true, "ContentPlaceholder": true}
 
 var (
 	client = &http.Client{Timeout: time.Duration(10 * time.Second)}
@@ -189,7 +188,7 @@ func isSupportedCompoundStorySourceCode(eomfile EomFile) bool {
 		warnLogger.Printf("Cannot match node in XML using xpath [%v]", SourceXPath)
 		return false
 	}
-	if  expectedSourceCode[sourceCode] {
+	if expectedSourceCode[sourceCode] {
 		return true
 	}
 	return false
