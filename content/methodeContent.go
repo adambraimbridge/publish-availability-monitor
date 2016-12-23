@@ -261,6 +261,10 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string, usern
 	if resp.StatusCode == 418 {
 		return false
 	}
+	//invalid  contentplaceholder (link file) will not be published so do not monitor
+	if resp.StatusCode == 422 {
+		return false
+	}
 
 	return true
 }
