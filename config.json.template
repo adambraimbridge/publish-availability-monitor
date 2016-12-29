@@ -85,6 +85,7 @@
 },
 "validationEndpoints": {
    "EOM::CompoundStory": "METHODE_ARTICLE_TRANSFORMER_URL",
+   "EOM::CompoundStory_ContentPlaceholder": "METHODE_CONTENT_PLACEHOLDER_MAPPER_URL",
    "EOM::Story": "METHODE_ARTICLE_TRANSFORMER_URL"
 }
 }

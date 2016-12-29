@@ -88,6 +88,7 @@ type publishHistory struct {
 
 const dateLayout = time.RFC3339Nano
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
+const contentPlaceholderSourceCode = "ContentPlaceholder"
 
 var infoLogger *log.Logger
 var warnLogger *log.Logger
@@ -211,13 +212,13 @@ func handleMessage(msg consumer.Message) {
 	}
 
 	uuid := publishedContent.GetUUID()
-	contentType := publishedContent.GetType()
-
+	validationEndpointKey := getValidationEndpointKey(publishedContent, tid, uuid)
 	var validationEndpoint string
 	var found bool
 	var username string
 	var password string
-	if validationEndpoint, found = appConfig.ValidationEndpoints[contentType]; found {
+
+	if validationEndpoint, found = appConfig.ValidationEndpoints[validationEndpointKey]; found {
 		username, password = getValidationCredentials(validationEndpoint)
 	}
 
@@ -306,6 +307,26 @@ func isMessagePastPublishSLA(date time.Time, threshold int) bool {
 
 func isIgnorableMessage(tid string) bool {
 	return strings.HasPrefix(tid, "SYNTHETIC")
+}
+
+func getValidationEndpointKey(publishedContent content.Content, tid string, uuid string) string {
+	validationEndpointKey := publishedContent.GetType()
+	if publishedContent.GetType() == "EOM::CompoundStory" {
+		eomfile, ok := publishedContent.(content.EomFile)
+		if !ok {
+			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
+			return ""
+		}
+		sourceCode, ok := content.GetXPathValue(eomfile.Attributes, eomfile, content.SourceXPath)
+		if !ok {
+			warnLogger.Printf("Cannot match node in XML using xpath [%v]", content.SourceXPath)
+			return ""
+		}
+		if sourceCode == contentPlaceholderSourceCode {
+			validationEndpointKey = validationEndpointKey + "_" + sourceCode
+		}
+	}
+	return validationEndpointKey
 }
 
 func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
