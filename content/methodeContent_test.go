@@ -27,9 +27,25 @@ func TestIsEomfileValid_InvalidSourceCode(t *testing.T) {
 	}
 }
 
-func TestIsEomfileValid_ValidImage(t *testing.T) {
-	if !validImage.IsValid(testExtValEndpoint, "", "") {
+func TestIsEomfileValid_ExternalValidationTrue_ValidImage(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	if !validImage.IsValid(ts.URL, "", "") {
 		t.Error("Valid Image marked as invalid!")
+	}
+}
+
+func TestIsEomfileValid_ExternalValidationFalse_InvalidImage(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(422)
+	}))
+	defer ts.Close()
+
+	if invalidImage.IsValid(ts.URL, "", "") {
+		t.Error("Invalid Image marked as valid!")
 	}
 }
 
@@ -272,6 +288,14 @@ var validImage = EomFile{
 	UUID:             validUUID,
 	Type:             "Image",
 	Value:            "/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr",
+	Attributes:       "attributes",
+	SystemAttributes: "systemAttributes",
+}
+
+var invalidImage = EomFile{
+	UUID:             validUUID,
+	Type:             "Image",
+	Value:            "invalid image",
 	Attributes:       "attributes",
 	SystemAttributes: "systemAttributes",
 }
