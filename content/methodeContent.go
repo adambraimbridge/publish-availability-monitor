@@ -27,7 +27,6 @@ const markDeletedFlagXPath = "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMar
 
 const expectedWebChannel = "FTcom"
 const expectedFTChannel = "Financial Times"
-const expectedWebTypePrefix = "digitalList"
 const expectedFilePathSuffix = ".xml"
 
 // EomFile models Methode content
@@ -57,7 +56,7 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string, username strin
 	contentType := eomfile.Type
 	switch contentType {
 	case webContainer:
-		return isListValid(eomfile)
+		return isExternalValidationSuccessful(eomfile, externalValidationEndpoint, username, password)
 	case compoundStory:
 		return isCompoundStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint, username, password)
 	case story:
@@ -92,18 +91,6 @@ func (eomfile EomFile) GetType() string {
 
 func (eomfile EomFile) GetUUID() string {
 	return eomfile.UUID
-}
-
-func isListValid(eomfile EomFile) bool {
-	webType, ok := GetXPathValue(eomfile.Attributes, eomfile, webTypeXPath)
-	if !ok {
-		warnLogger.Printf("Cannot match node in XML using xpath [%v]", webTypeXPath)
-		return false
-	}
-	if strings.HasPrefix(webType, expectedWebTypePrefix) {
-		return true
-	}
-	return false
 }
 
 func isCompoundStoryValid(eomfile EomFile) bool {
