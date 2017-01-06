@@ -33,12 +33,6 @@ func TestIsEomfileValid_ValidImage(t *testing.T) {
 	}
 }
 
-func TestIsEomfileValid_ValidList(t *testing.T) {
-	if !validList.IsValid(testExtValEndpoint, "", "") {
-		t.Error("Valid List marked as invalid!")
-	}
-}
-
 func TestIsEomfileValid_ExternalValidationTrue_ValidCompoundStory(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//return OK
@@ -86,6 +80,26 @@ func TestIsEomfileValid_ExternalValidationFalse_ValidStory(t *testing.T) {
 
 	if validStory.IsValid(ts.URL, "", "") {
 		t.Error("Valid Story regarded as invalid by external validation marked as valid!")
+	}
+}
+
+func TestIsEomfileValid_ExternalValidationSucceeds_ValidList(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	if !webContainerEomFile.IsValid(ts.URL, "", "") {
+		t.Error("Valid WebContainer regarded as invalid")
+	}
+}
+
+func TestIsEomfileValid_ExternalValidationFalse_InvalidList(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(ImATeapot)
+	}))
+
+	if webContainerEomFile.IsValid(ts.URL, "", "") {
+		t.Error("Invalid WebContainer regarded as valid")
 	}
 }
 
@@ -239,18 +253,6 @@ func TestIsImageValid_ImageInvalid(t *testing.T) {
 	}
 }
 
-func TestIsListValid_ListValid(t *testing.T) {
-	if !isListValid(validListEomFile) {
-		t.Error("Valid List EOMFile marked as invalid!")
-	}
-}
-
-func TestIsListValid_ListInvalid(t *testing.T) {
-	if isListValid(invalidListEomFile) {
-		t.Error("Invalid List EOMFile marked as valid!")
-	}
-}
-
 var eomfileWithInvalidContentType = EomFile{
 	UUID:             validUUID,
 	Type:             "FOOBAR",
@@ -272,14 +274,6 @@ var validImage = EomFile{
 	Value:            "/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr",
 	Attributes:       "attributes",
 	SystemAttributes: "systemAttributes",
-}
-
-var validList = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::WebContainer",
-	Value:            "bar",
-	Attributes:       validListAttributes,
-	SystemAttributes: "system attributes",
 }
 
 var validCompoundStory = EomFile{
@@ -366,22 +360,6 @@ var unsupportedEomFile = EomFile{
 	Type:             "EOM::CompoundStory",
 	Value:            "bar",
 	Attributes:       invalidFileTypeAttributes,
-	SystemAttributes: "system attributes",
-}
-
-var validListEomFile = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::WebContainer",
-	Value:            "bar",
-	Attributes:       validListAttributes,
-	SystemAttributes: "system attributes",
-}
-
-var invalidListEomFile = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::WebContainer",
-	Value:            "bar",
-	Attributes:       invalidListAttributes,
 	SystemAttributes: "system attributes",
 }
 
@@ -491,8 +469,6 @@ const content = "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhRE9DVFl
 const attributesMarkedDeletedTrue = "<ObjectMetadata><OutputChannels><DIFTcom><DIFTcomMarkDeleted>True</DIFTcomMarkDeleted></DIFTcom></OutputChannels></ObjectMetadata>"
 const attributesMarkedDeletedFalse = "<ObjectMetadata><OutputChannels><DIFTcom><DIFTcomMarkDeleted>False</DIFTcomMarkDeleted></DIFTcom></OutputChannels></ObjectMetadata>"
 
-const validListAttributes = "<!DOCTYPE ObjectMetadata SYSTEM \"/SysConfig/Classify/FTDWC2/classify.dtd\"><ObjectMetadata>	<FTcom>		<DIFTcomWebType>digitalList</DIFTcomWebType></FTcom><Lists>		<Title>Editor's pick</Title><LayoutHint>standard</LayoutHint></Lists></ObjectMetadata>"
-const invalidListAttributes = "<!DOCTYPE ObjectMetadata SYSTEM \"/SysConfig/Classify/FTDWC2/classify.dtd\"><ObjectMetadata>	<FTcom>		<DIFTcomWebType>foobarList</DIFTcomWebType></FTcom><Lists>		<Title>Editor's pick</Title><LayoutHint>standard</LayoutHint></Lists></ObjectMetadata>"
 const validFileTypeAttributes = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE ObjectMetadata SYSTEM \"/SysConfig/Classify/FTStories/classify.dtd\"><ObjectMetadata><EditorialDisplayIndexing><DIBylineCopy>Kiran Stacey, Energy Correspondent</DIBylineCopy></EditorialDisplayIndexing><OutputChannels><DIFTcom><DIFTcomWebType>story</DIFTcomWebType></DIFTcom></OutputChannels><EditorialNotes><Sources><Source><SourceCode>FT</SourceCode></Source></Sources><Language>English</Language><Author>staceyk</Author><ObjectLocation>/Users/staceyk/North Sea companies analysis CO 15.xml</ObjectLocation></EditorialNotes><DataFactoryIndexing><ADRIS_MetaData><IndexSuccess>yes</IndexSuccess><StartTime>Wed Oct 21 10:11:53 GMT 2015</StartTime><EndTime>Wed Oct 21 10:11:57 GMT 2015</EndTime></ADRIS_MetaData></DataFactoryIndexing></ObjectMetadata>"
 const invalidFileTypeAttributes = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE ObjectMetadata SYSTEM \"/SysConfig/Classify/FTStories/classify.dtd\"><ObjectMetadata><EditorialDisplayIndexing><DIBylineCopy>Kiran Stacey, Energy Correspondent</DIBylineCopy></EditorialDisplayIndexing><OutputChannels><DIFTcom><DIFTcomWebType>story</DIFTcomWebType></DIFTcom></OutputChannels><EditorialNotes><Language>English</Language><Author>staceyk</Author><ObjectLocation>/Users/staceyk/North Sea companies analysis CO 15.PDF</ObjectLocation></EditorialNotes><DataFactoryIndexing><ADRIS_MetaData><IndexSuccess>yes</IndexSuccess><StartTime>Wed Oct 21 10:11:53 GMT 2015</StartTime><EndTime>Wed Oct 21 10:11:57 GMT 2015</EndTime></ADRIS_MetaData></DataFactoryIndexing></ObjectMetadata>"
 
