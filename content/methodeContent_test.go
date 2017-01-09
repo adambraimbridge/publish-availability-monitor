@@ -257,18 +257,6 @@ func TestIsSupportedSourceCode_Story_UnsupportedCode(t *testing.T) {
 	}
 }
 
-func TestIsImageValid_ImageValid(t *testing.T) {
-	if !isImageValid(validImageEomFile) {
-		t.Error("Valid Image EOMFile marked as invalid!")
-	}
-}
-
-func TestIsImageValid_ImageInvalid(t *testing.T) {
-	if isImageValid(invalidImageEomFile) {
-		t.Error("Invalid Image EOMFile marked as valid!")
-	}
-}
-
 var eomfileWithInvalidContentType = EomFile{
 	UUID:             validUUID,
 	Type:             "FOOBAR",
@@ -384,22 +372,6 @@ var unsupportedEomFile = EomFile{
 	Type:             "EOM::CompoundStory",
 	Value:            "bar",
 	Attributes:       invalidFileTypeAttributes,
-	SystemAttributes: "system attributes",
-}
-
-var validImageEomFile = EomFile{
-	UUID:             validUUID,
-	Type:             "Image",
-	Value:            "/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr",
-	Attributes:       "attributes",
-	SystemAttributes: "system attributes",
-}
-
-var invalidImageEomFile = EomFile{
-	UUID:             validUUID,
-	Type:             "Image",
-	Value:            "",
-	Attributes:       "attributes",
 	SystemAttributes: "system attributes",
 }
 
