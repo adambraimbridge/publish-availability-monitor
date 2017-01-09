@@ -61,7 +61,8 @@ func (f *NotificationsPushFeed) isConsuming() bool {
 }
 
 func (f *NotificationsPushFeed) consumeFeed() bool {
-	resp, err := f.httpCaller.DoCall(f.baseUrl, f.username, f.password)
+	txId := f.buildNotificationsTxId()
+	resp, err := f.httpCaller.DoCall(f.baseUrl, f.username, f.password, txId)
 
 	if err != nil {
 		infoLogger.Printf("Sending request: [%v]", err)
@@ -130,4 +131,8 @@ func (f *NotificationsPushFeed) storeNotifications(notifications []Notification)
 		history = append(history, &n)
 		f.notifications[uuid] = history
 	}
+}
+
+func (f *NotificationsPushFeed) buildNotificationsTxId() string {
+	return "tid_pam_notifications_push_" + time.Now().Format(time.RFC3339)
 }

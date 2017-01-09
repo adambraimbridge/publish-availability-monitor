@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,16 +23,25 @@ func buildResponse(statusCode int, content string) *http.Response {
 
 // mock httpCaller implementation
 type testHTTPCaller struct {
+	t             *testing.T
 	authUser      string
 	authPass      string
+	txIdPrefix    string
 	mockResponses []*http.Response
 	current       int
 }
 
 // returns the mock responses of testHTTPCaller in order
-func (t *testHTTPCaller) DoCall(url string, username string, password string) (*http.Response, error) {
+func (t *testHTTPCaller) DoCall(url string, username string, password string, txId string) (*http.Response, error) {
 	if t.authUser != username || t.authPass != password {
 		return buildResponse(401, `{message: "Not authenticated"}`), nil
+	}
+
+	if t.txIdPrefix != "" {
+		assert.True(t.t, strings.HasPrefix(txId, t.txIdPrefix), "transaction id should start with "+t.txIdPrefix)
+		timestamp := txId[len(t.txIdPrefix):]
+		_, err := time.Parse(time.RFC3339, timestamp)
+		assert.Nil(t.t, err, "transaction id suffix did not parse as a timestamp")
 	}
 
 	response := t.mockResponses[t.current]
@@ -40,13 +50,13 @@ func (t *testHTTPCaller) DoCall(url string, username string, password string) (*
 }
 
 // builds testHTTPCaller with the given mocked responses in the provided order
-func mockHTTPCaller(responses ...*http.Response) checks.HttpCaller {
-	return &testHTTPCaller{mockResponses: responses}
+func mockHTTPCaller(t *testing.T, txIdPrefix string, responses ...*http.Response) checks.HttpCaller {
+	return &testHTTPCaller{t: t, txIdPrefix: txIdPrefix, mockResponses: responses}
 }
 
 // builds testHTTPCaller with the given mocked responses in the provided order
-func mockAuthenticatedHTTPCaller(username string, password string, responses ...*http.Response) checks.HttpCaller {
-	return &testHTTPCaller{authUser: username, authPass: password, mockResponses: responses}
+func mockAuthenticatedHTTPCaller(t *testing.T, txIdPrefix string, username string, password string, responses ...*http.Response) checks.HttpCaller {
+	return &testHTTPCaller{t: t, txIdPrefix: txIdPrefix, authUser: username, authPass: password, mockResponses: responses}
 }
 
 // this is necessary to be able to build an http.Response
@@ -90,7 +100,7 @@ func TestNotificationsArePolled(t *testing.T) {
 		mockNotificationFor(uuid, publishRef, lastModified),
 		"2016-10-28T16:00:00.000Z")
 
-	httpCaller := mockHTTPCaller(buildResponse(200, notifications))
+	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(200, notifications))
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
@@ -129,7 +139,7 @@ func TestNotificationsForReturnsAllMatches(t *testing.T) {
 		mockNotificationFor(uuid, publishRef2, lastModified2),
 		"2016-10-28T15:20:00.000Z")
 
-	httpCaller := mockHTTPCaller(buildResponse(200, notifications1), buildResponse(200, notifications2))
+	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(200, notifications1), buildResponse(200, notifications2))
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
@@ -153,7 +163,7 @@ func TestNotificationsPollingContinuesAfterErrorResponse(t *testing.T) {
 		mockNotificationFor(uuid, publishRef, lastModified),
 		"2016-10-28T16:00:00.000Z")
 
-	httpCaller := mockHTTPCaller(buildResponse(500, ""), buildResponse(200, notifications))
+	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(500, ""), buildResponse(200, notifications))
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
@@ -176,7 +186,7 @@ func TestNotificationsArePurged(t *testing.T) {
 		mockNotificationFor(uuid, publishRef, lastModified),
 		"2016-10-28T16:00:00.000Z")
 
-	httpCaller := mockHTTPCaller(buildResponse(200, notifications))
+	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(200, notifications))
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
