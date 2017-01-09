@@ -8,3 +8,5 @@ publish-availability-monitor
 /.project
 /config.json
 /default.etcd
+*.iml
+/projectFilesBackup
