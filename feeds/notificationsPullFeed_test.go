@@ -49,6 +49,10 @@ func (t *testHTTPCaller) DoCall(url string, username string, password string, tx
 	return response, nil
 }
 
+func (t *testHTTPCaller) DoCallWithEntity(httpMethod string, url string, username string, password string, txId string, contentType string, entity io.Reader) (*http.Response, error) {
+	return nil, nil
+}
+
 // builds testHTTPCaller with the given mocked responses in the provided order
 func mockHTTPCaller(t *testing.T, txIdPrefix string, responses ...*http.Response) checks.HttpCaller {
 	return &testHTTPCaller{t: t, txIdPrefix: txIdPrefix, mockResponses: responses}

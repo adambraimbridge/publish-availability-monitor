@@ -4,51 +4,57 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 //testExternalValidationEndpoints
 const testExtValEndpoint = "http://transformer/content-transorm/"
 
 func TestIsEomfileValid_InvalidContentType(t *testing.T) {
-	if eomfileWithInvalidContentType.IsValid(testExtValEndpoint, "", "") {
+	if eomfileWithInvalidContentType.IsValid(testExtValEndpoint, "", "", "") {
 		t.Error("Eomfile with invalid content marked as valid")
 	}
 }
 
 func TestIsEomfileValid_InvalidUUID(t *testing.T) {
-	if eomfileWithInvalidUUID.IsValid(testExtValEndpoint, "", "") {
+	if eomfileWithInvalidUUID.IsValid(testExtValEndpoint, "", "", "") {
 		t.Error("Eomfile with invalid UUID marked as valid")
 	}
 }
 
 func TestIsEomfileValid_InvalidSourceCode(t *testing.T) {
-	if unsupportedSourceCodeCompoundStory.IsValid(testExtValEndpoint, "", "") {
+	if unsupportedSourceCodeCompoundStory.IsValid(testExtValEndpoint, "", "", "") {
 		t.Error("Eomfile with unsupported source code marked as valid")
 	}
 }
 
 func TestIsEomfileValid_ValidImage(t *testing.T) {
-	if !validImage.IsValid(testExtValEndpoint, "", "") {
+	if !validImage.IsValid(testExtValEndpoint, "", "", "") {
 		t.Error("Valid Image marked as invalid!")
 	}
 }
 
 func TestIsEomfileValid_ExternalValidationTrue_ValidCompoundStory(t *testing.T) {
+	txId := "1234"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "tid_pam_"+txId, r.Header.Get("X-Request-Id"), "transaction id")
 		//return OK
 	}))
 	defer ts.Close()
-	if !validCompoundStory.IsValid(ts.URL, "", "") {
+	if !validCompoundStory.IsValid(ts.URL, "tid_"+txId, "", "") {
 		t.Error("Valid CompoundStory marked as invalid!")
 	}
 }
 
 func TestIsEomfileValid_ExternalValidationFalse_InvalidCompountStory(t *testing.T) {
+	txId := "invalidstory"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "tid_pam_"+txId, r.Header.Get("X-Request-Id"), "transaction id")
 		w.WriteHeader(ImATeapot)
 	}))
 	defer ts.Close()
-	if validCompoundStory.IsValid(ts.URL, "", "") {
+	if validCompoundStory.IsValid(ts.URL, "tid_"+txId, "", "") {
 		t.Error("Valid CompoundStory regarded as invalid by external validation marked as valid!")
 	}
 }
@@ -58,7 +64,7 @@ func TestIsEomfileValid_ExternalValidationFalse_InvalidCompountStoryContentPlace
 		w.WriteHeader(UnprocessableEntity)
 	}))
 	defer ts.Close()
-	if validCompoundStory.IsValid(ts.URL, "", "") {
+	if validCompoundStory.IsValid(ts.URL, "", "", "") {
 		t.Error("Valid CompoundStory regarded as invalid by external validation marked as valid!")
 	}
 }
@@ -68,7 +74,7 @@ func TestIsEomfileValid_ExternalValidationTrue_ValidStory(t *testing.T) {
 		//return OK
 	}))
 
-	if !validStory.IsValid(ts.URL, "", "") {
+	if !validStory.IsValid(ts.URL, "", "", "") {
 		t.Error("Valid Story marked as invalid!")
 	}
 }
@@ -78,7 +84,7 @@ func TestIsEomfileValid_ExternalValidationFalse_ValidStory(t *testing.T) {
 		w.WriteHeader(ImATeapot)
 	}))
 
-	if validStory.IsValid(ts.URL, "", "") {
+	if validStory.IsValid(ts.URL, "", "", "") {
 		t.Error("Valid Story regarded as invalid by external validation marked as valid!")
 	}
 }
@@ -88,7 +94,7 @@ func TestIsEomfileValid_ExternalValidationSucceeds_ValidList(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	if !webContainerEomFile.IsValid(ts.URL, "", "") {
+	if !webContainerEomFile.IsValid(ts.URL, "", "", "") {
 		t.Error("Valid WebContainer regarded as invalid")
 	}
 }
@@ -98,7 +104,7 @@ func TestIsEomfileValid_ExternalValidationFalse_InvalidList(t *testing.T) {
 		w.WriteHeader(ImATeapot)
 	}))
 
-	if webContainerEomFile.IsValid(ts.URL, "", "") {
+	if webContainerEomFile.IsValid(ts.URL, "", "", "") {
 		t.Error("Invalid WebContainer regarded as valid")
 	}
 }

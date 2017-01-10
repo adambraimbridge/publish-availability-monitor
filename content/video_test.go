@@ -13,7 +13,7 @@ var videoValid = Video{
 }
 
 func TestIsVideoValid_Valid(t *testing.T) {
-	if !videoValid.IsValid("", "", "") {
+	if !videoValid.IsValid("", "", "", "") {
 		t.Error("Video should be valid.")
 	}
 }
@@ -26,7 +26,7 @@ var videoNoId = Video{
 }
 
 func TestIsVideoValid_NoId(t *testing.T) {
-	if videoNoId.IsValid("", "", "") {
+	if videoNoId.IsValid("", "", "", "") {
 		t.Error("Video should be invalid as it has no Id.")
 	}
 }
@@ -39,7 +39,7 @@ var videoNoUUID = Video{
 }
 
 func TestIsVideoValid_NoUUID(t *testing.T) {
-	if videoNoUUID.IsValid("", "", "") {
+	if videoNoUUID.IsValid("", "", "", "") {
 		t.Error("Video should be invalid as it has no uuid.")
 	}
 }

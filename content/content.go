@@ -7,11 +7,12 @@ import (
 	"os"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/Financial-Times/publish-availability-monitor/checks"
 )
 
 // Content is the interface for different type of contents from different CMSs.
 type Content interface {
-	IsValid(externalValidationEndpoint string, username string, password string) bool
+	IsValid(externalValidationEndpoint string, txId string, username string, password string) bool
 	IsMarkedDeleted() bool
 	GetType() string
 	GetUUID() string
@@ -25,6 +26,7 @@ const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | 
 var infoLogger *log.Logger
 var warnLogger *log.Logger
 var errorLogger *log.Logger
+var httpCaller checks.HttpCaller
 
 func init() {
 	//to be used for INFO-level logging: info.Println("foo is now bar")
@@ -33,6 +35,7 @@ func init() {
 	warnLogger = log.New(os.Stdout, "WARN  - ", logPattern)
 	//to be used for ERROR-leve logging: errorL.Println("foo is now bar")
 	errorLogger = log.New(os.Stdout, "ERROR - ", logPattern)
+	httpCaller = checks.NewHttpCaller(10)
 }
 
 // UnmarshalContent unmarshals the message body into the appropriate content type based on the systemID header.

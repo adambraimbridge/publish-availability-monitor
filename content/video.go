@@ -16,7 +16,7 @@ type Video struct {
 	PublishedAt string `json:"published_at"`
 }
 
-func (v Video) IsValid(externalValidationEndpoint string, username string, password string) bool {
+func (v Video) IsValid(externalValidationEndpoint string, txId string, username string, password string) bool {
 	contentUUID := v.UUID
 	if !isUUIDValid(contentUUID) {
 		warnLogger.Printf("Video invalid: invalid UUID: [%s]", contentUUID)

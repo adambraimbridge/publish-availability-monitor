@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"launchpad.net/xmlpath"
 )
 
@@ -46,7 +47,7 @@ var (
 	client = &http.Client{Timeout: time.Duration(10 * time.Second)}
 )
 
-func (eomfile EomFile) IsValid(externalValidationEndpoint string, username string, password string) bool {
+func (eomfile EomFile) IsValid(externalValidationEndpoint string, txId string, username string, password string) bool {
 	contentUUID := eomfile.UUID
 	if !isUUIDValid(contentUUID) {
 		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]", contentUUID)
@@ -56,11 +57,11 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string, username strin
 	contentType := eomfile.Type
 	switch contentType {
 	case webContainer:
-		return isExternalValidationSuccessful(eomfile, externalValidationEndpoint, username, password)
+		return isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txId, username, password)
 	case compoundStory:
-		return isCompoundStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint, username, password)
+		return isCompoundStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txId, username, password)
 	case story:
-		return isStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint, username, password)
+		return isStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txId, username, password)
 	case image:
 		return isImageValid(eomfile)
 	default:
@@ -209,7 +210,7 @@ func isSupportedStorySourceCode(eomfile EomFile) bool {
 	return false
 }
 
-func isExternalValidationSuccessful(eomfile EomFile, validationURL string, username string, password string) bool {
+func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txId, username string, password string) bool {
 	if validationURL == "" {
 		warnLogger.Printf("External validation for content uuid=[%s]. Validation endpoint URL is missing for content type=[%s]. Skipping external validation.", eomfile.UUID, eomfile.Type)
 		return true
@@ -220,14 +221,11 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string, usern
 		return true
 	}
 
-	req, err := http.NewRequest("POST", validationURL+"/"+eomfile.UUID, bytes.NewReader(marshalled))
-	if username != "" && password != "" {
-		req.SetBasicAuth(username, password)
-	}
-	req.Header.Add("Content-type", "application/json")
-	req.Header.Add("User-Agent", "UPP Publish Availability Monitor")
-
-	resp, err := client.Do(req)
+	resp, err := httpCaller.DoCallWithEntity(
+		"POST", validationURL+"/"+eomfile.UUID,
+		username, password,
+		checks.ConstructPamTxId(txId),
+		"application/json", bytes.NewReader(marshalled))
 
 	if err != nil {
 		warnLogger.Printf("External validation for content uuid=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, err)
