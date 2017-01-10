@@ -89,7 +89,7 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 
 		event, err := br.ReadString('\n')
 		if err != nil {
-			infoLogger.Printf("Error: [%v] - disconnected from push feed!", err)
+			infoLogger.Printf("Disconnected from push feed: [%v]", err)
 			return f.isConsuming()
 		}
 
