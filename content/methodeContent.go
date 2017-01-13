@@ -63,7 +63,7 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string, txId string, u
 	case story:
 		return isStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txId, username, password)
 	case image:
-		return isExternalValidationSuccessful(eomfile, externalValidationEndpoint, username, password)
+		return isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txId, username, password)
 	default:
 		warnLogger.Printf("Eomfile invalid: unexpected content type: [%s]", contentType)
 		return false

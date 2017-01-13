@@ -46,7 +46,7 @@ func TestIsEomfileValid_ExternalValidationFalse_InvalidImage(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	if invalidImage.IsValid(ts.URL, "", "") {
+	if invalidImage.IsValid(ts.URL, "", "", "") {
 		t.Error("Invalid Image marked as valid!")
 	}
 }
