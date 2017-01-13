@@ -63,7 +63,8 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	defer f.sinceDateLock.Unlock()
 
 	notificationsUrl := f.buildNotificationsURL()
-	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password)
+	txId := f.buildNotificationsTxId()
+	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password, txId)
 
 	if err != nil {
 		infoLogger.Printf("error calling notifications %s", notificationsUrl)
@@ -107,4 +108,8 @@ func (f *NotificationsPullFeed) buildNotificationsURL() string {
 	q.Add("since", f.sinceDate)
 
 	return f.baseUrl + "?" + q.Encode()
+}
+
+func (f *NotificationsPullFeed) buildNotificationsTxId() string {
+	return "tid_pam_notifications_pull_" + time.Now().Format(time.RFC3339)
 }

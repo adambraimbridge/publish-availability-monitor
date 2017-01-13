@@ -31,13 +31,13 @@ var wordpressContentWithInvalidBlogDomain = WordPressMessage{
 }
 
 func TestIsValidBlogDomain_True(t *testing.T) {
-	if !wordpressContentWithValidBlogDomain.IsValid("", "", "") {
+	if !wordpressContentWithValidBlogDomain.IsValid("", "", "", "") {
 		t.Error("Expected True")
 	}
 }
 
 func TestIsValidBlogDomain_False(t *testing.T) {
-	if wordpressContentWithInvalidBlogDomain.IsValid("", "", "") {
+	if wordpressContentWithInvalidBlogDomain.IsValid("", "", "", "") {
 		t.Error("Expected False")
 	}
 }

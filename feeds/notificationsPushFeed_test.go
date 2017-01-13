@@ -52,7 +52,7 @@ func TestPushNotificationsAreConsumed(t *testing.T) {
 	notifications = strings.Replace(notifications, "\n", "", -1)
 
 	httpResponse, _ := buildPushResponse(200, []string{notifications})
-	httpCaller := mockHTTPCaller(httpResponse)
+	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_push_", httpResponse)
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
@@ -91,7 +91,7 @@ func TestPushNotificationsForReturnsAllMatches(t *testing.T) {
 		strings.Replace(notification1, "\n", "", -1),
 		strings.Replace(notification2, "\n", "", -1),
 	})
-	httpCaller := mockHTTPCaller(httpResponses)
+	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_push_", httpResponses)
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
@@ -114,7 +114,7 @@ func TestPushNotificationsPollingContinuesAfterErrorResponse(t *testing.T) {
 	notification := mockNotificationFor(uuid, publishRef, lastModified)
 
 	httpResponse, _ := buildPushResponse(200, []string{strings.Replace(notification, "\n", "", -1)})
-	httpCaller := mockHTTPCaller(buildResponse(500, ""), httpResponse)
+	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_push_", buildResponse(500, ""), httpResponse)
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"
@@ -137,7 +137,7 @@ func TestPushNotificationsArePurged(t *testing.T) {
 	notifications = strings.Replace(notifications, "\n", "", -1)
 
 	httpResponse, _ := buildPushResponse(200, []string{notifications})
-	httpCaller := mockHTTPCaller(httpResponse)
+	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_push_", httpResponse)
 
 	baseUrl, _ := url.Parse("http://www.example.org")
 	sinceDate := "2016-10-28T15:00:00.000Z"

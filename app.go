@@ -222,7 +222,7 @@ func handleMessage(msg consumer.Message) {
 		username, password = getValidationCredentials(validationEndpoint)
 	}
 
-	if !publishedContent.IsValid(validationEndpoint, username, password) {
+	if !publishedContent.IsValid(validationEndpoint, tid, username, password) {
 		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return
 	}

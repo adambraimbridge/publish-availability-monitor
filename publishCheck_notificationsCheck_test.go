@@ -53,7 +53,7 @@ func TestFeedContainsMatchingNotification(t *testing.T) {
 	subscribedFeeds[testEnv] = []feeds.Feed{f}
 
 	notificationsCheck := &NotificationsCheck{
-		mockHTTPCaller(nil),
+		mockHTTPCaller(t, "", nil),
 		subscribedFeeds,
 		feedName,
 	}
@@ -72,7 +72,7 @@ func TestFeedMissingNotification(t *testing.T) {
 	subscribedFeeds[testEnv] = []feeds.Feed{f}
 
 	notificationsCheck := &NotificationsCheck{
-		mockHTTPCaller(nil),
+		mockHTTPCaller(t, "", nil),
 		subscribedFeeds,
 		feedName,
 	}
@@ -96,7 +96,7 @@ func TestFeedContainsEarlierNotification(t *testing.T) {
 	subscribedFeeds[testEnv] = []feeds.Feed{f}
 
 	notificationsCheck := &NotificationsCheck{
-		mockHTTPCaller(nil),
+		mockHTTPCaller(t, "", nil),
 		subscribedFeeds,
 		feedName,
 	}
@@ -121,7 +121,7 @@ func TestFeedContainsLaterNotification(t *testing.T) {
 	subscribedFeeds[testEnv] = []feeds.Feed{f}
 
 	notificationsCheck := &NotificationsCheck{
-		mockHTTPCaller(nil),
+		mockHTTPCaller(t, "", nil),
 		subscribedFeeds,
 		feedName,
 	}
@@ -145,7 +145,7 @@ func TestFeedContainsUnparseableNotification(t *testing.T) {
 	subscribedFeeds[testEnv] = []feeds.Feed{f}
 
 	notificationsCheck := &NotificationsCheck{
-		mockHTTPCaller(nil),
+		mockHTTPCaller(t, "", nil),
 		subscribedFeeds,
 		feedName,
 	}
@@ -168,7 +168,7 @@ func TestMissingFeed(t *testing.T) {
 	subscribedFeeds[testEnv] = []feeds.Feed{f}
 
 	notificationsCheck := &NotificationsCheck{
-		mockHTTPCaller(nil),
+		mockHTTPCaller(t, "", nil),
 		subscribedFeeds,
 		feedName,
 	}
@@ -191,7 +191,7 @@ func TestMissingEnvironment(t *testing.T) {
 	subscribedFeeds["foo"] = []feeds.Feed{f}
 
 	notificationsCheck := &NotificationsCheck{
-		mockHTTPCaller(nil),
+		mockHTTPCaller(t, "", nil),
 		subscribedFeeds,
 		feedName,
 	}
@@ -216,7 +216,7 @@ func TestShouldSkipCheck_ContentIsMarkedAsDeletedPreviousNotificationsExist_Chec
 	pm := newPublishMetricBuilder().withMarkedDeleted(true).withEndpoint("http://notifications-endpoint:8080/content/notifications").build()
 	pc := NewPublishCheck(pm, "", "", 0, 0, nil)
 	notificationsCheck := NotificationsCheck{
-		mockHTTPCaller(buildResponse(200, `[{"id": "foobar", "lastModified" : "foobaz", "publishReference" : "unitTestRef" }]`)), nil, feedName,
+		mockHTTPCaller(t, "", buildResponse(200, `[{"id": "foobar", "lastModified" : "foobaz", "publishReference" : "unitTestRef" }]`)), nil, feedName,
 	}
 	if notificationsCheck.shouldSkipCheck(pc) {
 		t.Errorf("Expected failure")
@@ -227,7 +227,7 @@ func TestShouldSkipCheck_ContentIsMarkedAsDeletedPreviousNotificationsDoesNotExi
 	pm := newPublishMetricBuilder().withMarkedDeleted(true).withEndpoint("http://notifications-endpoint:8080/content/notifications").build()
 	pc := NewPublishCheck(pm, "", "", 0, 0, nil)
 	notificationsCheck := NotificationsCheck{
-		mockHTTPCaller(buildResponse(200, `[]`)), nil, feedName,
+		mockHTTPCaller(t, "", buildResponse(200, `[]`)), nil, feedName,
 	}
 	if !notificationsCheck.shouldSkipCheck(pc) {
 		t.Errorf("Expected success")

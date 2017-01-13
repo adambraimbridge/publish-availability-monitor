@@ -95,7 +95,7 @@ func (pc PublishCheck) String() string {
 func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFinished, ignoreCheck bool) {
 	pm := pc.Metric
 	url := pm.endpoint.String() + pm.UUID
-	resp, err := c.httpCaller.DoCall(url, pc.username, pc.password)
+	resp, err := c.httpCaller.DoCall(url, pc.username, pc.password, checks.ConstructPamTxId(pm.tid))
 	if err != nil {
 		warnLogger.Printf("Error calling URL: [%v] for %s : [%v]", url, pc, err.Error())
 		return false, false
@@ -175,7 +175,7 @@ func parseLastModifiedDate(jsonContent map[string]interface{}) (*time.Time, bool
 func (s S3Check) isCurrentOperationFinished(pc *PublishCheck) (operationFinished, ignoreCheck bool) {
 	pm := pc.Metric
 	url := pm.endpoint.String() + pm.UUID
-	resp, err := s.httpCaller.DoCall(url, "", "")
+	resp, err := s.httpCaller.DoCall(url, "", "", "")
 	if err != nil {
 		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, err.Error())
 		return false, false
@@ -221,7 +221,7 @@ func (n NotificationsCheck) shouldSkipCheck(pc *PublishCheck) bool {
 		return false
 	}
 	url := pm.endpoint.String() + "/" + pm.UUID
-	resp, err := n.httpCaller.DoCall(url, pc.username, pc.password)
+	resp, err := n.httpCaller.DoCall(url, pc.username, pc.password, checks.ConstructPamTxId(pm.tid))
 	if err != nil {
 		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, err.Error())
 		return false
