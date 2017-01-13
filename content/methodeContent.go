@@ -63,7 +63,7 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string, txId string, u
 	case story:
 		return isStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txId, username, password)
 	case image:
-		return isImageValid(eomfile)
+		return isExternalValidationSuccessful(eomfile, externalValidationEndpoint, username, password)
 	default:
 		warnLogger.Printf("Eomfile invalid: unexpected content type: [%s]", contentType)
 		return false
@@ -160,14 +160,6 @@ func hasTitle(eomfile EomFile) bool {
 	}
 	warnLogger.Println("Title length is 0")
 	return false
-}
-
-func isImageValid(eomfile EomFile) bool {
-	if len(eomfile.Value) == 0 {
-		warnLogger.Println("Image content length is 0")
-		return false
-	}
-	return true
 }
 
 func isSupportedCompoundStorySourceCode(eomfile EomFile) bool {
