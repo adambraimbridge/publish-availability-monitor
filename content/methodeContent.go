@@ -214,7 +214,7 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txId,
 	}
 
 	resp, err := httpCaller.DoCallWithEntity(
-		"POST", validationURL+"/"+eomfile.UUID,
+		"POST", validationURL,
 		username, password,
 		checks.ConstructPamTxId(txId),
 		"application/json", bytes.NewReader(marshalled))
