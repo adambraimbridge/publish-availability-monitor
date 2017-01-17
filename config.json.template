@@ -1,5 +1,6 @@
 {
    "threshold": 120,
+   "credentialValidationUuid": "CREDENTIAL_VALIDATION_UUID",
    "queueConfig": {
       "address": ["QUEUE_ADDR"],
       "group": "PubMonitor",
@@ -89,4 +90,5 @@
    "EOM::Story": "METHODE_ARTICLE_VALIDATION_URL",
    "EOM::WebContainer": "METHODE_LIST_VALIDATION_URL"
 }
+
 }
