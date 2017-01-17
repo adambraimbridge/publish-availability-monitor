@@ -62,7 +62,7 @@ func (h *Healthcheck) checkHealth(writer http.ResponseWriter, req *http.Request)
 	}
 
 	readEnvironmentCredentialChecks := h.readEnvironmentsCredentials()
-	if len(readEnvironmentCredentiaChecks) == 0 {
+	if len(readEnvironmentCredentialChecks) == 0 {
 		checks = append(checks, noReadEnvironments)
 	} else {
 		for _, hc := range readEnvironmentCredentialChecks {
