@@ -417,14 +417,6 @@ func buildFtHealthcheckUrl(endpoint url.URL, health string) (string, error) {
 	return endpoint.String(), nil
 }
 
-func buildCredentialcheckUrl(endpoint url.URL, health string) (string, error) {
-	endpoint.Path = health
-	endpoint.RawQuery = "" // strip query params
-	errorLogger.Printf(endpoint.RawPath)
-	errorLogger.Printf(endpoint.Path)
-	return endpoint.String(), nil
-}
-
 func buildAwsHealthcheckUrl(serviceUrl string) (string, error) {
 	return serviceUrl + "healthCheckDummyFile", nil
 }
