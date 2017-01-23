@@ -78,7 +78,7 @@
       ]
    }
 ],
-"splunk-config": {
+"splunkConfig": {
    "logPrefix": "[splunkMetrics] "
 },
 "healthConfig": {

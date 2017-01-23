@@ -62,7 +62,7 @@ type AppConfig struct {
 	Threshold                int                  `json:"threshold"` //pub SLA in seconds, ex. 120
 	QueueConf                consumer.QueueConfig `json:"queueConfig"`
 	MetricConf               []MetricConfig       `json:"metricConfig"`
-	SplunkConf               SplunkConfig         `json:"splunk-config"`
+	SplunkConf               SplunkConfig         `json:"splunkConfig"`
 	HealthConf               HealthConfig         `json:"healthConfig"`
 	ValidationEndpoints      map[string]string    `json:"validationEndpoints"` //contentType to validation endpoint mapping, ex. { "EOM::Story": "http://methode-article-transformer/content-transform" }
 	CredentialValidationUuid string               `json:"credentialValidationUuid"`
