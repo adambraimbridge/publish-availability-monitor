@@ -8,6 +8,10 @@
 .republish, .forget {
     cursor: pointer;
 }
+.republished {
+    text-align: center;
+    font-style: italic;
+}
         </style>
         <meta http-equiv="refresh" content="30"/>
         <title>Publish History</title>
@@ -82,9 +86,10 @@
         });
         
         $(".republish").on("click", function(e) {
-            $.post("/__history/republish", "uuid=" + $(".uuid", $(this).parent().parent().next()).first().text(), function() {
-                alert("Republish job was submitted.");
-                location.reload(true);
+            var container = $(this).closest("tbody");
+            var uuid = $(".uuid", $(this).parent().parent().next()).first().text()
+            $.post("/__history/republish", "uuid=" + uuid, function() {
+                container.html("<tr><td colspan=\"6\" class=\"republished warning\"><i>Republish requested for " + uuid + "</i></td></tr>");
             });
             return false;
         });

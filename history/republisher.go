@@ -43,8 +43,19 @@ func (j *jenkinsRepublisher) Republish(uuid string, username string, password st
 	if err != nil {
 		infoLogger.Printf("error calling Jenkins job: %v", err)
 		return err
-	} else {
-		infoLogger.Printf("republish job returned status %v", resp.StatusCode)
+	}
+	infoLogger.Printf("republish job returned status %v", resp.StatusCode)
+
+	lock.Lock()
+	defer lock.Unlock()
+
+	for _, p := range history {
+		for _, c := range p.Checks {
+			if c.UUID == uuid {
+				c.Status = IGNORED
+				p.Status = IGNORED
+			}
+		}
 	}
 
 	return nil
