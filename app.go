@@ -58,6 +58,12 @@ type SplunkConfig struct {
 	LogPrefix string `json:"logPrefix"`
 }
 
+type RepublishConfig struct {
+	URL                 string `json:"url"`
+	EnvironmentName     string `json:"environmentName"`
+	TransactionIdPrefix string `json:"transactionIdPrefix"`
+}
+
 // AppConfig holds the application's configuration
 type AppConfig struct {
 	Threshold           int                  `json:"threshold"` //pub SLA in seconds, ex. 120
@@ -66,6 +72,7 @@ type AppConfig struct {
 	SplunkConf          SplunkConfig         `json:"splunk-config"`
 	HealthConf          HealthConfig         `json:"healthConfig"`
 	ValidationEndpoints map[string]string    `json:"validationEndpoints"` //contentType to validation endpoint mapping, ex. { "EOM::Story": "http://methode-article-transformer/content-transform" }
+	RepublishConfig     RepublishConfig      `json:"republishConfig"`
 }
 
 // HealthConfig holds the application's healthchecks configuration
@@ -99,6 +106,7 @@ var etcdReadEnvKey = flag.String("etcd-read-env-key", "/ft/config/monitoring/rea
 var etcdS3EnvKey = flag.String("etcd-s3-env-key", "/ft/config/monitoring/s3-image-bucket-urls", "etcd key that lists the S3 image bucket URLs")
 var etcdCredKey = flag.String("etcd-cred-key", "/ft/_credentials/publish-read/read-credentials", "etcd key that lists the read environment credentials")
 var etcdValidatorCredKey = flag.String("etcd-validator-cred-key", "/ft/_credentials/publish-read/validator-credentials", "etcd key that specifies the validator credentials")
+var etcdRepublishCredKey = flag.String("etcd-republish-cred-key", "/ft/_credentials/publish-read/republish-credentials", "etcd key that specifies the republishing credentials")
 
 var appConfig *AppConfig
 var environments = make(map[string]Environment)
@@ -106,6 +114,8 @@ var subscribedFeeds = make(map[string][]feeds.Feed)
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 var validatorCredentials string
+var republisher history.Republisher
+var republisherCredentials string
 
 func main() {
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
@@ -118,9 +128,14 @@ func main() {
 		return
 	}
 
-	go DiscoverEnvironmentsAndValidators(etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey, environments)
+	go DiscoverEnvironmentsAndValidators(etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey, etcdRepublishCredKey, environments)
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
+
+	republisher = history.NewJenkinsRepublisher(
+		appConfig.RepublishConfig.URL,
+		appConfig.RepublishConfig.EnvironmentName,
+		appConfig.RepublishConfig.TransactionIdPrefix)
 
 	go startHttpListener()
 
@@ -131,7 +146,9 @@ func main() {
 func startHttpListener() {
 	router := mux.NewRouter()
 	setupHealthchecks(router)
+
 	router.HandleFunc("/__history/forget", forget).Methods("POST")
+	router.HandleFunc("/__history/republish", republish).Methods("POST")
 	router.HandleFunc("/__history", loadHistory)
 
 	router.HandleFunc(status.PingPath, status.PingHandler)
@@ -215,7 +232,7 @@ func handleMessage(msg consumer.Message) {
 	var username string
 	var password string
 	if validationEndpoint, found = appConfig.ValidationEndpoints[contentType]; found {
-		username, password = getValidationCredentials(validationEndpoint)
+		username, password = getCredentials(validatorCredentials)
 	}
 
 	if !publishedContent.IsValid(validationEndpoint, username, password) {
@@ -259,19 +276,9 @@ func handleMessage(msg consumer.Message) {
 	}
 }
 
-func getCredentials(url string) (string, string) {
-	for _, env := range environments {
-		if strings.HasPrefix(url, env.ReadUrl) {
-			return env.Username, env.Password
-		}
-	}
-
-	return "", ""
-}
-
-func getValidationCredentials(url string) (string, string) {
-	if strings.Contains(validatorCredentials, ":") {
-		unpw := strings.SplitN(validatorCredentials, ":", 2)
+func getCredentials(credentials string) (string, string) {
+	if strings.Contains(credentials, ":") {
+		unpw := strings.SplitN(credentials, ":", 2)
 		return unpw[0], unpw[1]
 	}
 

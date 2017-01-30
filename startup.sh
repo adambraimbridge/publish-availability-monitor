@@ -1,6 +1,8 @@
 #!/bin/sh
 sed -i "s KAFKA_PROXY_HOST $KAFKA_PROXY_HOST " /config.json
 sed -i "s QUEUE_ADDR $QUEUE_ADDR " /config.json
+sed -i "s JENKINS_URL $JENKINS_URL " /config.json
+sed -i "s CLUSTER_NAME $CLUSTER_NAME " /config.json
 sed -i "s CONTENT_URL $CONTENT_URL " /config.json
 sed -i "s LISTS_URL $LISTS_URL " /config.json
 sed -i "s LISTS_NOTIFICATIONS_URL $LISTS_NOTIFICATIONS_URL " /config.json

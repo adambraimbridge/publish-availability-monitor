@@ -73,5 +73,10 @@
 	"validationEndpoints": {
 		"EOM::CompoundStory": "METHODE_ARTICLE_TRANSFORMER_URL",
 		"EOM::Story": "METHODE_ARTICLE_TRANSFORMER_URL"
-	}
+	},
+    "republishConfig": {
+        "url": "JENKINS_URL",
+        "environmentName": "CLUSTER_NAME",
+        "transactionIdPrefix": "tid_pam_republish"
+    }
 }

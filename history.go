@@ -32,3 +32,10 @@ func forget(w http.ResponseWriter, r *http.Request) {
 	history.Forget(tid)
 	loadHistory(w, r)
 }
+
+func republish(w http.ResponseWriter, r *http.Request) {
+	un, pw := getCredentials(republisherCredentials)
+	uuid := r.FormValue("uuid")
+	republisher.Republish(uuid, un, pw)
+	loadHistory(w, r)
+}

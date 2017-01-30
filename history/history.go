@@ -49,6 +49,7 @@ var (
 	cursor: pointer;
 }
 		</style>
+		<meta http-equiv="refresh" content="30"/>
 		<title>Publish History</title>
 	</head>
 	<body>
@@ -70,9 +71,7 @@ var (
 					{{#equal Status "3"}}class="danger"{{/equal}}
 		    	 >
 					<td>{{At}}</td>
-					<td class="tid">{{Tid}}</td>
-					<td></td>
-					<td></td>
+					<td class="tid" colspan="3">{{Tid}}</td>
 					<td><span 
 						{{#equal Status "0"}}class="fa fa-ellipsis-h" title="Ignored"{{/equal}}
 						{{#equal Status "1"}}class="fa fa-exclamation" title="Invalid"{{/equal}}
@@ -115,18 +114,19 @@ var (
 		{{/events}}
 		<script type="text/javascript">
 		$(".forget").on("click", function(e) {
-		var row = $(this).parent().parent();
-		alert("forget " + $(".tid", row).text());
-		$.post("/__history/forget", "tid=" + $(".tid", row).text(), function() {
-			row.parent().remove();
-		});
-		return false;
+			var row = $(this).parent().parent();
+			$.post("/__history/forget", "tid=" + $(".tid", row).text(), function() {
+				row.parent().remove();
+			});
+			return false;
 		});
 		
 		$(".republish").on("click", function(e) {
-		
-		alert("republish " + $(".uuid", $(this).parent().parent().next()).first().text());
-		return false;
+			$.post("/__history/republish", "uuid=" + $(".uuid", $(this).parent().parent().next()).first().text(), function() {
+				alert("Republish job was submitted.");
+				location.reload(true);
+			});
+			return false;
 		});
 		</script>
 		</div>

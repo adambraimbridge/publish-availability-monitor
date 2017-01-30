@@ -19,13 +19,15 @@ var (
 	s3EnvKey     *string
 	credKey      *string
 	validatorKey *string
+	republishKey *string
 )
 
-func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string, etcdCredKey *string, etcdS3EnvKey *string, etcdValidatorCredKey *string, environments map[string]Environment) error {
+func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string, etcdCredKey *string, etcdS3EnvKey *string, etcdValidatorCredKey *string, etcdRepublishCredKey *string, environments map[string]Environment) error {
 	readEnvKey = etcdReadEnvKey
 	s3EnvKey = etcdS3EnvKey
 	credKey = etcdCredKey
 	validatorKey = etcdValidatorCredKey
+	republishKey = etcdRepublishCredKey
 
 	transport := &http.Transport{
 		Dial: proxy.Direct.Dial,
@@ -59,9 +61,14 @@ func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string
 	go watch(s3EnvKey, fn)
 	go watch(credKey, fn)
 
-	validatorCredentials = redefineValidatorCredentials()
+	validatorCredentials = redefineCredentials(validatorKey)
 	go watch(validatorKey, func() {
-		validatorCredentials = redefineValidatorCredentials()
+		validatorCredentials = redefineCredentials(validatorKey)
+	})
+
+	republisherCredentials = redefineCredentials(republishKey)
+	go watch(republishKey, func() {
+		republisherCredentials = redefineCredentials(republishKey)
 	})
 
 	return nil
@@ -153,10 +160,10 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 	return toDelete
 }
 
-func redefineValidatorCredentials() string {
-	etcdCredResp, err := etcdKeysAPI.Get(context.Background(), *validatorKey, &etcd.GetOptions{Sort: true})
+func redefineCredentials(etcdKey *string) string {
+	etcdCredResp, err := etcdKeysAPI.Get(context.Background(), *etcdKey, &etcd.GetOptions{Sort: true})
 	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", *validatorKey, err.Error())
+		errorLogger.Printf("Failed to get value from %v: %v.", *etcdKey, err.Error())
 		return ""
 	}
 
