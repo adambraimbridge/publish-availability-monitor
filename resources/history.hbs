@@ -1,0 +1,94 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"/>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+        <style type="text/css">
+.republish, .forget {
+    cursor: pointer;
+}
+        </style>
+        <meta http-equiv="refresh" content="30"/>
+        <title>Publish History</title>
+    </head>
+    <body>
+    <div class="container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Transaction ID</th>
+                    <th>UUID</th>
+                    <th>Check Type</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+            </thead>
+                {{#events}}
+            <tbody>
+                <tr
+                    {{#equal Status "1"}}class="warning"{{/equal}}
+                    {{#equal Status "3"}}class="danger"{{/equal}}
+                 >
+                    <td>{{At}}</td>
+                    <td class="tid" colspan="3">{{Tid}}</td>
+                    <td><span 
+                        {{#equal Status "0"}}class="fa fa-ellipsis-h" title="Ignored"{{/equal}}
+                        {{#equal Status "1"}}class="fa fa-exclamation" title="Invalid"{{/equal}}
+                        {{#equal Status "2"}}class="fa fa-clock-o" title="In Progress"{{/equal}}
+                        {{#equal Status "3"}}class="fa fa-times" title="Failed"{{/equal}}
+                        {{#equal Status "4"}}class="fa fa-check" title="Success"{{/equal}}
+                        > </span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-link republish"><span class="fa fa-repeat" title="Republish">&nbsp;</span> Republish</button>
+                        <button type="button" class="btn btn-link forget"><span class="forget fa fa-eraser" title="Forget">&nbsp;</span> Forget</button>
+                    </td>
+                </tr>
+                {{#Checks}}
+                <tr
+                    {{#equal ../Status "1"}}class="warning"{{/equal}}
+                    {{#equal ../Status "3"}}class="danger"{{/equal}}
+                 >
+                    <td></td>
+                    <td></td>
+                    <td class="uuid">{{UUID}}</td>
+                    <td>{{Type}}</td>
+                    <td>
+                        <span 
+                        {{#equal Status "0"}}class="fa fa-ellipsis-h" title="Ignored"{{/equal}}
+                        {{#equal Status "1"}}class="fa fa-exclamation" title="Invalid"{{/equal}}
+                        {{#equal Status "2"}}class="fa fa-clock-o" title="In Progress"{{/equal}}
+                        {{#equal Status "3"}}class="fa fa-times" title="Failed"{{/equal}}
+                        {{#equal Status "4"}}class="fa fa-check" title="Success"{{/equal}}
+                        > </span>
+                    </td>
+                    <td></td>
+                </tr>
+                {{/Checks}}
+            </tbody>
+                {{/events}}
+        </table>
+        {{^events}}
+        <div>There are no events to display.</div>
+        {{/events}}
+        <script type="text/javascript">
+        $(".forget").on("click", function(e) {
+            var row = $(this).parent().parent();
+            $.post("/__history/forget", "tid=" + $(".tid", row).text(), function() {
+                row.parent().remove();
+            });
+            return false;
+        });
+        
+        $(".republish").on("click", function(e) {
+            $.post("/__history/republish", "uuid=" + $(".uuid", $(this).parent().parent().next()).first().text(), function() {
+                alert("Republish job was submitted.");
+                location.reload(true);
+            });
+            return false;
+        });
+        </script>
+        </div>
+    </body>
+</html>
