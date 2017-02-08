@@ -63,7 +63,7 @@ func TestScheduleChecksForS3AreCorrect(testing *testing.T) {
 	s3URL := "http://s1.example.org"
 	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
 
-	capturingMetrics := runScheduleChecks(testing, mockEnvironments)
+	capturingMetrics := runScheduleChecks(testing, validImageEomFile, false, mockEnvironments)
 	defer capturingMetrics.RUnlock()
 
 	require.NotNil(testing, capturingMetrics)
@@ -92,7 +92,7 @@ func TestScheduleChecksForContentAreCorrect(testing *testing.T) {
 	s3URL := "http://s1.example.org"
 	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
 
-	capturingMetrics := runScheduleChecks(testing, mockEnvironments)
+	capturingMetrics := runScheduleChecks(testing, validImageEomFile, false, mockEnvironments)
 	defer capturingMetrics.RUnlock()
 
 	require.NotNil(testing, capturingMetrics)
@@ -100,7 +100,85 @@ func TestScheduleChecksForContentAreCorrect(testing *testing.T) {
 	require.Equal(testing, readURL+"/whatever/", capturingMetrics.publishMetrics[0].endpoint.String())
 }
 
-func runScheduleChecks(testing *testing.T, mockEnvironments map[string]Environment) *publishHistory {
+func TestScheduleChecksForContentWithInternalComponentsAreCorrect(testing *testing.T) {
+	appConfig = &AppConfig{
+		MetricConf: []MetricConfig{
+			{
+				Endpoint:    "/content/",
+				Granularity: 1,
+				Alias:       "content",
+				ContentTypes: []string{
+					"Image",
+				},
+			},
+			{
+				Endpoint:    "/internalcomponents/",
+				Granularity: 1,
+				Alias:       "internal-components",
+				ContentTypes: []string{
+					"Image",
+				},
+			},
+		},
+		Threshold: 1,
+	}
+
+	var mockEnvironments = make(map[string]Environment)
+	readURL := "http://env1.example.org"
+	s3URL := "http://s1.example.org"
+	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
+
+	capturingMetrics := runScheduleChecks(testing, validImageEomFile, true, mockEnvironments)
+	defer capturingMetrics.RUnlock()
+
+	require.NotNil(testing, capturingMetrics)
+	require.Equal(testing, 2, len(capturingMetrics.publishMetrics))
+
+	var endpointsChecked [2]string
+	endpointsChecked[0] = capturingMetrics.publishMetrics[0].endpoint.String()
+	endpointsChecked[1] = capturingMetrics.publishMetrics[1].endpoint.String()
+
+	require.Contains(testing, endpointsChecked, readURL+"/content/")
+	require.Contains(testing, endpointsChecked, readURL+"/internalcomponents/")
+}
+
+func TestScheduleNoAdditionalCheckForContentWithoutInternalComponents(testing *testing.T) {
+	appConfig = &AppConfig{
+		MetricConf: []MetricConfig{
+			{
+				Endpoint:    "/content/",
+				Granularity: 1,
+				Alias:       "content",
+				ContentTypes: []string{
+					"Image",
+				},
+			},
+			{
+				Endpoint:    "/internalcomponents/",
+				Granularity: 1,
+				Alias:       "internal-components",
+				ContentTypes: []string{
+					"Image",
+				},
+			},
+		},
+		Threshold: 1,
+	}
+
+	var mockEnvironments = make(map[string]Environment)
+	readURL := "http://env1.example.org"
+	s3URL := "http://s1.example.org"
+	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
+
+	capturingMetrics := runScheduleChecks(testing, validImageEomFile, false, mockEnvironments)
+	defer capturingMetrics.RUnlock()
+
+	require.NotNil(testing, capturingMetrics)
+	require.Equal(testing, 1, len(capturingMetrics.publishMetrics))
+	require.Equal(testing, readURL+"/content/", capturingMetrics.publishMetrics[0].endpoint.String())
+}
+
+func runScheduleChecks(testing *testing.T, content content.Content, hasInternalComponents bool, mockEnvironments map[string]Environment) *publishHistory {
 	capturingMetrics := &publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 	tid := "tid_1234"
 	publishDate, err := time.Parse(dateLayout, "2016-01-08T14:22:06.271Z")
@@ -114,10 +192,17 @@ func runScheduleChecks(testing *testing.T, mockEnvironments map[string]Environme
 	//redefine metricSink to avoid hang
 	metricSink = make(chan PublishMetric, 2)
 
-	scheduleChecks(validImageEomFile, publishDate, tid, validImageEomFile.IsMarkedDeleted(), capturingMetrics, mockEnvironments)
+	scheduleChecks(content, publishDate, tid, content.IsMarkedDeleted(), hasInternalComponents, capturingMetrics, mockEnvironments)
 	for {
 		capturingMetrics.RLock()
-		if len(capturingMetrics.publishMetrics) == len(mockEnvironments) {
+		numEnv := len(mockEnvironments)
+		numPublishCheck := len(capturingMetrics.publishMetrics)
+
+		// if it has internal components for each content check there is an additional
+		// check for that (doubles the checks for each environment)
+		if !hasInternalComponents && numPublishCheck == numEnv {
+			return capturingMetrics // with a read lock
+		} else if hasInternalComponents && numPublishCheck == numEnv*2 {
 			return capturingMetrics // with a read lock
 		}
 

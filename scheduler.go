@@ -13,9 +13,13 @@ var (
 	absoluteUrlRegex = regexp.MustCompile("(?i)https?://.*")
 )
 
-func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid string, isMarkedDeleted bool, metricContainer *publishHistory, environments map[string]Environment) {
+func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid string, isMarkedDeleted bool, hasInternalComponents bool, metricContainer *publishHistory, environments map[string]Environment) {
 	for _, metric := range appConfig.MetricConf {
 		if !validType(metric.ContentTypes, contentToCheck.GetType()) {
+			continue
+		}
+
+		if metric.Alias == "internal-components" && !hasInternalComponents {
 			continue
 		}
 

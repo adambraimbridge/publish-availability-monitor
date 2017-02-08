@@ -242,7 +242,18 @@ func handleMessage(msg consumer.Message) {
 		return
 	}
 
-	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted(), &metricContainer, environments)
+	hasInternalComponents := false
+	// if this is normal content, find out if internal components are present
+	if publishedContent.GetType() == "EOM::CompoundStory" {
+		//make a call to methode-article-internal-components-mapper to see if exists on the article
+		var internalComponentsValidationEndpoint = appConfig.ValidationEndpoints["InternalContent"]
+		var usr, pass = getValidationCredentials(internalComponentsValidationEndpoint)
+		if publishedContent.IsValid(internalComponentsValidationEndpoint, tid, usr, pass) {
+			hasInternalComponents = true
+		}
+	}
+
+	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted(), hasInternalComponents, &metricContainer, environments)
 
 	// for images we need to check their corresponding image sets
 	// the image sets don't have messages of their own so we need to create one
@@ -254,7 +265,7 @@ func handleMessage(msg consumer.Message) {
 		}
 		imageSetEomFile := spawnImageSet(eomFile)
 		if imageSetEomFile.UUID != "" {
-			scheduleChecks(imageSetEomFile, publishDate, tid, false, &metricContainer, environments)
+			scheduleChecks(imageSetEomFile, publishDate, tid, false, false, &metricContainer, environments)
 		}
 	}
 }
