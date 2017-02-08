@@ -118,7 +118,7 @@ func TestIsEomfileValid_ExternalValidationSucceeds_ValidList(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	if !webContainerEomFile.IsValid(ts.URL+"map", "", "", "") {
+	if !webContainerEomFile.IsValid(ts.URL+"/map", "", "", "") {
 		t.Error("Valid WebContainer regarded as invalid")
 	}
 }
