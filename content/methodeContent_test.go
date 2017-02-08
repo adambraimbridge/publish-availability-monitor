@@ -9,7 +9,7 @@ import (
 )
 
 //testExternalValidationEndpoints
-const testExtValEndpoint = "http://transformer/content-transorm/"
+const testExtValEndpoint = "http://transformer/map/"
 
 func TestIsEomfileValid_InvalidContentType(t *testing.T) {
 	if eomfileWithInvalidContentType.IsValid(testExtValEndpoint, "", "", "") {
@@ -31,22 +31,24 @@ func TestIsEomfileValid_InvalidSourceCode(t *testing.T) {
 
 func TestIsEomfileValid_ExternalValidationTrue_ValidImage(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/map", r.RequestURI, "Invalid external validation URL")
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ts.Close()
 
-	if !validImage.IsValid(ts.URL, "", "", "") {
+	if !validImage.IsValid(ts.URL+"/map", "", "", "") {
 		t.Error("Valid Image marked as invalid!")
 	}
 }
 
 func TestIsEomfileValid_ExternalValidationFalse_InvalidImage(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/map", r.RequestURI, "Invalid external validation URL")
 		w.WriteHeader(422)
 	}))
 	defer ts.Close()
 
-	if invalidImage.IsValid(ts.URL, "", "", "") {
+	if invalidImage.IsValid(ts.URL+"/map", "", "", "") {
 		t.Error("Invalid Image marked as valid!")
 	}
 }
@@ -55,10 +57,11 @@ func TestIsEomfileValid_ExternalValidationTrue_ValidCompoundStory(t *testing.T) 
 	txId := "1234"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "tid_pam_"+txId, r.Header.Get("X-Request-Id"), "transaction id")
+		assert.Equal(t, "/content-transform", r.RequestURI, "Invalid external validation URL")
 		//return OK
 	}))
 	defer ts.Close()
-	if !validCompoundStory.IsValid(ts.URL, "tid_"+txId, "", "") {
+	if !validCompoundStory.IsValid(ts.URL+"/content-transform", "tid_"+txId, "", "") {
 		t.Error("Valid CompoundStory marked as invalid!")
 	}
 }
@@ -67,60 +70,66 @@ func TestIsEomfileValid_ExternalValidationFalse_InvalidCompountStory(t *testing.
 	txId := "invalidstory"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "tid_pam_"+txId, r.Header.Get("X-Request-Id"), "transaction id")
+		assert.Equal(t, "/content-transform", r.RequestURI, "Invalid external validation URL")
 		w.WriteHeader(ImATeapot)
 	}))
 	defer ts.Close()
-	if validCompoundStory.IsValid(ts.URL, "tid_"+txId, "", "") {
+	if validCompoundStory.IsValid(ts.URL+"/content-transform", "tid_"+txId, "", "") {
 		t.Error("Valid CompoundStory regarded as invalid by external validation marked as valid!")
 	}
 }
 
 func TestIsEomfileValid_ExternalValidationFalse_InvalidCompountStoryContentPlacehlder(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/map", r.RequestURI, "Invalid external validation URL")
 		w.WriteHeader(UnprocessableEntity)
 	}))
 	defer ts.Close()
-	if validCompoundStory.IsValid(ts.URL, "", "", "") {
+	if validCompoundStory.IsValid(ts.URL+"/map", "", "", "") {
 		t.Error("Valid CompoundStory regarded as invalid by external validation marked as valid!")
 	}
 }
 
 func TestIsEomfileValid_ExternalValidationTrue_ValidStory(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/content-transform", r.RequestURI, "Invalid external validation URL")
 		//return OK
 	}))
 
-	if !validStory.IsValid(ts.URL, "", "", "") {
+	if !validStory.IsValid(ts.URL+"/content-transform", "", "", "") {
 		t.Error("Valid Story marked as invalid!")
 	}
 }
 
 func TestIsEomfileValid_ExternalValidationFalse_ValidStory(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/content-transform", r.RequestURI, "Invalid external validation URL")
 		w.WriteHeader(ImATeapot)
 	}))
 
-	if validStory.IsValid(ts.URL, "", "", "") {
+	if validStory.IsValid(ts.URL+"/content-transform", "", "", "") {
 		t.Error("Valid Story regarded as invalid by external validation marked as valid!")
 	}
 }
 
 func TestIsEomfileValid_ExternalValidationSucceeds_ValidList(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/map", r.RequestURI, "Invalid external validation URL")
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	if !webContainerEomFile.IsValid(ts.URL, "", "", "") {
+	if !webContainerEomFile.IsValid(ts.URL+"map", "", "", "") {
 		t.Error("Valid WebContainer regarded as invalid")
 	}
 }
 
 func TestIsEomfileValid_ExternalValidationFalse_InvalidList(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/map", r.RequestURI, "Invalid external validation URL")
 		w.WriteHeader(ImATeapot)
 	}))
 
-	if webContainerEomFile.IsValid(ts.URL, "", "", "") {
+	if webContainerEomFile.IsValid(ts.URL+"/map", "", "", "") {
 		t.Error("Invalid WebContainer regarded as valid")
 	}
 }
