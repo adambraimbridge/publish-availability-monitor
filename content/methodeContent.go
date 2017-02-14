@@ -45,20 +45,7 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string, txID string, u
 		return false
 	}
 
-	contentType := eomfile.Type
-	switch contentType {
-	case webContainer:
-		fallthrough
-	case compoundStory:
-		fallthrough
-	case story:
-		fallthrough
-	case image:
-		return isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txID, username, password)
-	default:
-		warnLogger.Printf("Eomfile with uuid=[%s] tid=[%s] is invalid: unexpected content type: [%s]", contentUUID, txID, contentType)
-		return false
-	}
+	return isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txID, username, password)
 }
 
 func (eomfile EomFile) IsMarkedDeleted() bool {
@@ -99,8 +86,8 @@ func GetXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool
 
 func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txID, username string, password string) bool {
 	if validationURL == "" {
-		warnLogger.Printf("External validation for content uuid=[%s] tid=[%s]. Validation endpoint URL is missing for content type=[%s]. Skipping external validation.", eomfile.UUID, txID, eomfile.Type)
-		return true
+		warnLogger.Printf("External validation for content uuid=[%s] tid=[%s]. Validation endpoint URL is missing for content type=[%s]", eomfile.UUID, txID, eomfile.Type)
+		return false
 	}
 	marshalled, err := json.Marshal(eomfile)
 	if err != nil {
