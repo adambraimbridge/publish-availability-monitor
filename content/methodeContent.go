@@ -41,7 +41,7 @@ var (
 func (eomfile EomFile) IsValid(externalValidationEndpoint string, txId string, username string, password string) bool {
 	contentUUID := eomfile.UUID
 	if !isUUIDValid(contentUUID) {
-		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]", contentUUID)
+		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]. tid=[%s]", contentUUID, txId)
 		return false
 	}
 
@@ -56,7 +56,7 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string, txId string, u
 	case image:
 		return isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txId, username, password)
 	default:
-		warnLogger.Printf("Eomfile invalid: unexpected content type: [%s]", contentType)
+		warnLogger.Printf("Eomfile with uuid=[%s] tid=[%s] is invalid: unexpected content type: [%s]", contentUUID, txId, contentType)
 		return false
 	}
 }
@@ -67,10 +67,10 @@ func (eomfile EomFile) IsMarkedDeleted() bool {
 	}
 	markDeletedFlag, ok := GetXPathValue(eomfile.Attributes, eomfile, markDeletedFlagXPath)
 	if !ok {
-		warnLogger.Printf("Cannot match node in XML using xpath [%v]", markDeletedFlagXPath)
+		warnLogger.Printf("Eomfile with uuid=[%s]: Cannot match node in XML using xpath [%v]", eomfile.UUID, markDeletedFlagXPath)
 		return false
 	}
-	infoLogger.Printf("MarkAsDeletedFlag: [%v]", markDeletedFlag)
+	infoLogger.Printf("Eomfile with uuid=[%s]: MarkAsDeletedFlag: [%v]", eomfile.UUID, markDeletedFlag)
 	if markDeletedFlag == "True" {
 		return true
 	}
@@ -89,7 +89,7 @@ func GetXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool
 	path := xmlpath.MustCompile(lookupPath)
 	root, err := xmlpath.Parse(strings.NewReader(xml))
 	if err != nil {
-		warnLogger.Printf("Cannot parse XML of eomfile using xpath [%v], error: [%v]", err.Error(), lookupPath)
+		warnLogger.Printf("Cannot parse XML of eomfile with uuid=[%s] using xpath [%v], error: [%v]", eomfile.UUID, lookupPath, err.Error())
 		return "", false
 	}
 	xpathValue, ok := path.String(root)
@@ -99,12 +99,12 @@ func GetXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool
 
 func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txId, username string, password string) bool {
 	if validationURL == "" {
-		warnLogger.Printf("External validation for content uuid=[%s]. Validation endpoint URL is missing for content type=[%s]. Skipping external validation.", eomfile.UUID, eomfile.Type)
+		warnLogger.Printf("External validation for content uuid=[%s] tid=[%s]. Validation endpoint URL is missing for content type=[%s]. Skipping external validation.", eomfile.UUID, txId, eomfile.Type)
 		return true
 	}
 	marshalled, err := json.Marshal(eomfile)
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, err)
+		warnLogger.Printf("External validation for content uuid=[%s] tid=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txId, err)
 		return true
 	}
 
@@ -115,19 +115,19 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txId,
 		"application/json", bytes.NewReader(marshalled))
 
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, err)
+		warnLogger.Printf("External validation for content uuid=[%s] tid=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txId, err)
 		return true
 	}
 	defer cleanupResp(resp)
 
-	infoLogger.Printf("External validation for content uuid=[%s] received statusCode: [%d]", eomfile.UUID, resp.StatusCode)
+	infoLogger.Printf("External validation for content uuid=[%s] tid=[%s] received statusCode [%d]", eomfile.UUID, txId, resp.StatusCode)
 
 	bs, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] reading response body error: [%v]. ", eomfile.UUID, err)
+		warnLogger.Printf("External validation for content uuid=[%s] tid=[%s] error: [%v]", eomfile.UUID, txId, err)
 	}
 	if resp.StatusCode != 200 {
-		infoLogger.Printf("External validation for content uuid=[%s] received response body: [%v]", eomfile.UUID, string(bs))
+		infoLogger.Printf("External validation for content uuid=[%s] tid=[%s] error: [%v]", eomfile.UUID, txId, string(bs))
 	}
 	if resp.StatusCode == 418 {
 		return false
