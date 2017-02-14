@@ -7,16 +7,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"launchpad.net/xmlpath"
 )
-
-const image = "Image"
-const webContainer = "EOM::WebContainer"
-const compoundStory = "EOM::CompoundStory"
-const story = "EOM::Story"
 
 const SourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
 const markDeletedFlagXPath = "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMarkDeleted"
@@ -31,12 +25,6 @@ type EomFile struct {
 	UsageTickets     string `json:"usageTickets"`
 	WorkflowStatus   string `json:"workflowStatus"`
 }
-
-var expectedSourceCode = map[string]bool{"FT": true, "ContentPlaceholder": true}
-
-var (
-	client = &http.Client{Timeout: time.Duration(10 * time.Second)}
-)
 
 func (eomfile EomFile) IsValid(externalValidationEndpoint string, txID string, username string, password string) bool {
 	contentUUID := eomfile.UUID
@@ -58,10 +46,7 @@ func (eomfile EomFile) IsMarkedDeleted() bool {
 		return false
 	}
 	infoLogger.Printf("Eomfile with uuid=[%s]: MarkAsDeletedFlag: [%v]", eomfile.UUID, markDeletedFlag)
-	if markDeletedFlag == "True" {
-		return true
-	}
-	return false
+	return markDeletedFlag == "True"
 }
 
 func (eomfile EomFile) GetType() string {
