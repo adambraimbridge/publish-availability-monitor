@@ -2,7 +2,6 @@ package content
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -19,16 +18,8 @@ const webContainer = "EOM::WebContainer"
 const compoundStory = "EOM::CompoundStory"
 const story = "EOM::Story"
 
-const titleXPath = "/doc/lead/lead-headline/headline/ln"
-const channelXPath = "/props/productInfo/name"
-const webTypeXPath = "//ObjectMetadata/FTcom/DIFTcomWebType"
-const filePathXPath = "//ObjectMetadata/EditorialNotes/ObjectLocation"
 const SourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
 const markDeletedFlagXPath = "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMarkDeleted"
-
-const expectedWebChannel = "FTcom"
-const expectedFTChannel = "Financial Times"
-const expectedFilePathSuffix = ".xml"
 
 // EomFile models Methode content
 type EomFile struct {
@@ -57,11 +48,11 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string, txId string, u
 	contentType := eomfile.Type
 	switch contentType {
 	case webContainer:
-		return isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txId, username, password)
+		fallthrough
 	case compoundStory:
-		return isCompoundStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txId, username, password)
+		fallthrough
 	case story:
-		return isStoryValid(eomfile) && isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txId, username, password)
+		fallthrough
 	case image:
 		return isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txId, username, password)
 	default:
@@ -94,86 +85,6 @@ func (eomfile EomFile) GetUUID() string {
 	return eomfile.UUID
 }
 
-func isCompoundStoryValid(eomfile EomFile) bool {
-	return isSupportedFileType(eomfile) &&
-		isSupportedChannel(eomfile) &&
-		hasTitle(eomfile) &&
-		isSupportedCompoundStorySourceCode(eomfile)
-}
-
-func isStoryValid(eomfile EomFile) bool {
-	return isSupportedFileType(eomfile) &&
-		isSupportedChannel(eomfile) &&
-		hasTitle(eomfile) &&
-		isSupportedStorySourceCode(eomfile)
-}
-
-func isSupportedFileType(eomfile EomFile) bool {
-	filePath, ok := GetXPathValue(eomfile.Attributes, eomfile, filePathXPath)
-	if !ok {
-		warnLogger.Printf("Cannot match node in XML using xpath [%v]", filePathXPath)
-		return false
-	}
-	if strings.HasSuffix(filePath, expectedFilePathSuffix) {
-		return true
-	}
-	return false
-}
-
-func isSupportedChannel(eomfile EomFile) bool {
-	channel, ok := GetXPathValue(eomfile.SystemAttributes, eomfile, channelXPath)
-	if !ok {
-		warnLogger.Printf("Cannot match node in XML using xpath [%v]", channelXPath)
-		return false
-	}
-
-	switch eomfile.GetType() {
-	case compoundStory:
-		return channel == expectedWebChannel
-	case story:
-		return (channel == expectedWebChannel) || (channel == expectedFTChannel)
-	default:
-		return false
-	}
-}
-
-func hasTitle(eomfile EomFile) bool {
-	if len(eomfile.Value) == 0 {
-		return false
-	}
-	decoded, err := base64.StdEncoding.DecodeString(eomfile.Value)
-	if err != nil {
-		warnLogger.Printf("Cannot decode Base64-encoded eomfile value: [%v]", err.Error())
-		return false
-	}
-	articleXML := string(decoded[:])
-
-	title, ok := GetXPathValue(articleXML, eomfile, titleXPath)
-	if !ok {
-		warnLogger.Printf("Cannot match node in XML using xpath [%v]", titleXPath)
-		return false
-	}
-
-	title = strings.TrimSpace(title)
-	if len(title) > 0 {
-		return true
-	}
-	warnLogger.Println("Title length is 0")
-	return false
-}
-
-func isSupportedCompoundStorySourceCode(eomfile EomFile) bool {
-	sourceCode, ok := GetXPathValue(eomfile.Attributes, eomfile, SourceXPath)
-	if !ok {
-		warnLogger.Printf("Cannot match node in XML using xpath [%v]", SourceXPath)
-		return false
-	}
-	if expectedSourceCode[sourceCode] {
-		return true
-	}
-	return false
-}
-
 func GetXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool) {
 	path := xmlpath.MustCompile(lookupPath)
 	root, err := xmlpath.Parse(strings.NewReader(xml))
@@ -184,22 +95,6 @@ func GetXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool
 	xpathValue, ok := path.String(root)
 	return xpathValue, ok
 
-}
-
-func isSupportedStorySourceCode(eomfile EomFile) bool {
-	validSourceCodes := [1]string{"FT"}
-
-	sourceCode, ok := GetXPathValue(eomfile.Attributes, eomfile, SourceXPath)
-	if !ok {
-		warnLogger.Printf("Cannot match node in XML using xpath [%v]", SourceXPath)
-		return false
-	}
-	for _, expected := range validSourceCodes {
-		if sourceCode == expected {
-			return true
-		}
-	}
-	return false
 }
 
 func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txId, username string, password string) bool {
