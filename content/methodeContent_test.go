@@ -6,10 +6,41 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"encoding/xml"
 )
 
 //testExternalValidationEndpoints
 const testExtValEndpoint = "http://transformer/map/"
+
+
+func TestInitTypeForContentPlaceholders(t *testing.T) {
+
+	var file = EomFile {
+		UUID:             validUUID,
+		ContentType:      "EOM::CompoundStory",
+		Value:            "bar",
+		SystemAttributes: "systemAttributes",
+	}
+	xml.Unmarshal([]byte(supportedSourceCodeAttributesContentPlaceholder), &file.Source)
+	file = file.initType()
+	assert.Equal(t, "EOM::CompoundStory_ContentPlaceholder", file.Type)
+
+}
+
+func TestInitTypeForNonContentPlaceholders(t *testing.T) {
+
+	var file = EomFile {
+		UUID:             validUUID,
+		ContentType:      "EOM::CompoundStory",
+		Value:            "bar",
+		SystemAttributes: "systemAttributes",
+	}
+	xml.Unmarshal([]byte(supportedSourceCodeAttributes), &file.Source)
+	file = file.initType()
+	assert.Equal(t, "EOM::CompoundStory", file.Type)
+
+}
+
 
 func TestIsEomfileValid_EmptyValidationURL_Invalid(t *testing.T) {
 	if eomfileWithInvalidContentType.IsValid("", validUUID, "", "") {
@@ -78,6 +109,16 @@ var eomfileWithInvalidUUID = EomFile{
 var validCompoundStory = EomFile{
 	UUID:             validUUID,
 	Type:             "EOM::CompoundStory",
+	ContentType:      "EOM::CompoundStory",
+	Value:            contentWithHeadline,
+	Attributes:       validFileTypeAttributes,
+	SystemAttributes: systemAttributesWebChannel,
+}
+
+var validCompoundStory_ContentPlaceholder = EomFile{
+	UUID:             validUUID,
+	Type:             "EOM::CompoundStory_ContentPlaceholder",
+	ContentType:      "EOM::CompoundStory",
 	Value:            contentWithHeadline,
 	Attributes:       validFileTypeAttributes,
 	SystemAttributes: systemAttributesWebChannel,

@@ -88,7 +88,7 @@ type publishHistory struct {
 
 const dateLayout = time.RFC3339Nano
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
-const contentPlaceholderSourceCode = "ContentPlaceholder"
+
 
 var infoLogger *log.Logger
 var warnLogger *log.Logger
@@ -197,6 +197,7 @@ func loadHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleMessage(msg consumer.Message) {
+	infoLogger.Printf("HELLO !!!")
 	tid := msg.Headers["X-Request-Id"]
 	infoLogger.Printf("Received message with TID [%v]", tid)
 
@@ -223,6 +224,7 @@ func handleMessage(msg consumer.Message) {
 	}
 
 	if !publishedContent.IsValid(validationEndpoint, tid, username, password) {
+		infoLogger.Printf("HEllo [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return
 	}
@@ -311,20 +313,13 @@ func isIgnorableMessage(tid string) bool {
 
 func getValidationEndpointKey(publishedContent content.Content, tid string, uuid string) string {
 	validationEndpointKey := publishedContent.GetType()
-	if publishedContent.GetType() == "EOM::CompoundStory" {
-		eomfile, ok := publishedContent.(content.EomFile)
+	if strings.Contains(publishedContent.GetType(), "EOM::CompoundStory")  {
+		_, ok := publishedContent.(content.EomFile)
 		if !ok {
 			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
 			return ""
 		}
-		sourceCode, ok := content.GetXPathValue(eomfile.Attributes, eomfile, content.SourceXPath)
-		if !ok {
-			warnLogger.Printf("Cannot match node in XML using xpath [%v]", content.SourceXPath)
-			return ""
-		}
-		if sourceCode == contentPlaceholderSourceCode {
-			validationEndpointKey = validationEndpointKey + "_" + sourceCode
-		}
+
 	}
 	return validationEndpointKey
 }
