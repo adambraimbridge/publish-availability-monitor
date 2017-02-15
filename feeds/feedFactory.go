@@ -16,7 +16,7 @@ func init() {
 	infoLogger = log.New(os.Stdout, "INFO  - ", logPattern)
 }
 
-func NewNotificationsFeed(name string, baseUrl *url.URL, sinceDate string, expiry int, interval int, username string, password string) Feed {
+func NewNotificationsFeed(name string, baseUrl *url.URL, bootstrapValues *url.Values, expiry int, interval int, username string, password string) Feed {
 	if isNotificationsPullFeed(name) {
 		return &NotificationsPullFeed{
 			baseNotificationsFeed{
@@ -29,7 +29,7 @@ func NewNotificationsFeed(name string, baseUrl *url.URL, sinceDate string, expir
 				make(map[string][]*Notification),
 				&sync.RWMutex{},
 			},
-			sinceDate,
+			baseUrl.String() + "?" + bootstrapValues.Encode(),
 			&sync.Mutex{},
 			interval,
 			nil,

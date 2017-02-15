@@ -2,7 +2,6 @@ package feeds
 
 import (
 	"encoding/json"
-	"net/url"
 	"sync"
 	"time"
 
@@ -13,11 +12,11 @@ const NotificationsPull = "Notifications-Pull"
 
 type NotificationsPullFeed struct {
 	baseNotificationsFeed
-	sinceDate     string
-	sinceDateLock *sync.Mutex
-	interval      int
-	ticker        *time.Ticker
-	poller        chan struct{}
+	notificationsUrl     string
+	notificationsUrlLock *sync.Mutex
+	interval             int
+	ticker               *time.Ticker
+	poller               chan struct{}
 }
 
 // ignore unused field (e.g. requestUrl)
@@ -59,21 +58,20 @@ func (f *NotificationsPullFeed) FeedType() string {
 }
 
 func (f *NotificationsPullFeed) pollNotificationsFeed() {
-	f.sinceDateLock.Lock()
-	defer f.sinceDateLock.Unlock()
+	f.notificationsUrlLock.Lock()
+	defer f.notificationsUrlLock.Unlock()
 
-	notificationsUrl := f.buildNotificationsURL()
 	txId := f.buildNotificationsTxId()
-	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password, txId)
+	resp, err := f.httpCaller.DoCall(f.notificationsUrl, f.username, f.password, txId)
 
 	if err != nil {
-		infoLogger.Printf("error calling notifications %s", notificationsUrl)
+		infoLogger.Printf("error calling notifications %s", f.notificationsUrl)
 		return
 	}
 	defer cleanupResp(resp)
 
 	if resp.StatusCode != 200 {
-		infoLogger.Printf("Notifications [%s] status NOT OK: [%d]", notificationsUrl, resp.StatusCode)
+		infoLogger.Printf("Notifications [%s] status NOT OK: [%d]", f.notificationsUrl, resp.StatusCode)
 		return
 	}
 
@@ -99,15 +97,7 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 		f.notifications[uuid] = history
 	}
 
-	nextPageUrl, _ := url.Parse(notifications.Links[0].Href)
-	f.sinceDate = nextPageUrl.Query().Get("since")
-}
-
-func (f *NotificationsPullFeed) buildNotificationsURL() string {
-	q := url.Values{}
-	q.Add("since", f.sinceDate)
-
-	return f.baseUrl + "?" + q.Encode()
+	f.notificationsUrl = notifications.Links[0].Href
 }
 
 func (f *NotificationsPullFeed) buildNotificationsTxId() string {
