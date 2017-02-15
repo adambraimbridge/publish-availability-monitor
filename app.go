@@ -89,7 +89,6 @@ type publishHistory struct {
 const dateLayout = time.RFC3339Nano
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
-
 var infoLogger *log.Logger
 var warnLogger *log.Logger
 var errorLogger *log.Logger
@@ -313,7 +312,7 @@ func isIgnorableMessage(tid string) bool {
 
 func getValidationEndpointKey(publishedContent content.Content, tid string, uuid string) string {
 	validationEndpointKey := publishedContent.GetType()
-	if strings.Contains(publishedContent.GetType(), "EOM::CompoundStory")  {
+	if strings.Contains(publishedContent.GetType(), "EOM::CompoundStory") {
 		_, ok := publishedContent.(content.EomFile)
 		if !ok {
 			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)

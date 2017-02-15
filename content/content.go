@@ -6,9 +6,9 @@ import (
 	"log"
 	"os"
 
+	"encoding/xml"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/checks"
-	"encoding/xml"
 )
 
 // Content is the interface for different type of contents from different CMSs.
@@ -53,7 +53,7 @@ func UnmarshalContent(msg consumer.Message) (Content, error) {
 			return nil, err
 		}
 		xml.Unmarshal([]byte(eomFile.Attributes), &eomFile.Source)
-		eomFile = eomFile.initType();
+		eomFile = eomFile.initType()
 		return eomFile, err
 	case "http://cmdb.ft.com/systems/wordpress":
 		var wordPressMsg WordPressMessage

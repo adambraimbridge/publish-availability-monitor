@@ -5,17 +5,16 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"encoding/xml"
+	"github.com/stretchr/testify/assert"
 )
 
 //testExternalValidationEndpoints
 const testExtValEndpoint = "http://transformer/map/"
 
-
 func TestInitTypeForContentPlaceholders(t *testing.T) {
 
-	var file = EomFile {
+	var file = EomFile{
 		UUID:             validUUID,
 		ContentType:      "EOM::CompoundStory",
 		Value:            "bar",
@@ -29,7 +28,7 @@ func TestInitTypeForContentPlaceholders(t *testing.T) {
 
 func TestInitTypeForNonContentPlaceholders(t *testing.T) {
 
-	var file = EomFile {
+	var file = EomFile{
 		UUID:             validUUID,
 		ContentType:      "EOM::CompoundStory",
 		Value:            "bar",
@@ -40,7 +39,6 @@ func TestInitTypeForNonContentPlaceholders(t *testing.T) {
 	assert.Equal(t, "EOM::CompoundStory", file.Type)
 
 }
-
 
 func TestIsEomfileValid_EmptyValidationURL_Invalid(t *testing.T) {
 	if eomfileWithInvalidContentType.IsValid("", validUUID, "", "") {

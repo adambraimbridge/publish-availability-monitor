@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strings"
 
+	"encoding/xml"
 	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"launchpad.net/xmlpath"
-	"encoding/xml"
 )
 
 const SourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
@@ -20,18 +20,18 @@ const markDeletedFlagXPath = "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMar
 type EomFile struct {
 	UUID             string `json:"uuid"`
 	Type             string
-	ContentType 	 string `json:"type"`
+	ContentType      string `json:"type"`
 	Value            string `json:"value"`
 	Attributes       string `json:"attributes"`
 	SystemAttributes string `json:"systemAttributes"`
 	UsageTickets     string `json:"usageTickets"`
 	WorkflowStatus   string `json:"workflowStatus"`
-	Source 		Source
+	Source           Source
 }
 
 type Source struct {
-	XMLName             xml.Name `xml:"ObjectMetadata"`
-	SourceCode          string   `xml:"EditorialNotes>Sources>Source>SourceCode"`
+	XMLName    xml.Name `xml:"ObjectMetadata"`
+	SourceCode string   `xml:"EditorialNotes>Sources>Source>SourceCode"`
 }
 
 func (eomfile EomFile) initType() EomFile {
