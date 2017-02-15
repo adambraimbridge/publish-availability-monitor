@@ -29,7 +29,7 @@ type EomFile struct {
 func (eomfile EomFile) IsValid(externalValidationEndpoint string, txID string, username string, password string) bool {
 	contentUUID := eomfile.UUID
 	if !isUUIDValid(contentUUID) {
-		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]. tid=[%s]", contentUUID, txID)
+		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]. transaction_id=[%s]", contentUUID, txID)
 		return false
 	}
 
@@ -71,12 +71,12 @@ func GetXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool
 
 func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txID, username string, password string) bool {
 	if validationURL == "" {
-		warnLogger.Printf("External validation for content uuid=[%s] tid=[%s]. Validation endpoint URL is missing for content type=[%s]", eomfile.UUID, txID, eomfile.Type)
+		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", eomfile.UUID, txID, eomfile.Type)
 		return false
 	}
 	marshalled, err := json.Marshal(eomfile)
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] tid=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txID, err)
+		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txID, err)
 		return true
 	}
 
@@ -87,19 +87,19 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txID,
 		"application/json", bytes.NewReader(marshalled))
 
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] tid=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txID, err)
+		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txID, err)
 		return true
 	}
 	defer cleanupResp(resp)
 
-	infoLogger.Printf("External validation for content uuid=[%s] tid=[%s] received statusCode [%d]", eomfile.UUID, txID, resp.StatusCode)
+	infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] received statusCode [%d]", eomfile.UUID, txID, resp.StatusCode)
 
 	bs, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] tid=[%s] error: [%v]", eomfile.UUID, txID, err)
+		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", eomfile.UUID, txID, err)
 	}
 	if resp.StatusCode != 200 {
-		infoLogger.Printf("External validation for content uuid=[%s] tid=[%s] error: [%v]", eomfile.UUID, txID, string(bs))
+		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", eomfile.UUID, txID, string(bs))
 	}
 	if resp.StatusCode == 418 {
 		return false
