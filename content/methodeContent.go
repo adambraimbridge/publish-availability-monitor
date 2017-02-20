@@ -18,7 +18,7 @@ const markDeletedFlagXPath = "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMar
 // EomFile models Methode content
 type EomFile struct {
 	Attributes       string        `json:"attributes"`
-	LinkedObjects    []interface{} `json:"linkedObjects,omitempty"`
+	LinkedObjects    []interface{} `json:"linkedObjects"`
 	SystemAttributes string        `json:"systemAttributes"`
 	Type             string        `json:"type"`
 	UsageTickets     string        `json:"usageTickets"`
