@@ -26,6 +26,15 @@ func TestThat_ContentPayloadFromKafkaMsg_MatchesTheContentPayloadSentToValidatio
 			},
 		},
 		{
+			"Methode Empty List",
+			consumer.Message{
+				Headers: map[string]string{
+					"Origin-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
+				},
+				Body: string(loadBytesForFile(t, "methode_empty_list.json")),
+			},
+		},
+		{
 			"Methode Article",
 			consumer.Message{
 				Headers: map[string]string{
@@ -42,7 +51,7 @@ func TestThat_ContentPayloadFromKafkaMsg_MatchesTheContentPayloadSentToValidatio
 			if err != nil {
 				t.Fatal(err)
 			}
-			assert.Equal(t, strings.TrimSpace(string(body)), strings.TrimSpace(tc.msg.Body), "[%s] testcase failure", tc.name)
+			assert.Equal(t, strings.TrimSpace(tc.msg.Body), strings.TrimSpace(string(body)), "[%s] testcase failure", tc.name)
 		}))
 		defer ts.Close()
 		content, err := UnmarshalContent(tc.msg)
