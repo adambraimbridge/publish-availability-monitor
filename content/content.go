@@ -12,7 +12,7 @@ import (
 
 // Content is the interface for different type of contents from different CMSs.
 type Content interface {
-	IsValid(externalValidationEndpoint string, txId string, username string, password string) bool
+	IsValid(externalValidationEndpoint string, txID string, username string, password string) bool
 	IsMarkedDeleted() bool
 	GetType() string
 	GetUUID() string
@@ -20,7 +20,6 @@ type Content interface {
 
 const systemIDKey = "Origin-System-Id"
 
-const dateLayout = "2006-01-02T15:04:05.000Z"
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
 var infoLogger *log.Logger

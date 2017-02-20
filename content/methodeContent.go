@@ -17,13 +17,14 @@ const markDeletedFlagXPath = "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMar
 
 // EomFile models Methode content
 type EomFile struct {
-	UUID             string `json:"uuid"`
-	Type             string `json:"type"`
-	Value            string `json:"value"`
-	Attributes       string `json:"attributes"`
-	SystemAttributes string `json:"systemAttributes"`
-	UsageTickets     string `json:"usageTickets"`
-	WorkflowStatus   string `json:"workflowStatus"`
+	Attributes       string        `json:"attributes"`
+	LinkedObjects    []interface{} `json:"linkedObjects"`
+	SystemAttributes string        `json:"systemAttributes"`
+	Type             string        `json:"type"`
+	UsageTickets     string        `json:"usageTickets"`
+	UUID             string        `json:"uuid"`
+	Value            string        `json:"value"`
+	WorkflowStatus   string        `json:"workflowStatus"`
 }
 
 func (eomfile EomFile) IsValid(externalValidationEndpoint string, txID string, username string, password string) bool {
