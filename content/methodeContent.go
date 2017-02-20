@@ -9,23 +9,25 @@ import (
 	"strings"
 
 	"encoding/xml"
+
 	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"launchpad.net/xmlpath"
 )
 
-const SourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
+const sourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
 const markDeletedFlagXPath = "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMarkDeleted"
 
 // EomFile models Methode content
 type EomFile struct {
-	UUID             string `json:"uuid"`
+	UUID             string        `json:"uuid"`
+	LinkedObjects    []interface{} `json:"linkedObjects"`
+	ContentType      string        `json:"type"`
+	Value            string        `json:"value"`
+	Attributes       string        `json:"attributes"`
+	SystemAttributes string        `json:"systemAttributes"`
+	UsageTickets     string        `json:"usageTickets"`
+	WorkflowStatus   string        `json:"workflowStatus"`
 	Type             string
-	ContentType      string `json:"type"`
-	Value            string `json:"value"`
-	Attributes       string `json:"attributes"`
-	SystemAttributes string `json:"systemAttributes"`
-	UsageTickets     string `json:"usageTickets"`
-	WorkflowStatus   string `json:"workflowStatus"`
 	Source           Source
 }
 

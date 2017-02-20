@@ -196,7 +196,6 @@ func loadHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleMessage(msg consumer.Message) {
-	infoLogger.Printf("HELLO !!!")
 	tid := msg.Headers["X-Request-Id"]
 	infoLogger.Printf("Received message with TID [%v]", tid)
 
@@ -223,7 +222,6 @@ func handleMessage(msg consumer.Message) {
 	}
 
 	if !publishedContent.IsValid(validationEndpoint, tid, username, password) {
-		infoLogger.Printf("HEllo [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return
 	}
