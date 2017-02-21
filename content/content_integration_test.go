@@ -53,8 +53,6 @@ func TestThat_ContentPayloadFromKafkaMsg_MatchesTheContentPayloadSentToValidatio
 				t.Fatal(err)
 			}
 			checkSameContentBody(t, strings.TrimSpace(tc.msg.Body), strings.TrimSpace(string(body)), "[%s] testcase failure", tc.name)
-
-			//assert.JSONEq(t, strings.TrimSpace(tc.msg.Body), , "[%s] testcase failure", tc.name)
 		}))
 		defer ts.Close()
 		content, err := UnmarshalContent(tc.msg)
@@ -76,7 +74,7 @@ func checkSameContentBody(t *testing.T, expectedBody string, actualBody string, 
 
 	var actualContent EomFile
 	err = json.Unmarshal([]byte(actualBody), &actualContent)
-	assert.Nil(t, err)
+	assert.NoError(t, err, "It should not return an unmarshalling error")
 
 	assert.Equal(t, expectedContent.UUID, actualContent.UUID, "They should have same UUID")
 	assert.Equal(t, expectedContent.Attributes, actualContent.Attributes, "They should have same Attributes")
