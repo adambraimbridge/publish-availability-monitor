@@ -4,7 +4,7 @@ COPY . /source
 ADD config.json.template /config.json
 ADD startup.sh /
 
-RUN apk --update add git go libc-dev bzr \
+RUN apk --update add git go libc-dev bzr ca-certificates \
   && cd /source/ \
   && BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo." \
   && VERSION="version=$(git describe --tag --always 2> /dev/null)" \
