@@ -164,8 +164,10 @@ func TestIsNotGoingToMarshallInternalApplicationFieldOfEomFile(t *testing.T) {
 	expectedJSON := loadBytesForFile(t, "methode_article.json")
 	var methodeArticle EomFile
 	err := json.Unmarshal(expectedJSON, &methodeArticle)
-	t.Error(err)
-	actualJSON, err := json.Marshal(validCompoundStory)
+	if err != nil {
+		t.Error(err)
+	}
+	actualJSON, err := json.Marshal(methodeArticle)
 	assert.NoError(t, err, "No errors in marshalling")
 	assert.JSONEq(t, string(expectedJSON), string(actualJSON), "The internal fields should not appear")
 }
