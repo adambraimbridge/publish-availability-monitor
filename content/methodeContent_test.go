@@ -5,7 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"encoding/json"
 	"encoding/xml"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -156,6 +158,16 @@ func TestIsMarkedDeleted_WebContainer(t *testing.T) {
 	if webContainerEomFile.IsMarkedDeleted() {
 		t.Error("Expected False, the webContainer IS NOT marked deleted")
 	}
+}
+
+func TestIsNotGoingToMarshallInternalApplicationFieldOfEomFile(t *testing.T) {
+	expectedJSON := loadBytesForFile(t, "methode_article.json")
+	var methodeArticle EomFile
+	err := json.Unmarshal(expectedJSON, &methodeArticle)
+	t.Error(err)
+	actualJSON, err := json.Marshal(validCompoundStory)
+	assert.NoError(t, err, "No errors in marshalling")
+	assert.JSONEq(t, string(expectedJSON), string(actualJSON), "The internal fields should not appear")
 }
 
 var compoundStoryMarkedDeletedTrue = EomFile{

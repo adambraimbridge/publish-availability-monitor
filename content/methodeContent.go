@@ -3,7 +3,6 @@ package content
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -104,7 +103,6 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txID,
 		return true
 	}
 
-	fmt.Println(string(marshalled))
 	resp, err := httpCaller.DoCallWithEntity(
 		"POST", validationURL,
 		username, password,
