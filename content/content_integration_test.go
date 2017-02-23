@@ -84,4 +84,6 @@ func checkSameContentBody(t *testing.T, expectedBody string, actualBody string, 
 	assert.Equal(t, expectedContent.UsageTickets, actualContent.UsageTickets, "They should have same UsageTickets")
 	assert.Equal(t, expectedContent.WorkflowStatus, actualContent.WorkflowStatus, "They should have same WorkflowStatus")
 	assert.Equal(t, expectedContent.LinkedObjects, actualContent.LinkedObjects, "They should have same LinkedObjects")
+	assert.Empty(t, actualContent.Type, "It should not contain Type internal field")
+	assert.Empty(t, actualContent.Source, "It should not contain Source internal field")
 }

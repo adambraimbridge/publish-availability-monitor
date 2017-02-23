@@ -3,6 +3,7 @@ package content
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -27,8 +28,8 @@ type EomFile struct {
 	SystemAttributes string        `json:"systemAttributes"`
 	UsageTickets     string        `json:"usageTickets"`
 	WorkflowStatus   string        `json:"workflowStatus"`
-	Type             string
-	Source           Source
+	Type             string        `json:"-"` //This field is for internal application usage
+	Source           Source        `json:"-"` //This field is for internal application usage
 }
 
 type Source struct {
@@ -103,6 +104,7 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txID,
 		return true
 	}
 
+	fmt.Println(string(marshalled))
 	resp, err := httpCaller.DoCallWithEntity(
 		"POST", validationURL,
 		username, password,
