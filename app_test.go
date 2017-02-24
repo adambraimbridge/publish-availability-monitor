@@ -83,6 +83,7 @@ const testUuid = "uuid"
 var supportedSourceCodeCompoundStory = content.EomFile{
 	UUID:             testUuid,
 	Type:             "EOM::CompoundStory",
+	ContentType:      "EOM::CompoundStory",
 	Value:            "bar",
 	Attributes:       supportedSourceCodeAttributes,
 	SystemAttributes: "systemAttributes",
@@ -90,7 +91,8 @@ var supportedSourceCodeCompoundStory = content.EomFile{
 
 var contentplaceHolderCompoundStory = content.EomFile{
 	UUID:             testUuid,
-	Type:             "EOM::CompoundStory",
+	Type:             "EOM::CompoundStory_ContentPlaceholder",
+	ContentType:      "EOM::CompoundStory",
 	Value:            "bar",
 	Attributes:       supportedSourceCodeAttributesContentPlaceholder,
 	SystemAttributes: "systemAttributes",
@@ -99,6 +101,7 @@ var contentplaceHolderCompoundStory = content.EomFile{
 var supportedSourceCodeStory = content.EomFile{
 	UUID:             testUuid,
 	Type:             "EOM::Story",
+	ContentType:      "EOM::Story",
 	Value:            "value",
 	Attributes:       supportedSourceCodeAttributes,
 	SystemAttributes: "systemAttributes",

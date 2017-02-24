@@ -1,6 +1,7 @@
 package content
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -51,7 +52,7 @@ func TestThat_ContentPayloadFromKafkaMsg_MatchesTheContentPayloadSentToValidatio
 			if err != nil {
 				t.Fatal(err)
 			}
-			assert.Equal(t, strings.TrimSpace(tc.msg.Body), strings.TrimSpace(string(body)), "[%s] testcase failure", tc.name)
+			checkSameContentBody(t, strings.TrimSpace(tc.msg.Body), strings.TrimSpace(string(body)), "[%s] testcase failure", tc.name)
 		}))
 		defer ts.Close()
 		content, err := UnmarshalContent(tc.msg)
@@ -62,4 +63,25 @@ func TestThat_ContentPayloadFromKafkaMsg_MatchesTheContentPayloadSentToValidatio
 		//don't care about the actual result
 		content.IsValid(ts.URL, "tid_foobar", "", "")
 	}
+}
+
+func checkSameContentBody(t *testing.T, expectedBody string, actualBody string, msgAndArgs ...interface{}) {
+	var expectedContent EomFile
+	err := json.Unmarshal([]byte(expectedBody), &expectedContent)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var actualContent EomFile
+	err = json.Unmarshal([]byte(actualBody), &actualContent)
+	assert.NoError(t, err, "It should not return an unmarshalling error")
+
+	assert.Equal(t, expectedContent.UUID, actualContent.UUID, "They should have same UUID")
+	assert.Equal(t, expectedContent.Attributes, actualContent.Attributes, "They should have same Attributes")
+	assert.Equal(t, expectedContent.ContentType, actualContent.ContentType, "They should have same ContentType")
+	assert.Equal(t, expectedContent.SystemAttributes, actualContent.SystemAttributes, "They should have same SystemAttributes")
+	assert.Equal(t, expectedContent.Value, actualContent.Value, "They should have same Value")
+	assert.Equal(t, expectedContent.UsageTickets, actualContent.UsageTickets, "They should have same UsageTickets")
+	assert.Equal(t, expectedContent.WorkflowStatus, actualContent.WorkflowStatus, "They should have same WorkflowStatus")
+	assert.Equal(t, expectedContent.LinkedObjects, actualContent.LinkedObjects, "They should have same LinkedObjects")
 }

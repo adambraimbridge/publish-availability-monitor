@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUnmarshalContent_ValidMessageMethodeSystemHeader_NoError(t *testing.T) {
@@ -140,6 +141,16 @@ func TestIsUUIDValid_UUIDInvalid(t *testing.T) {
 	}
 }
 
+func TestIsValidContentPlaceholder(t *testing.T) {
+	content, err := UnmarshalContent(validContentPlaceholder)
+	if err != nil {
+		t.Error("Expected failure")
+		return
+	}
+	assert.Equal(t, "EOM::CompoundStory_ContentPlaceholder", content.GetType())
+
+}
+
 const validUUID = "e28b12f7-9796-3331-b030-05082f0b8157"
 const invalidUUID = "foobar"
 
@@ -223,5 +234,16 @@ var invalidVideoMsg = consumer.Message{
 	Body: `{
 		"uuid": "e28b12f7-9796-3331-b030-05082f0b8157",
 		"something_else": "something else"
+	}`,
+}
+
+var validContentPlaceholder = consumer.Message{
+	Headers: map[string]string{
+		"Origin-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
+	},
+	Body: `{
+		"uuid": "e28b12f7-9796-3331-b030-05082f0b8157",
+		"type": "EOM::CompoundStory",
+		"attributes": "<ObjectMetadata><EditorialNotes><Sources><Source><SourceCode>ContentPlaceholder</SourceCode></Source></Sources></EditorialNotes></ObjectMetadata>"
 	}`,
 }

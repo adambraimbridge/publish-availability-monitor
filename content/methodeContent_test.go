@@ -5,11 +5,42 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"encoding/json"
+	"encoding/xml"
+
 	"github.com/stretchr/testify/assert"
 )
 
 //testExternalValidationEndpoints
 const testExtValEndpoint = "http://transformer/map/"
+
+func TestInitTypeForContentPlaceholders(t *testing.T) {
+
+	var file = EomFile{
+		UUID:             validUUID,
+		ContentType:      "EOM::CompoundStory",
+		Value:            "bar",
+		SystemAttributes: "systemAttributes",
+	}
+	xml.Unmarshal([]byte(supportedSourceCodeAttributesContentPlaceholder), &file.Source)
+	file = file.initType()
+	assert.Equal(t, "EOM::CompoundStory_ContentPlaceholder", file.Type)
+
+}
+
+func TestInitTypeForNonContentPlaceholders(t *testing.T) {
+
+	var file = EomFile{
+		UUID:             validUUID,
+		ContentType:      "EOM::CompoundStory",
+		Value:            "bar",
+		SystemAttributes: "systemAttributes",
+	}
+	xml.Unmarshal([]byte(supportedSourceCodeAttributes), &file.Source)
+	file = file.initType()
+	assert.Equal(t, "EOM::CompoundStory", file.Type)
+
+}
 
 func TestIsEomfileValid_EmptyValidationURL_Invalid(t *testing.T) {
 	if eomfileWithInvalidContentType.IsValid("", validUUID, "", "") {
@@ -78,6 +109,16 @@ var eomfileWithInvalidUUID = EomFile{
 var validCompoundStory = EomFile{
 	UUID:             validUUID,
 	Type:             "EOM::CompoundStory",
+	ContentType:      "EOM::CompoundStory",
+	Value:            contentWithHeadline,
+	Attributes:       validFileTypeAttributes,
+	SystemAttributes: systemAttributesWebChannel,
+}
+
+var validCompoundStory_ContentPlaceholder = EomFile{
+	UUID:             validUUID,
+	Type:             "EOM::CompoundStory_ContentPlaceholder",
+	ContentType:      "EOM::CompoundStory",
 	Value:            contentWithHeadline,
 	Attributes:       validFileTypeAttributes,
 	SystemAttributes: systemAttributesWebChannel,
@@ -117,6 +158,18 @@ func TestIsMarkedDeleted_WebContainer(t *testing.T) {
 	if webContainerEomFile.IsMarkedDeleted() {
 		t.Error("Expected False, the webContainer IS NOT marked deleted")
 	}
+}
+
+func TestIsNotGoingToMarshallInternalApplicationFieldOfEomFile(t *testing.T) {
+	expectedJSON := loadBytesForFile(t, "methode_article.json")
+	var methodeArticle EomFile
+	err := json.Unmarshal(expectedJSON, &methodeArticle)
+	if err != nil {
+		t.Error(err)
+	}
+	actualJSON, err := json.Marshal(methodeArticle)
+	assert.NoError(t, err, "No errors in marshalling")
+	assert.JSONEq(t, string(expectedJSON), string(actualJSON), "The internal fields should not appear")
 }
 
 var compoundStoryMarkedDeletedTrue = EomFile{
