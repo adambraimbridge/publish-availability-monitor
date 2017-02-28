@@ -5,261 +5,89 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"encoding/json"
+	"encoding/xml"
+
 	"github.com/stretchr/testify/assert"
 )
 
 //testExternalValidationEndpoints
-const testExtValEndpoint = "http://transformer/content-transorm/"
+const testExtValEndpoint = "http://transformer/map/"
 
-func TestIsEomfileValid_InvalidContentType(t *testing.T) {
-	if eomfileWithInvalidContentType.IsValid(testExtValEndpoint, "", "", "") {
-		t.Error("Eomfile with invalid content marked as valid")
+func TestInitTypeForContentPlaceholders(t *testing.T) {
+
+	var file = EomFile{
+		UUID:             validUUID,
+		ContentType:      "EOM::CompoundStory",
+		Value:            "bar",
+		SystemAttributes: "systemAttributes",
+	}
+	xml.Unmarshal([]byte(supportedSourceCodeAttributesContentPlaceholder), &file.Source)
+	file = file.initType()
+	assert.Equal(t, "EOM::CompoundStory_ContentPlaceholder", file.Type)
+
+}
+
+func TestInitTypeForNonContentPlaceholders(t *testing.T) {
+
+	var file = EomFile{
+		UUID:             validUUID,
+		ContentType:      "EOM::CompoundStory",
+		Value:            "bar",
+		SystemAttributes: "systemAttributes",
+	}
+	xml.Unmarshal([]byte(supportedSourceCodeAttributes), &file.Source)
+	file = file.initType()
+	assert.Equal(t, "EOM::CompoundStory", file.Type)
+
+}
+
+func TestIsEomfileValid_EmptyValidationURL_Invalid(t *testing.T) {
+	if eomfileWithInvalidContentType.IsValid("", validUUID, "", "") {
+		t.Error("Eomfile with empty validation URL marked as valid")
 	}
 }
 
-func TestIsEomfileValid_InvalidUUID(t *testing.T) {
+func TestIsEomfileValid_InvalidUUID_Invalid(t *testing.T) {
 	if eomfileWithInvalidUUID.IsValid(testExtValEndpoint, "", "", "") {
 		t.Error("Eomfile with invalid UUID marked as valid")
 	}
 }
 
-func TestIsEomfileValid_InvalidSourceCode(t *testing.T) {
-	if unsupportedSourceCodeCompoundStory.IsValid(testExtValEndpoint, "", "", "") {
-		t.Error("Eomfile with unsupported source code marked as valid")
-	}
-}
-
-func TestIsEomfileValid_ExternalValidationTrue_ValidImage(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer ts.Close()
-
-	if !validImage.IsValid(ts.URL, "", "", "") {
-		t.Error("Valid Image marked as invalid!")
-	}
-}
-
-func TestIsEomfileValid_ExternalValidationFalse_InvalidImage(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(422)
-	}))
-	defer ts.Close()
-
-	if invalidImage.IsValid(ts.URL, "", "", "") {
-		t.Error("Invalid Image marked as valid!")
-	}
-}
-
-func TestIsEomfileValid_ExternalValidationTrue_ValidCompoundStory(t *testing.T) {
+func TestIsEomfileValid_ExternalValidationTrue_Valid(t *testing.T) {
 	txId := "1234"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "tid_pam_"+txId, r.Header.Get("X-Request-Id"), "transaction id")
+		assert.Equal(t, "/content-transform", r.RequestURI, "Invalid external validation URL")
 		//return OK
 	}))
 	defer ts.Close()
-	if !validCompoundStory.IsValid(ts.URL, "tid_"+txId, "", "") {
+	if !validCompoundStory.IsValid(ts.URL+"/content-transform", "tid_"+txId, "", "") {
 		t.Error("Valid CompoundStory marked as invalid!")
 	}
 }
 
-func TestIsEomfileValid_ExternalValidationFalse_InvalidCompountStory(t *testing.T) {
+func TestIsEomfileValid_ExternalValidationFalseStatusCode418_Invalid(t *testing.T) {
 	txId := "invalidstory"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "tid_pam_"+txId, r.Header.Get("X-Request-Id"), "transaction id")
+		assert.Equal(t, "/content-transform", r.RequestURI, "Invalid external validation URL")
 		w.WriteHeader(ImATeapot)
 	}))
 	defer ts.Close()
-	if validCompoundStory.IsValid(ts.URL, "tid_"+txId, "", "") {
+	if validCompoundStory.IsValid(ts.URL+"/content-transform", "tid_"+txId, "", "") {
 		t.Error("Valid CompoundStory regarded as invalid by external validation marked as valid!")
 	}
 }
 
-func TestIsEomfileValid_ExternalValidationFalse_InvalidCompountStoryContentPlacehlder(t *testing.T) {
+func TestIsEomfileValid_ExternalValidationFalseStatusCode422_Invalid(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/map", r.RequestURI, "Invalid external validation URL")
 		w.WriteHeader(UnprocessableEntity)
 	}))
 	defer ts.Close()
-	if validCompoundStory.IsValid(ts.URL, "", "", "") {
+	if validCompoundStory.IsValid(ts.URL+"/map", "", "", "") {
 		t.Error("Valid CompoundStory regarded as invalid by external validation marked as valid!")
-	}
-}
-
-func TestIsEomfileValid_ExternalValidationTrue_ValidStory(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//return OK
-	}))
-
-	if !validStory.IsValid(ts.URL, "", "", "") {
-		t.Error("Valid Story marked as invalid!")
-	}
-}
-
-func TestIsEomfileValid_ExternalValidationFalse_ValidStory(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(ImATeapot)
-	}))
-
-	if validStory.IsValid(ts.URL, "", "", "") {
-		t.Error("Valid Story regarded as invalid by external validation marked as valid!")
-	}
-}
-
-func TestIsEomfileValid_ExternalValidationSucceeds_ValidList(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	if !webContainerEomFile.IsValid(ts.URL, "", "", "") {
-		t.Error("Valid WebContainer regarded as invalid")
-	}
-}
-
-func TestIsEomfileValid_ExternalValidationFalse_InvalidList(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(ImATeapot)
-	}))
-
-	if webContainerEomFile.IsValid(ts.URL, "", "", "") {
-		t.Error("Invalid WebContainer regarded as valid")
-	}
-}
-
-func TestHasTitle_ValidTitle(t *testing.T) {
-	if !hasTitle(eomfileWithTitle) {
-		t.Error("Eom File with title marked as invalid!")
-	}
-}
-
-func TestHasTitle_invalidTitle(t *testing.T) {
-	if hasTitle(eomfileWithoutTitle) {
-		t.Error("Eom File without title marked as valid!")
-	}
-}
-
-func TestIsSupportedChannel_CompoundStoryWebChannel(t *testing.T) {
-	var validChannelEomFile = EomFile{
-		UUID:             validUUID,
-		Type:             "EOM::CompoundStory",
-		Value:            "bar",
-		Attributes:       "attributes",
-		SystemAttributes: systemAttributesWebChannel,
-	}
-
-	if !isSupportedChannel(validChannelEomFile) {
-		t.Error("Eom File with valid channel  marked as invalid!")
-	}
-}
-
-func TestIsSupportedChannel_CompoundStoryFTChannel(t *testing.T) {
-	var invalidChannelEomFile = EomFile{
-		UUID:             validUUID,
-		Type:             "EOM::CompoundStory",
-		Value:            "bar",
-		Attributes:       "attributes",
-		SystemAttributes: systemAttributesFTChannel,
-	}
-
-	if isSupportedChannel(invalidChannelEomFile) {
-		t.Error("Eom File with invalid channel  marked as valid!")
-	}
-}
-
-func TestIsSupportedChannel_CompoundStoryInvalidChannel(t *testing.T) {
-	var invalidChannelEomFile = EomFile{
-		UUID:             validUUID,
-		Type:             "EOM::CompoundStory",
-		Value:            "bar",
-		Attributes:       "attributes",
-		SystemAttributes: systemAttributesInvalidChannel,
-	}
-
-	if isSupportedChannel(invalidChannelEomFile) {
-		t.Error("Eom File with invalid channel  marked as valid!")
-	}
-}
-
-func TestIsSupportedChannel_StoryWebChannel(t *testing.T) {
-	var validChannelEomFile = EomFile{
-		UUID:             validUUID,
-		Type:             "EOM::Story",
-		Value:            "bar",
-		Attributes:       "attributes",
-		SystemAttributes: systemAttributesWebChannel,
-	}
-
-	if !isSupportedChannel(validChannelEomFile) {
-		t.Error("Eom File with valid channel  marked as invalid!")
-	}
-}
-
-func TestIsSupportedChannel_StoryFTChannel(t *testing.T) {
-	var validChannelEomFile = EomFile{
-		UUID:             validUUID,
-		Type:             "EOM::Story",
-		Value:            "bar",
-		Attributes:       "attributes",
-		SystemAttributes: systemAttributesFTChannel,
-	}
-
-	if !isSupportedChannel(validChannelEomFile) {
-		t.Error("Eom File with valid channel  marked as invalid!")
-	}
-}
-
-func TestIsSupportedChannel_StoryInvalidChannel(t *testing.T) {
-	var invalidChannelEomFile = EomFile{
-		UUID:             validUUID,
-		Type:             "EOM::Story",
-		Value:            "bar",
-		Attributes:       "attributes",
-		SystemAttributes: systemAttributesInvalidChannel,
-	}
-
-	if isSupportedChannel(invalidChannelEomFile) {
-		t.Error("Eom File with invalid channel  marked as valid!")
-	}
-}
-
-func TestIsSupportedFileType_SupportedType(t *testing.T) {
-	if !isSupportedFileType(supportedEomFile) {
-		t.Error("Eom File with supported filetype marked as invalid!")
-	}
-}
-
-func TestIsSupportedFileType_UnupportedType(t *testing.T) {
-	if isSupportedFileType(unsupportedEomFile) {
-		t.Error("Eom File with unsupported filetype marked as valid!")
-	}
-}
-
-func TestIsSupportedSourceCode_CompoundStory_SupportedCode(t *testing.T) {
-	if !isSupportedCompoundStorySourceCode(supportedSourceCodeCompoundStory) {
-		t.Error("Compound story with supported source code marked as invalid!")
-	}
-}
-
-func TestIsSupportedSourceCode_ContentplaceHolderCompoundStory_SupportedCode(t *testing.T) {
-	if !isSupportedCompoundStorySourceCode(contentplaceHolderCompoundStory) {
-		t.Error("Compound story with supported source code marked as invalid!")
-	}
-}
-
-func TestIsSupportedSourceCodes_Story_SupportedCode(t *testing.T) {
-	if !isSupportedStorySourceCode(supportedSourceCodeStory) {
-		t.Error("Story with supported source code marked as invalid!")
-	}
-}
-
-func TestIsSupportedSourceCode_CompoundStory_UnsupportedCode(t *testing.T) {
-	if isSupportedCompoundStorySourceCode(unsupportedSourceCodeCompoundStory) {
-		t.Error("Story with unsupported source code marked as valid!")
-	}
-}
-
-func TestIsSupportedSourceCode_Story_UnsupportedCode(t *testing.T) {
-	if isSupportedStorySourceCode(unsupportedSourceCodeStory) {
-		t.Error("Compound story with unsupported source code marked as valid!")
 	}
 }
 
@@ -278,107 +106,22 @@ var eomfileWithInvalidUUID = EomFile{
 	SystemAttributes: "systemAttributes",
 }
 
-var validImage = EomFile{
-	UUID:             validUUID,
-	Type:             "Image",
-	Value:            "/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr",
-	Attributes:       "attributes",
-	SystemAttributes: "systemAttributes",
-}
-
-var invalidImage = EomFile{
-	UUID:             validUUID,
-	Type:             "Image",
-	Value:            "invalid image",
-	Attributes:       "attributes",
-	SystemAttributes: "systemAttributes",
-}
-
 var validCompoundStory = EomFile{
 	UUID:             validUUID,
 	Type:             "EOM::CompoundStory",
+	ContentType:      "EOM::CompoundStory",
 	Value:            contentWithHeadline,
 	Attributes:       validFileTypeAttributes,
 	SystemAttributes: systemAttributesWebChannel,
 }
 
-var validStory = EomFile{
+var validCompoundStory_ContentPlaceholder = EomFile{
 	UUID:             validUUID,
-	Type:             "EOM::Story",
+	Type:             "EOM::CompoundStory_ContentPlaceholder",
+	ContentType:      "EOM::CompoundStory",
 	Value:            contentWithHeadline,
-	Attributes:       supportedSourceCodeAttributes,
-	SystemAttributes: systemAttributesWebChannel,
-}
-
-var eomfileWithTitle = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::CompoundStory",
-	Value:            contentWithHeadline,
-	Attributes:       "attributes",
-	SystemAttributes: "systemAttributes",
-}
-
-var eomfileWithoutTitle = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::CompoundStory",
-	Value:            contentWithoutHeadline,
-	Attributes:       "attributes",
-	SystemAttributes: "systemAttributes",
-}
-
-var supportedSourceCodeCompoundStory = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::CompoundStory",
-	Value:            "bar",
-	Attributes:       supportedSourceCodeAttributes,
-	SystemAttributes: "systemAttributes",
-}
-
-var contentplaceHolderCompoundStory = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::CompoundStory",
-	Value:            "bar",
-	Attributes:       supportedSourceCodeAttributesContentPlaceholder,
-	SystemAttributes: "systemAttributes",
-}
-
-var supportedSourceCodeStory = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::Story",
-	Value:            "value",
-	Attributes:       supportedSourceCodeAttributes,
-	SystemAttributes: "systemAttributes",
-}
-
-var unsupportedSourceCodeCompoundStory = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::CompoundStory",
-	Value:            "bar",
-	Attributes:       unsupportedSourceCodeAttributes,
-	SystemAttributes: "systemAttributes",
-}
-
-var unsupportedSourceCodeStory = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::Story",
-	Value:            "bar",
-	Attributes:       unsupportedSourceCodeAttributes,
-	SystemAttributes: "systemAttributes",
-}
-var supportedEomFile = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::CompoundStory",
-	Value:            "bar",
 	Attributes:       validFileTypeAttributes,
-	SystemAttributes: "system attributes",
-}
-
-var unsupportedEomFile = EomFile{
-	UUID:             validUUID,
-	Type:             "EOM::CompoundStory",
-	Value:            "bar",
-	Attributes:       invalidFileTypeAttributes,
-	SystemAttributes: "system attributes",
+	SystemAttributes: systemAttributesWebChannel,
 }
 
 func TestIsMarkedDeleted_CompoundStory_True(t *testing.T) {
@@ -415,6 +158,18 @@ func TestIsMarkedDeleted_WebContainer(t *testing.T) {
 	if webContainerEomFile.IsMarkedDeleted() {
 		t.Error("Expected False, the webContainer IS NOT marked deleted")
 	}
+}
+
+func TestIsNotGoingToMarshallInternalApplicationFieldOfEomFile(t *testing.T) {
+	expectedJSON := loadBytesForFile(t, "methode_article.json")
+	var methodeArticle EomFile
+	err := json.Unmarshal(expectedJSON, &methodeArticle)
+	if err != nil {
+		t.Error(err)
+	}
+	actualJSON, err := json.Marshal(methodeArticle)
+	assert.NoError(t, err, "No errors in marshalling")
+	assert.JSONEq(t, string(expectedJSON), string(actualJSON), "The internal fields should not appear")
 }
 
 var compoundStoryMarkedDeletedTrue = EomFile{
