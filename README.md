@@ -5,10 +5,12 @@
 Monitors publish availability and collects related metrics. Collected metrics are sent to various systems (ex. Splunk).
 
 # Usage
-`go get github.com/Financial-Times/publish-availability-monitor`
-
-`publish-availability-monitor -config=int-config.json`
-
+```
+go get -u github.com/kardianos/govendor
+go get github.com/Financial-Times/publish-availability-monitor
+govendor sync
+publish-availability-monitor -config=int-config.json
+```
 With Docker:
 
 `docker build -t coco/publish-availability-monitor .`
