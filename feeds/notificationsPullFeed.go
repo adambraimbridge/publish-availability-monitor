@@ -104,10 +104,13 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 }
 
 func (f *NotificationsPullFeed) buildNotificationsURL() string {
-	q := url.Values{}
-	q.Add("since", f.sinceDate)
+	baseURL, _ := url.Parse(f.baseUrl)
 
-	return f.baseUrl + "?" + q.Encode()
+	q := baseURL.Query()
+	q.Add("since", f.sinceDate)
+	baseURL.RawQuery = q.Encode()
+
+	return baseURL.String()
 }
 
 func (f *NotificationsPullFeed) buildNotificationsTxId() string {
