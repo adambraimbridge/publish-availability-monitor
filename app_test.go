@@ -39,10 +39,10 @@ func TestIsIgnorableMessageForMessagesToIgnore(t *testing.T) {
 		t.Error("Synthetic message marked as normal")
 	}
 	if !isIgnorableMessage(carouselRepublishTID) {
-		t.Error("Courousel republish message marked as normal")
+		t.Error("Carousel republish message marked as normal")
 	}
 	if !isIgnorableMessage(carouselGeneratedTID) {
-		t.Error("Courousel generated message marked as normal")
+		t.Error("Carousel generated message marked as normal")
 	}
 }
 
