@@ -34,7 +34,7 @@ func TestIsIgnorableMessage_naturalMessage(t *testing.T) {
 	}
 }
 
-func TestIsIgnorableMessage_syntheticMessage(t *testing.T) {
+func TestIsIgnorableMessageForMessagesToIgnore(t *testing.T) {
 	if !isIgnorableMessage(syntheticTID) {
 		t.Error("Synthetic message marked as normal")
 	}
