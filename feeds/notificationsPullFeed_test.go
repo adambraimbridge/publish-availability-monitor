@@ -96,6 +96,21 @@ func mockNotificationsResponseFor(sinceDate string, notifications string, nextSi
 		}`, sinceDate, notifications, nextSinceDate)
 }
 
+func TestBuiltNotificationsPullURLIsCorrect(t *testing.T) {
+	baseUrl, _ := url.Parse("http://www.example.org?type=all")
+	sinceDate := "2016-10-28T15:00:00.000Z"
+	f := NewNotificationsFeed("notifications", baseUrl, sinceDate, 10, 1, "", "")
+
+	actual := f.(*NotificationsPullFeed).buildNotificationsURL()
+
+	uri, err := url.Parse(actual)
+	assert.NoError(t, err)
+	assert.Equal(t, "all", uri.Query().Get("type"))
+	assert.Equal(t, sinceDate, uri.Query().Get("since"))
+	assert.Equal(t, "www.example.org", uri.Host)
+	assert.Equal(t, "http", uri.Scheme)
+}
+
 func TestNotificationsArePolled(t *testing.T) {
 	uuid := "1cb14245-5185-4ed5-9188-4d2a86085599"
 	publishRef := "tid_0123wxyz"
@@ -106,12 +121,9 @@ func TestNotificationsArePolled(t *testing.T) {
 
 	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(200, notifications))
 
-	baseUrl, _ := url.Parse("http://www.example.org?example=false")
+	baseUrl, _ := url.Parse("http://www.example.org?type=all")
 	sinceDate := "2016-10-28T15:00:00.000Z"
 	f := NewNotificationsFeed("notifications", baseUrl, sinceDate, 10, 1, "", "")
-
-	uri := f.(*NotificationsPullFeed).buildNotificationsURL()
-	assert.Equal(t, "http://www.example.org?example=false&since=2016-10-28T15%3A00%3A00.000Z", uri)
 
 	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
 	f.Start()
