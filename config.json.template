@@ -84,7 +84,7 @@
       "alias": "internal-components",
       "health": "/__document-store-api/__health",
       "contentTypes": [
-         "EOM::CompoundStory"
+         "InternalComponents"
       ]
    }
 ],
@@ -100,6 +100,6 @@
    "EOM::Story": "METHODE_ARTICLE_VALIDATION_URL",
    "EOM::WebContainer": "METHODE_LIST_VALIDATION_URL",
    "Image": "METHODE_IMAGE_MODEL_MAPPER_URL",
-   "InternalContent": "METHODE_ARTICLE_INTERNAL_COMPONENTS_MAPPER_URL"
+   "InternalComponents": "METHODE_ARTICLE_INTERNAL_COMPONENTS_MAPPER_URL"
 }
 }

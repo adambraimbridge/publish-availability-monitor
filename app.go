@@ -241,18 +241,7 @@ func handleMessage(msg consumer.Message) {
 		return
 	}
 
-	hasInternalComponents := false
-	// if this is normal content, find out if internal components are present
-	if publishedContent.GetType() == "EOM::CompoundStory" {
-		//make a call to methode-article-internal-components-mapper to see if exists on the article
-		var internalComponentsValidationEndpoint = appConfig.ValidationEndpoints["InternalContent"]
-		var usr, pass = getValidationCredentials(internalComponentsValidationEndpoint)
-		if publishedContent.IsValid(internalComponentsValidationEndpoint, tid, usr, pass) {
-			hasInternalComponents = true
-		}
-	}
-
-	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted(), hasInternalComponents, &metricContainer, environments)
+	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted(), &metricContainer, environments)
 
 	// for images we need to check their corresponding image sets
 	// the image sets don't have messages of their own so we need to create one
@@ -264,7 +253,24 @@ func handleMessage(msg consumer.Message) {
 		}
 		imageSetEomFile := spawnImageSet(eomFile)
 		if imageSetEomFile.UUID != "" {
-			scheduleChecks(imageSetEomFile, publishDate, tid, false, false, &metricContainer, environments)
+			scheduleChecks(imageSetEomFile, publishDate, tid, false, &metricContainer, environments)
+		}
+	}
+
+	// if this is normal content, find out if internal components are present
+	if publishedContent.GetType() == "EOM::CompoundStory" {
+		var internalComponentsValidationEndpoint = appConfig.ValidationEndpoints["InternalComponents"]
+		var usr, pass = getValidationCredentials(internalComponentsValidationEndpoint)
+
+		//make a call to methode-article-internal-components-mapper to see if exists on the article
+		if publishedContent.IsValid(internalComponentsValidationEndpoint, tid, usr, pass) {
+			eomFileWithInternalComponents, ok := publishedContent.(content.EomFile)
+			if !ok {
+				errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
+				return
+			}
+			eomFileWithInternalComponents.Type = "InternalComponents"
+			scheduleChecks(eomFileWithInternalComponents, publishDate, tid, false, &metricContainer, environments)
 		}
 	}
 }
