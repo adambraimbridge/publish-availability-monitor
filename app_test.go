@@ -38,10 +38,10 @@ func TestIsIgnorableMessage_syntheticMessage(t *testing.T) {
 	if !isIgnorableMessage(syntheticTID) {
 		t.Error("Synthetic message marked as normal")
 	}
-	if !isIgnorableMessage(caruoselRepublishTID) {
+	if !isIgnorableMessage(carouselRepublishTID) {
 		t.Error("Courousel republish message marked as normal")
 	}
-	if !isIgnorableMessage(caruoselGeneratedTID) {
+	if !isIgnorableMessage(carouselGeneratedTID) {
 		t.Error("Courousel generated message marked as normal")
 	}
 }
@@ -83,8 +83,8 @@ func TestGetValidationEndpointKey_Story(t *testing.T) {
 
 const threshold = 120
 const syntheticTID = "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd"
-const caruoselRepublishTID = "tid_ofcysuifp0_carousel_1488384556"
-const caruoselGeneratedTID = "tid_ofcysuifp0_carousel_1488384556_gentx"
+const carouselRepublishTID = "tid_ofcysuifp0_carousel_1488384556"
+const carouselGeneratedTID = "tid_ofcysuifp0_carousel_1488384556_gentx"
 const naturalTID = "tid_xltcnbckvq"
 const testUuid = "uuid"
 
