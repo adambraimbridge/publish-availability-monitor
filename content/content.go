@@ -6,13 +6,14 @@ import (
 	"log"
 	"os"
 
+	"encoding/xml"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/checks"
 )
 
 // Content is the interface for different type of contents from different CMSs.
 type Content interface {
-	IsValid(externalValidationEndpoint string, txId string, username string, password string) bool
+	IsValid(externalValidationEndpoint string, txID string, username string, password string) bool
 	IsMarkedDeleted() bool
 	GetType() string
 	GetUUID() string
@@ -20,7 +21,6 @@ type Content interface {
 
 const systemIDKey = "Origin-System-Id"
 
-const dateLayout = "2006-01-02T15:04:05.000Z"
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
 var infoLogger *log.Logger
@@ -41,11 +41,18 @@ func init() {
 // UnmarshalContent unmarshals the message body into the appropriate content type based on the systemID header.
 func UnmarshalContent(msg consumer.Message) (Content, error) {
 	headers := msg.Headers
+
 	systemID := headers[systemIDKey]
 	switch systemID {
 	case "http://cmdb.ft.com/systems/methode-web-pub":
 		var eomFile EomFile
+
 		err := json.Unmarshal([]byte(msg.Body), &eomFile)
+		if err != nil {
+			return nil, err
+		}
+		xml.Unmarshal([]byte(eomFile.Attributes), &eomFile.Source)
+		eomFile = eomFile.initType()
 		return eomFile, err
 	case "http://cmdb.ft.com/systems/wordpress":
 		var wordPressMsg WordPressMessage
