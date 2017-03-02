@@ -42,6 +42,14 @@ var validImageEomFile = content.EomFile{
 	SystemAttributes: "system attributes",
 }
 
+var mockArticleEomFile = content.EomFile{
+	UUID:             "a24da1d4-1524-2322-c231-25032d0f8334",
+	Type:             "EOM:CompoundStory",
+	Value:            "/9j/4QAYRXhpZgAASUkqAAgAAAAAAAAAAAAAAP/sABFEdWNr",
+	Attributes:       "attributes",
+	SystemAttributes: "system attributes",
+}
+
 func TestScheduleChecksForS3AreCorrect(testing *testing.T) {
 	//redefine appConfig to have only S3
 	appConfig = &AppConfig{
@@ -121,8 +129,8 @@ func TestScheduleChecksForContentWithInternalComponentsAreCorrect(testing *testi
 	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
 
 	defer tearDown()
-	validImageEomFile.Type = "InternalComponents"
-	capturingMetrics := runScheduleChecks(testing, validImageEomFile, mockEnvironments)
+	mockArticleEomFile.Type = "InternalComponents"
+	capturingMetrics := runScheduleChecks(testing, mockArticleEomFile, mockEnvironments)
 	defer capturingMetrics.RUnlock()
 
 	require.NotNil(testing, capturingMetrics)

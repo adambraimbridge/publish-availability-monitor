@@ -257,21 +257,26 @@ func handleMessage(msg consumer.Message) {
 		}
 	}
 
-	// if this is normal content, find out if internal components are present
+	// if this is normal content, schedule checks for internal components also
 	if publishedContent.GetType() == "EOM::CompoundStory" {
+		eomFileForInternalComponentsCheck, ok := publishedContent.(content.EomFile)
+		if !ok {
+			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
+			return
+		}
+		eomFileForInternalComponentsCheck.Type = "InternalComponents"
+
 		var internalComponentsValidationEndpoint = appConfig.ValidationEndpoints["InternalComponents"]
 		var usr, pass = getValidationCredentials(internalComponentsValidationEndpoint)
 
-		//make a call to methode-article-internal-components-mapper to see if exists on the article
-		if publishedContent.IsValid(internalComponentsValidationEndpoint, tid, usr, pass) {
-			eomFileWithInternalComponents, ok := publishedContent.(content.EomFile)
-			if !ok {
-				errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
-				return
-			}
-			eomFileWithInternalComponents.Type = "InternalComponents"
-			scheduleChecks(eomFileWithInternalComponents, publishDate, tid, false, &metricContainer, environments)
+		// make a call to methode-article-internal-components-mapper to see if internal
+		// components are present on the article
+		var isMissingFromArticle bool
+		if !publishedContent.IsValid(internalComponentsValidationEndpoint, tid, usr, pass) {
+			isMissingFromArticle = true;
 		}
+
+		scheduleChecks(eomFileForInternalComponentsCheck, publishDate, tid, isMissingFromArticle, &metricContainer, environments)
 	}
 }
 
