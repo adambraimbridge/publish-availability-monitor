@@ -101,7 +101,7 @@ var contentplaceHolderCompoundStory = content.EomFile{
 var supportedSourceCodeStory = content.EomFile{
 	UUID:             testUuid,
 	Type:             "EOM::Story",
-	ContentType:      "EOM::CompoundStory",
+	ContentType:      "EOM::Story",
 	Value:            "value",
 	Attributes:       supportedSourceCodeAttributes,
 	SystemAttributes: "systemAttributes",
