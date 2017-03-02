@@ -273,7 +273,7 @@ func handleMessage(msg consumer.Message) {
 		// components are present on the article
 		var isMissingFromArticle bool
 		if !publishedContent.IsValid(internalComponentsValidationEndpoint, tid, usr, pass) {
-			isMissingFromArticle = true;
+			isMissingFromArticle = true
 		}
 
 		scheduleChecks(eomFileForInternalComponentsCheck, publishDate, tid, isMissingFromArticle, &metricContainer, environments)

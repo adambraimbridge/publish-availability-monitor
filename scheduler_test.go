@@ -128,17 +128,14 @@ func TestScheduleChecksForContentWithInternalComponentsAreCorrect(testing *testi
 	s3URL := "http://s1.example.org"
 	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
 
-	defer tearDown()
 	mockArticleEomFile.Type = "InternalComponents"
+
 	capturingMetrics := runScheduleChecks(testing, mockArticleEomFile, mockEnvironments)
 	defer capturingMetrics.RUnlock()
 
 	require.NotNil(testing, capturingMetrics)
 	require.Equal(testing, 1, len(capturingMetrics.publishMetrics))
-
-	var endpointsChecked [1]string
-	endpointsChecked[0] = capturingMetrics.publishMetrics[0].endpoint.String()
-	require.Contains(testing, endpointsChecked, readURL+"/internalcomponents/")
+	require.Equal(testing, readURL+"/internalcomponents/", capturingMetrics.publishMetrics[0].endpoint.String())
 }
 
 func runScheduleChecks(testing *testing.T, content content.Content, mockEnvironments map[string]Environment) *publishHistory {
@@ -165,8 +162,4 @@ func runScheduleChecks(testing *testing.T, content content.Content, mockEnvironm
 		capturingMetrics.RUnlock()
 		time.Sleep(1 * time.Second)
 	}
-}
-
-func tearDown() {
-	validImageEomFile.Type = "Image"
 }
