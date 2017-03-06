@@ -313,7 +313,7 @@ func isSyntheticTransactionID(tid string) bool {
 	return strings.HasPrefix(tid, "SYNTHETIC")
 }
 
-var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[\S]+)_carousel_[\d]{10}.*$`)
+var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[a-zA-Z0-9]+)_carousel_[\d]{10}.*$`)
 
 func isContentCarouselTransactionID(tid string) bool {
 	return carouselTransactionIDRegExp.MatchString(tid)
