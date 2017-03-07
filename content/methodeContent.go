@@ -48,7 +48,7 @@ func (eomfile EomFile) Validate(externalValidationEndpoint string, txID string, 
 	contentUUID := eomfile.UUID
 	if !isUUIDValid(contentUUID) {
 		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]. transaction_id=[%s]", contentUUID, txID)
-		return false
+		return ValidationResponse{IsValid:false}
 	}
 
 	isValid, statusCode := isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txID, username, password)
@@ -80,12 +80,12 @@ func (eomfile EomFile) GetUUID() string {
 func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txID, username string, password string) (bool, int) {
 	if validationURL == "" {
 		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", eomfile.UUID, txID, eomfile.Type)
-		return false, nil
+		return false, 0
 	}
 	marshalled, err := json.Marshal(eomfile)
 	if err != nil {
 		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txID, err)
-		return true, nil
+		return true, 0
 	}
 
 	resp, err := httpCaller.DoCallWithEntity(
@@ -96,7 +96,7 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txID,
 
 	if err != nil {
 		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txID, err)
-		return true, nil
+		return true, 0
 	}
 	defer cleanupResp(resp)
 
@@ -106,14 +106,13 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txID,
 	if err != nil {
 		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", eomfile.UUID, txID, err)
 	}
-	if resp.StatusCode != 200 {
+
+	if resp.StatusCode != http.StatusOK {
 		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", eomfile.UUID, txID, string(bs))
 	}
-	if resp.StatusCode == 418 {
-		return false, resp.StatusCode
-	}
-	//invalid  contentplaceholder (link file) will not be published so do not monitor
-	if resp.StatusCode == 422 {
+
+	// 422 invalid  contentplaceholder (link file) will not be published so do not monitor
+	if resp.StatusCode == http.StatusUnprocessableEntity || resp.StatusCode == http.StatusTeapot {
 		return false, resp.StatusCode
 	}
 

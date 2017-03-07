@@ -221,7 +221,8 @@ func handleMessage(msg consumer.Message) {
 		username, password = getValidationCredentials(validationEndpoint)
 	}
 
-	if !publishedContent.IsValid(validationEndpoint, tid, username, password) {
+	valRes := publishedContent.Validate(validationEndpoint, tid, username, password)
+	if !valRes.IsValid {
 		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return
 	}
@@ -241,7 +242,7 @@ func handleMessage(msg consumer.Message) {
 		return
 	}
 
-	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted(), &metricContainer, environments)
+	scheduleChecks(publishedContent, publishDate, tid, valRes.IsMarkedDeleted, &metricContainer, environments)
 
 	// for images we need to check their corresponding image sets
 	// the image sets don't have messages of their own so we need to create one
@@ -269,14 +270,13 @@ func handleMessage(msg consumer.Message) {
 		var internalComponentsValidationEndpoint = appConfig.ValidationEndpoints["InternalComponents"]
 		var usr, pass = getValidationCredentials(internalComponentsValidationEndpoint)
 
-		// make a call to methode-article-internal-components-mapper to see if internal
-		// components are present on the article
-		var isMissingFromArticle bool
-		if !publishedContent.IsValid(internalComponentsValidationEndpoint, tid, usr, pass) {
-			isMissingFromArticle = true
+		icValRes := publishedContent.Validate(internalComponentsValidationEndpoint, tid, usr, pass)
+		if !icValRes.IsValid {
+			infoLogger.Printf("Message [%v] with UUID [%v] has INVALID internal components, skipping internal components schedule check.", tid, uuid)
+			return
 		}
 
-		scheduleChecks(eomFileForInternalComponentsCheck, publishDate, tid, isMissingFromArticle, &metricContainer, environments)
+		scheduleChecks(eomFileForInternalComponentsCheck, publishDate, tid, icValRes.IsMarkedDeleted, &metricContainer, environments)
 	}
 }
 
