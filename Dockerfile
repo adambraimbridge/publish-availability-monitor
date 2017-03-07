@@ -1,11 +1,10 @@
-FROM alpine:3.4
+FROM alpine:3.5
 
 COPY . /source
 ADD config.json.template /config.json
 ADD startup.sh /
 
-RUN apk update \
-  && apk add bash git bzr go ca-certificates \
+RUN apk --update add git go libc-dev bzr ca-certificates \
   && cd /source/ \
   && BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo." \
   && VERSION="version=$(git describe --tag --always 2> /dev/null)" \
@@ -22,9 +21,8 @@ RUN apk update \
   && cd $GOPATH/src/${REPO_PATH} \
   && go get -t -d -v ./... \
   && go build -ldflags="${LDFLAGS}" \
-  && go test ./... \
   && mv publish-availability-monitor / \
-  && apk del go git bzr \
+  && apk del git go libc-dev bzr \
   && rm -rf /source $GOPATH /var/cache/apk/*
 
 CMD [ "/startup.sh" ]

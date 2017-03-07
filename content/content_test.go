@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUnmarshalContent_ValidMessageMethodeSystemHeader_NoError(t *testing.T) {
@@ -86,6 +87,48 @@ func TestUnmarshalContent_InvalidVideoMessage(t *testing.T) {
 	}
 }
 
+func TestUnmarshalContent_ContentIsMethodeList_LinkedObjectsFieldIsMarshalled(t *testing.T) {
+	var validMethodeListMessage = consumer.Message{
+		Headers: map[string]string{
+			"Origin-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
+		},
+		Body: string(loadBytesForFile(t, "methode_list.json")),
+	}
+	content, err := UnmarshalContent(validMethodeListMessage)
+	if err != nil {
+		t.Errorf("Expected success, but error occured [%v]", err)
+		return
+	}
+	methodeContent, ok := content.(EomFile)
+	if !ok {
+		t.Error("Expected Methode list to be an EomFile")
+	}
+	if len(methodeContent.LinkedObjects) == 0 {
+		t.Error("Expected list to have several linked objects, but parsed none")
+	}
+}
+
+func TestUnmarshalContent_ContentIsMethodeArticle_LinkedObjectsFieldIsEmpty(t *testing.T) {
+	var validMethodeListMessage = consumer.Message{
+		Headers: map[string]string{
+			"Origin-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
+		},
+		Body: string(loadBytesForFile(t, "methode_article.json")),
+	}
+	content, err := UnmarshalContent(validMethodeListMessage)
+	if err != nil {
+		t.Errorf("Expected success, but error occured [%v]", err)
+		return
+	}
+	methodeContent, ok := content.(EomFile)
+	if !ok {
+		t.Error("Expected Methode article to be an EomFile")
+	}
+	if len(methodeContent.LinkedObjects) != 0 {
+		t.Error("Expected article to have zero linked objects, but found several")
+	}
+}
+
 func TestIsUUIDValid_UUIDValid(t *testing.T) {
 	if !isUUIDValid(validUUID) {
 		t.Error("Valid UUID marked as invalid!")
@@ -96,6 +139,16 @@ func TestIsUUIDValid_UUIDInvalid(t *testing.T) {
 	if isUUIDValid(invalidUUID) {
 		t.Error("Invalid UUID marked as valid!")
 	}
+}
+
+func TestIsValidContentPlaceholder(t *testing.T) {
+	content, err := UnmarshalContent(validContentPlaceholder)
+	if err != nil {
+		t.Error("Expected failure")
+		return
+	}
+	assert.Equal(t, "EOM::CompoundStory_ContentPlaceholder", content.GetType())
+
 }
 
 const validUUID = "e28b12f7-9796-3331-b030-05082f0b8157"
@@ -181,5 +234,16 @@ var invalidVideoMsg = consumer.Message{
 	Body: `{
 		"uuid": "e28b12f7-9796-3331-b030-05082f0b8157",
 		"something_else": "something else"
+	}`,
+}
+
+var validContentPlaceholder = consumer.Message{
+	Headers: map[string]string{
+		"Origin-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
+	},
+	Body: `{
+		"uuid": "e28b12f7-9796-3331-b030-05082f0b8157",
+		"type": "EOM::CompoundStory",
+		"attributes": "<ObjectMetadata><EditorialNotes><Sources><Source><SourceCode>ContentPlaceholder</SourceCode></Source></Sources></EditorialNotes></ObjectMetadata>"
 	}`,
 }

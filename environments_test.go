@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,4 +54,13 @@ func TestParseEmptyEtcdValues(t *testing.T) {
 	parseEnvironmentsIntoMap("", "", "", environments)
 
 	assert.Empty(t, environments, "expected an empty map")
+}
+
+func TestBuiltNotificationsPullURLIsCorrect(t *testing.T) {
+	endpoint, _ := url.Parse("http://www.example.org?type=all")
+	sinceDate := "2016-10-28T15:00:00.000Z"
+
+	values := buildNotificationsQueryValues("2016-10-28T15:00:00.000Z", endpoint)
+	assert.Equal(t, "all", values.Get("type"))
+	assert.Equal(t, sinceDate, values.Get("since"))
 }

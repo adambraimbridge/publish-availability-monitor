@@ -120,9 +120,10 @@ func TestNotificationsArePolled(t *testing.T) {
 
 	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(200, notifications, nil))
 
-	baseUrl, _ := url.Parse("http://www.example.org")
+	baseUrl, _ := url.Parse("http://www.example.org?type=all")
 	bootstrapValues := &url.Values{"since": []string{"2016-10-28T15:00:00.000Z"}}
 	f := NewNotificationsFeed("notifications", baseUrl, bootstrapValues, 10, 1, "", "")
+
 	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
 	f.Start()
 	defer f.Stop()
