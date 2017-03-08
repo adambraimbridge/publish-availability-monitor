@@ -68,20 +68,20 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password, txId)
 
 	if err != nil {
-		infoLogger.Printf("error calling notifications %s", notificationsUrl)
+		errorLogger.Printf("error calling notifications %s", notificationsUrl)
 		return
 	}
 	defer cleanupResp(resp)
 
 	if resp.StatusCode != 200 {
-		infoLogger.Printf("Notifications [%s] status NOT OK: [%d]", notificationsUrl, resp.StatusCode)
+		errorLogger.Printf("Notifications [%s] status NOT OK: [%d]", notificationsUrl, resp.StatusCode)
 		return
 	}
 
 	var notifications notificationsResponse
 	err = json.NewDecoder(resp.Body).Decode(&notifications)
 	if err != nil {
-		infoLogger.Printf("Cannot decode json response: [%s]", err.Error())
+		errorLogger.Printf("Cannot decode json response: [%s]", err.Error())
 		return
 	}
 
@@ -102,7 +102,7 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 
 	nextPageUrl, err := url.Parse(notifications.Links[0].Href)
 	if err != nil {
-		infoLogger.Printf("unparseable next url: [%s]", notifications.Links[0].Href)
+		errorLogger.Printf("unparseable next url: [%s]", notifications.Links[0].Href)
 		return // and hope that a retry will fix this
 	}
 

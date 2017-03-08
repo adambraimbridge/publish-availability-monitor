@@ -12,9 +12,11 @@ import (
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
 var infoLogger *log.Logger
+var errorLogger *log.Logger
 
 func init() {
 	infoLogger = log.New(os.Stdout, "INFO  - ", logPattern)
+	errorLogger = log.New(os.Stderr, "ERROR  - ", logPattern)
 }
 
 func NewNotificationsFeed(name string, baseUrl url.URL, expiry int, interval int, username string, password string) Feed {
