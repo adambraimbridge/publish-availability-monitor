@@ -121,8 +121,7 @@ func TestNotificationsArePolled(t *testing.T) {
 	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(200, notifications, nil))
 
 	baseUrl, _ := url.Parse("http://www.example.org?type=all")
-	bootstrapValues := &url.Values{"since": []string{"2016-10-28T15:00:00.000Z"}}
-	f := NewNotificationsFeed("notifications", baseUrl, bootstrapValues, 10, 1, "", "")
+	f := NewNotificationsFeed("notifications", *baseUrl, 10, 1, "", "")
 
 	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
 	f.Start()
@@ -137,8 +136,7 @@ func TestNotificationsArePolled(t *testing.T) {
 
 func TestNotificationsForReturnsEmptyIfNotFound(t *testing.T) {
 	baseUrl, _ := url.Parse("http://www.example.org")
-	bootstrapValues := &url.Values{"since": []string{"2016-10-28T15:00:00.000Z"}}
-	f := NewNotificationsFeed("notifications", baseUrl, bootstrapValues, 10, 1, "", "")
+	f := NewNotificationsFeed("notifications", *baseUrl, 10, 1, "", "")
 
 	response := f.NotificationsFor("1cb14245-5185-4ed5-9188-4d2a86085599")
 	assert.Len(t, response, 0, "notifications for item")
@@ -161,8 +159,7 @@ func TestNotificationsForReturnsAllMatches(t *testing.T) {
 	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(200, notifications1, nil), buildResponse(200, notifications2, nil))
 
 	baseUrl, _ := url.Parse("http://www.example.org")
-	bootstrapValues := &url.Values{"since": []string{"2016-10-28T15:00:00.000Z"}}
-	f := NewNotificationsFeed("notifications", baseUrl, bootstrapValues, 10, 1, "", "")
+	f := NewNotificationsFeed("notifications", *baseUrl, 10, 1, "", "")
 	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
 	f.Start()
 	defer f.Stop()
@@ -185,8 +182,7 @@ func TestNotificationsPollingContinuesAfterErrorResponse(t *testing.T) {
 	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(500, "", nil), buildResponse(200, notifications, nil))
 
 	baseUrl, _ := url.Parse("http://www.example.org")
-	bootstrapValues := &url.Values{"since": []string{"2016-10-28T15:00:00.000Z"}}
-	f := NewNotificationsFeed("notifications", baseUrl, bootstrapValues, 10, 1, "", "")
+	f := NewNotificationsFeed("notifications", *baseUrl, 10, 1, "", "")
 	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
 	f.Start()
 	defer f.Stop()
@@ -208,8 +204,7 @@ func TestNotificationsArePurged(t *testing.T) {
 	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(200, notifications, nil))
 
 	baseUrl, _ := url.Parse("http://www.example.org")
-	bootstrapValues := &url.Values{"since": []string{"2016-10-28T15:00:00.000Z"}}
-	f := NewNotificationsFeed("notifications", baseUrl, bootstrapValues, 1, 1, "", "")
+	f := NewNotificationsFeed("notifications", *baseUrl, 1, 1, "", "")
 	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
 	f.Start()
 	defer f.Stop()
@@ -229,7 +224,7 @@ func TestNotificationsPollingFollowsOpaqueLink(t *testing.T) {
 	uuid1 := "1cb14245-5185-4ed5-9188-4d2a86085599"
 	publishRef1 := "tid_0123wxyz"
 	lastModified1 := time.Now().Add(time.Duration(-1) * time.Second)
-	bootstrapQuery := url.Values{"since": []string{"2016-10-28T15:00:00.000Z"}}
+	bootstrapQuery := url.Values{"since": []string{"any"}}
 	nextPageQuery := url.Values{"page": []string{"12345"}}
 
 	notifications1 := mockNotificationsResponseFor(bootstrapQuery.Encode(),
@@ -243,11 +238,10 @@ func TestNotificationsPollingFollowsOpaqueLink(t *testing.T) {
 		mockNotificationFor(uuid2, publishRef2, lastModified2),
 		"page=xxx")
 
-	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(200, notifications1, &bootstrapQuery), buildResponse(200, notifications2, &nextPageQuery))
+	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(200, notifications1, nil), buildResponse(200, notifications2, &nextPageQuery))
 
 	baseUrl, _ := url.Parse("http://www.example.org")
-	bootstrapValues := &url.Values{"since": []string{"2016-10-28T15:00:00.000Z"}}
-	f := NewNotificationsFeed("notifications", baseUrl, bootstrapValues, 10, 1, "", "")
+	f := NewNotificationsFeed("notifications", *baseUrl, 10, 1, "", "")
 	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
 	f.Start()
 	defer f.Stop()

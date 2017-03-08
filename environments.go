@@ -214,23 +214,13 @@ func configureFeeds(removedEnvs []string) {
 					continue
 				}
 
-				sinceDate := time.Now().Format(time.RFC3339)
-				infoLogger.Printf("since %v", sinceDate)
 				interval := appConfig.Threshold / metric.Granularity
 
-				bootstrapValues := buildNotificationsQueryValues(sinceDate, endpointUrl)
-
-				if f := feeds.NewNotificationsFeed(metric.Alias, endpointUrl, bootstrapValues, appConfig.Threshold, interval, env.Username, env.Password); f != nil {
+				if f := feeds.NewNotificationsFeed(metric.Alias, *endpointUrl, appConfig.Threshold, interval, env.Username, env.Password); f != nil {
 					subscribedFeeds[env.Name] = append(envFeeds, f)
 					f.Start()
 				}
 			}
 		}
 	}
-}
-
-func buildNotificationsQueryValues(since string, endpoint *url.URL) *url.Values {
-	q := endpoint.Query() // ensure endpoint query params are maintained
-	q.Add("since", since)
-	return &q
 }

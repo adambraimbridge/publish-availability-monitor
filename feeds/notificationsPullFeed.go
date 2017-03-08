@@ -2,6 +2,7 @@ package feeds
 
 import (
 	"encoding/json"
+	"net/url"
 	"sync"
 	"time"
 
@@ -12,11 +13,12 @@ const NotificationsPull = "Notifications-Pull"
 
 type NotificationsPullFeed struct {
 	baseNotificationsFeed
-	notificationsUrl     string
-	notificationsUrlLock *sync.Mutex
-	interval             int
-	ticker               *time.Ticker
-	poller               chan struct{}
+	notificationsUrl         string
+	notificationsQueryString string
+	notificationsUrlLock     *sync.Mutex
+	interval                 int
+	ticker                   *time.Ticker
+	poller                   chan struct{}
 }
 
 // ignore unused field (e.g. requestUrl)
@@ -62,16 +64,17 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	defer f.notificationsUrlLock.Unlock()
 
 	txId := f.buildNotificationsTxId()
-	resp, err := f.httpCaller.DoCall(f.notificationsUrl, f.username, f.password, txId)
+	notificationsUrl := f.notificationsUrl + "?" + f.notificationsQueryString
+	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password, txId)
 
 	if err != nil {
-		infoLogger.Printf("error calling notifications %s", f.notificationsUrl)
+		infoLogger.Printf("error calling notifications %s", notificationsUrl)
 		return
 	}
 	defer cleanupResp(resp)
 
 	if resp.StatusCode != 200 {
-		infoLogger.Printf("Notifications [%s] status NOT OK: [%d]", f.notificationsUrl, resp.StatusCode)
+		infoLogger.Printf("Notifications [%s] status NOT OK: [%d]", notificationsUrl, resp.StatusCode)
 		return
 	}
 
@@ -97,7 +100,13 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 		f.notifications[uuid] = history
 	}
 
-	f.notificationsUrl = notifications.Links[0].Href
+	nextPageUrl, err := url.Parse(notifications.Links[0].Href)
+	if err != nil {
+		infoLogger.Printf("unparseable next url: [%s]", notifications.Links[0].Href)
+		return // and hope that a retry will fix this
+	}
+
+	f.notificationsQueryString = nextPageUrl.RawQuery
 }
 
 func (f *NotificationsPullFeed) buildNotificationsTxId() string {
