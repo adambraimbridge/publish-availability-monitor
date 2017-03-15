@@ -214,11 +214,9 @@ func configureFeeds(removedEnvs []string) {
 					continue
 				}
 
-				sinceDate := time.Now().Format(time.RFC3339)
-				infoLogger.Printf("since %v", sinceDate)
 				interval := appConfig.Threshold / metric.Granularity
 
-				if f := feeds.NewNotificationsFeed(metric.Alias, endpointUrl, sinceDate, appConfig.Threshold, interval, env.Username, env.Password); f != nil {
+				if f := feeds.NewNotificationsFeed(metric.Alias, *endpointUrl, appConfig.Threshold, interval, env.Username, env.Password); f != nil {
 					subscribedFeeds[env.Name] = append(envFeeds, f)
 					f.Start()
 				}
