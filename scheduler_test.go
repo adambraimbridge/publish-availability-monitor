@@ -152,7 +152,7 @@ func runScheduleChecks(testing *testing.T, content content.Content, mockEnvironm
 	//redefine metricSink to avoid hang
 	metricSink = make(chan PublishMetric, 2)
 
-	scheduleChecks(content, publishDate, tid, true, capturingMetrics, mockEnvironments)
+	scheduleChecks(&schedulerParam{content, publishDate, tid, true, capturingMetrics, mockEnvironments})
 	for {
 		capturingMetrics.RLock()
 		if len(capturingMetrics.publishMetrics) == len(mockEnvironments) {

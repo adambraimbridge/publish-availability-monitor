@@ -204,12 +204,52 @@ func handleMessage(msg consumer.Message) {
 		return
 	}
 
+	publishDateString := msg.Headers["Message-Timestamp"]
+	publishDate, err := time.Parse(dateLayout, publishDateString)
+	if err != nil {
+		errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
+			publishDateString, tid, err.Error())
+		return
+	}
+
 	publishedContent, err := content.UnmarshalContent(msg)
 	if err != nil {
 		warnLogger.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return
 	}
 
+	var params []*schedulerParam
+
+	ok, param := mainPreCheck(publishedContent, tid, publishDate)
+	if ok {
+		params = append(params, param)
+	} else {
+		//if the main check is not ok, additional checks make no sense
+		return
+	}
+
+	additionalPreChecks := []func(content.Content, string, time.Time) (bool, *schedulerParam){
+		imagePreCheck,
+		internalComponentsPreCheck,
+	}
+
+	for _, check := range additionalPreChecks {
+		ok, param = check(publishedContent, tid, publishDate)
+		if ok {
+			params = append(params, param)
+		}
+	}
+
+	for _, param := range params {
+		scheduleChecks(param)
+	}
+}
+
+func isIgnorableMessage(tid string) bool {
+	return strings.HasPrefix(tid, "SYNTHETIC")
+}
+
+func mainPreCheck(publishedContent content.Content, tid string, publishDate time.Time) (bool, *schedulerParam) {
 	uuid := publishedContent.GetUUID()
 	validationEndpointKey := getValidationEndpointKey(publishedContent, tid, uuid)
 	var validationEndpoint string
@@ -224,70 +264,76 @@ func handleMessage(msg consumer.Message) {
 	valRes := publishedContent.Validate(validationEndpoint, tid, username, password)
 	if !valRes.IsValid {
 		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
-		return
+		return false, nil
 	}
 
 	infoLogger.Printf("Message [%v] with UUID [%v] is VALID.", tid, uuid)
 
-	publishDateString := msg.Headers["Message-Timestamp"]
-	publishDate, err := time.Parse(dateLayout, publishDateString)
-	if err != nil {
-		errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
-			publishDateString, tid, err.Error())
-		return
-	}
-
 	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
 		infoLogger.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
-		return
+		return false, nil
 	}
 
-	scheduleChecks(publishedContent, publishDate, tid, valRes.IsMarkedDeleted, &metricContainer, environments)
-
-	// for images we need to check their corresponding image sets
-	// the image sets don't have messages of their own so we need to create one
-	if publishedContent.GetType() == "Image" {
-		eomFile, ok := publishedContent.(content.EomFile)
-		if !ok {
-			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
-			return
-		}
-		imageSetEomFile := spawnImageSet(eomFile)
-		if imageSetEomFile.UUID != "" {
-			scheduleChecks(imageSetEomFile, publishDate, tid, false, &metricContainer, environments)
-		}
-	}
-
-	// if this is normal content, schedule checks for internal components also
-	if publishedContent.GetType() == "EOM::CompoundStory" {
-		eomFileForInternalComponentsCheck, ok := publishedContent.(content.EomFile)
-		if !ok {
-			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
-			return
-		}
-		eomFileForInternalComponentsCheck.Type = "InternalComponents"
-
-		var internalComponentsValidationEndpoint = appConfig.ValidationEndpoints["InternalComponents"]
-		var usr, pass = getValidationCredentials(internalComponentsValidationEndpoint)
-
-		icValRes := publishedContent.Validate(internalComponentsValidationEndpoint, tid, usr, pass)
-		if !icValRes.IsValid {
-			infoLogger.Printf("Message [%v] with UUID [%v] has INVALID internal components, skipping internal components schedule check.", tid, uuid)
-			return
-		}
-
-		scheduleChecks(eomFileForInternalComponentsCheck, publishDate, tid, icValRes.IsMarkedDeleted, &metricContainer, environments)
-	}
+	return true, &schedulerParam{publishedContent, publishDate, tid, valRes.IsMarkedDeleted, &metricContainer, environments}
 }
 
-func getCredentials(url string) (string, string) {
-	for _, env := range environments {
-		if strings.HasPrefix(url, env.ReadUrl) {
-			return env.Username, env.Password
-		}
+// for images we need to check their corresponding image sets
+// the image sets don't have messages of their own so we need to create one
+func imagePreCheck(publishedContent content.Content, tid string, publishDate time.Time) (bool, *schedulerParam) {
+	if publishedContent.GetType() != "Image" {
+		return false, nil
 	}
 
-	return "", ""
+	eomFile, ok := publishedContent.(content.EomFile)
+	if !ok {
+		errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, publishedContent.GetUUID())
+		return false, nil
+	}
+
+	imageSetEomFile := spawnImageSet(eomFile)
+	if imageSetEomFile.UUID == "" {
+		return false, nil
+	}
+
+	return true, &schedulerParam{imageSetEomFile, publishDate, tid, false, &metricContainer, environments}
+}
+
+// if this is normal content, schedule checks for internal components also
+func internalComponentsPreCheck(publishedContent content.Content, tid string, publishDate time.Time) (bool, *schedulerParam) {
+	if publishedContent.GetType() != "EOM::CompoundStory" {
+		return false, nil
+	}
+
+	eomFileForInternalComponentsCheck, ok := publishedContent.(content.EomFile)
+	if !ok {
+		errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, publishedContent.GetUUID())
+		return false, nil
+	}
+	eomFileForInternalComponentsCheck.Type = "InternalComponents"
+
+	var internalComponentsValidationEndpoint = appConfig.ValidationEndpoints["InternalComponents"]
+	var usr, pass = getValidationCredentials(internalComponentsValidationEndpoint)
+
+	icValRes := publishedContent.Validate(internalComponentsValidationEndpoint, tid, usr, pass)
+	if !icValRes.IsValid {
+		infoLogger.Printf("Message [%v] with UUID [%v] has INVALID internal components, skipping internal components schedule check.", tid, publishedContent.GetUUID())
+		return false, nil
+	}
+
+	return true, &schedulerParam{eomFileForInternalComponentsCheck, publishDate, tid, icValRes.IsMarkedDeleted, &metricContainer, environments}
+}
+
+func getValidationEndpointKey(publishedContent content.Content, tid string, uuid string) string {
+	validationEndpointKey := publishedContent.GetType()
+	if strings.Contains(publishedContent.GetType(), "EOM::CompoundStory") {
+		_, ok := publishedContent.(content.EomFile)
+		if !ok {
+			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
+			return ""
+		}
+
+	}
+	return validationEndpointKey
 }
 
 func getValidationCredentials(url string) (string, string) {
@@ -297,6 +343,11 @@ func getValidationCredentials(url string) (string, string) {
 	}
 
 	return "", ""
+}
+
+func isMessagePastPublishSLA(date time.Time, threshold int) bool {
+	passedSLA := date.Add(time.Duration(threshold) * time.Second)
+	return time.Now().After(passedSLA)
 }
 
 func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
@@ -319,28 +370,6 @@ func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
 
 	imageSetEomFile.UUID = imageSetUUID.String()
 	return imageSetEomFile
-}
-
-func isMessagePastPublishSLA(date time.Time, threshold int) bool {
-	passedSLA := date.Add(time.Duration(threshold) * time.Second)
-	return time.Now().After(passedSLA)
-}
-
-func isIgnorableMessage(tid string) bool {
-	return strings.HasPrefix(tid, "SYNTHETIC")
-}
-
-func getValidationEndpointKey(publishedContent content.Content, tid string, uuid string) string {
-	validationEndpointKey := publishedContent.GetType()
-	if strings.Contains(publishedContent.GetType(), "EOM::CompoundStory") {
-		_, ok := publishedContent.(content.EomFile)
-		if !ok {
-			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
-			return ""
-		}
-
-	}
-	return validationEndpointKey
 }
 
 func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
