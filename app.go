@@ -218,11 +218,11 @@ func handleMessage(msg consumer.Message) {
 		return
 	}
 
-	var params []*schedulerParam
+	var paramsToSchedule []*schedulerParam
 
-	ok, param := mainPreCheck(publishedContent, tid, publishDate)
+	ok, scheduleParam := mainPreCheck(publishedContent, tid, publishDate)
 	if ok {
-		params = append(params, param)
+		paramsToSchedule = append(paramsToSchedule, scheduleParam)
 	} else {
 		//if the main check is not ok, additional checks make no sense
 		return
@@ -233,15 +233,15 @@ func handleMessage(msg consumer.Message) {
 		internalComponentsPreCheck,
 	}
 
-	for _, check := range additionalPreChecks {
-		ok, param = check(publishedContent, tid, publishDate)
+	for _, preCheck := range additionalPreChecks {
+		ok, scheduleParam = preCheck(publishedContent, tid, publishDate)
 		if ok {
-			params = append(params, param)
+			paramsToSchedule = append(paramsToSchedule, scheduleParam)
 		}
 	}
 
-	for _, param := range params {
-		scheduleChecks(param)
+	for _, scheduleParam := range paramsToSchedule {
+		scheduleChecks(scheduleParam)
 	}
 }
 

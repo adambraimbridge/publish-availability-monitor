@@ -28,8 +28,8 @@ func scheduleChecks(p *schedulerParam) {
 			continue
 		}
 
-		if len(environments) > 0 {
-			for name, env := range environments {
+		if len(p.environments) > 0 {
+			for name, env := range p.environments {
 				var endpointURL *url.URL
 				var err error
 
