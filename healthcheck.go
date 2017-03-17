@@ -195,20 +195,23 @@ func (h *Healthcheck) reflectPublishFailures() fthealth.Check {
 }
 
 func (h *Healthcheck) checkForPublishFailures() (string, error) {
-	metricContainer.RLock()
-	failures := 0
-	for i := 0; i < len(metricContainer.publishMetrics); i++ {
-		if !metricContainer.publishMetrics[i].publishOK {
-			failures++
+	h.metricContainer.RLock()
+	failures := make(map[string]struct{})
+	var emptyStruct struct{}
+	for i := 0; i < len(h.metricContainer.publishMetrics); i++ {
+
+		if !h.metricContainer.publishMetrics[i].publishOK {
+			failures[h.metricContainer.publishMetrics[i].UUID] = emptyStruct
 		}
 	}
-	metricContainer.RUnlock()
+	h.metricContainer.RUnlock()
 
 	failureThreshold := 2 //default
 	if h.config.HealthConf.FailureThreshold != 0 {
 		failureThreshold = h.config.HealthConf.FailureThreshold
 	}
-	if failures >= failureThreshold {
+
+	if len(failures) >= failureThreshold {
 		return "", fmt.Errorf("%d publish failures happened during the last 10 publishes", failures)
 	}
 	return "", nil
