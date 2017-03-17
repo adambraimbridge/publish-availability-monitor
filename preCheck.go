@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/Financial-Times/publish-availability-monitor/content"
 	"strings"
 	"time"
-	"github.com/Financial-Times/publish-availability-monitor/content"
 )
 
 func mainPreChecks() []func(publishedContent content.Content, tid string, publishDate time.Time) (bool, *schedulerParam) {
