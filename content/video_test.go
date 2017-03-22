@@ -1,6 +1,11 @@
 package content
 
 import (
+	"github.com/Financial-Times/publish-availability-monitor/checks"
+	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -10,10 +15,31 @@ var videoValid = Video{
 	Name:        "the-dark-knight.mp4",
 	UpdatedAt:   "2016-06-01T21:40:19.120Z",
 	PublishedAt: "2016-06-01T21:40:19.120Z",
+	binaryContent: []byte(
+		`{
+		"id":"4922311929001",
+		"uuid":"2a304b92-7d99-34bd-ad7b-2d781bfcedb8",
+		"name":"the-dark-knight.mp4",
+		"UpdatedAt":"2016-06-01T21:40:19.120Z",
+		"PublishedAt":"2016-06-01T21:40:19.120Z"
+	}`),
 }
 
 func TestIsVideoValid_Valid(t *testing.T) {
-	if !videoValid.IsValid("", "", "", "") {
+	txId := "tid_1234"
+	pamTxId := checks.ConstructPamTxId(txId)
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, "/map", req.RequestURI)
+		assert.Equal(t, pamTxId, req.Header.Get("X-Request-Id"))
+
+		defer req.Body.Close()
+		reqBody, err := ioutil.ReadAll(req.Body)
+		assert.NoError(t, err)
+		assert.Equal(t, videoValid.binaryContent, reqBody)
+	}))
+
+	if !videoValid.IsValid(testServer.URL+"/map", txId, "", "") {
 		t.Error("Video should be valid.")
 	}
 }
