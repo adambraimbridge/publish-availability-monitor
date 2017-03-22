@@ -24,15 +24,18 @@ func (video Video) Initialize(binaryContent []byte) Content {
 
 func (v Video) IsValid(externalValidationEndpoint string, txId string, username string, password string) bool {
 	contentUUID := v.UUID
+
 	if !isUUIDValid(contentUUID) {
 		warnLogger.Printf("Video invalid: invalid UUID: [%s]", contentUUID)
 		return false
 	}
+
 	if !idRegexp.MatchString(v.Id) {
 		warnLogger.Printf("Video invalid: invalid ID: [%s]", v.Id)
 		return false
 	}
-	return true
+
+	return isExternalValidationSuccessful(v.binaryContent, externalValidationEndpoint, username, password, txId, contentUUID, v.GetType())
 }
 
 func (v Video) IsMarkedDeleted() bool {
