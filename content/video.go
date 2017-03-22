@@ -9,11 +9,17 @@ const videoType = "video"
 var idRegexp, _ = regexp.Compile("^\\d+$")
 
 type Video struct {
-	UUID        string `json:"uuid"`
-	Id          string `json:"id"`
-	Name        string `json:"name"`
-	UpdatedAt   string `json:"updated_at"`
-	PublishedAt string `json:"published_at"`
+	UUID          string `json:"uuid"`
+	Id            string `json:"id"`
+	Name          string `json:"name"`
+	UpdatedAt     string `json:"updated_at"`
+	PublishedAt   string `json:"published_at"`
+	binaryContent []byte `json:"-"` //This field is for internal application usage
+}
+
+func (video Video) Initialize(binaryContent []byte) Content {
+	video.binaryContent = binaryContent
+	return video
 }
 
 func (v Video) IsValid(externalValidationEndpoint string, txId string, username string, password string) bool {
