@@ -65,13 +65,13 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 	resp, err := f.httpCaller.DoCall(f.baseUrl, f.username, f.password, txId)
 
 	if err != nil {
-		infoLogger.Printf("Sending request: [%v]", err)
+		errorLogger.Printf("Sending request: [%v]", err)
 		return f.isConsuming()
 	}
 
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		infoLogger.Printf("Received invalid statusCode: [%v]", resp.StatusCode)
+		errorLogger.Printf("Received invalid statusCode: [%v]", resp.StatusCode)
 		return f.isConsuming()
 	}
 
@@ -102,7 +102,7 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 		var notifications []Notification
 		err = json.Unmarshal([]byte(data), &notifications)
 		if err != nil {
-			infoLogger.Printf("Error: [%v]. \n", err)
+			errorLogger.Printf("Error: [%v]. \n", err)
 			continue
 		}
 

@@ -13,11 +13,12 @@ const NotificationsPull = "Notifications-Pull"
 
 type NotificationsPullFeed struct {
 	baseNotificationsFeed
-	sinceDate     string
-	sinceDateLock *sync.Mutex
-	interval      int
-	ticker        *time.Ticker
-	poller        chan struct{}
+	notificationsUrl         string
+	notificationsQueryString string
+	notificationsUrlLock     *sync.Mutex
+	interval                 int
+	ticker                   *time.Ticker
+	poller                   chan struct{}
 }
 
 // ignore unused field (e.g. requestUrl)
@@ -59,28 +60,28 @@ func (f *NotificationsPullFeed) FeedType() string {
 }
 
 func (f *NotificationsPullFeed) pollNotificationsFeed() {
-	f.sinceDateLock.Lock()
-	defer f.sinceDateLock.Unlock()
+	f.notificationsUrlLock.Lock()
+	defer f.notificationsUrlLock.Unlock()
 
-	notificationsUrl := f.buildNotificationsURL()
 	txId := f.buildNotificationsTxId()
+	notificationsUrl := f.notificationsUrl + "?" + f.notificationsQueryString
 	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password, txId)
 
 	if err != nil {
-		infoLogger.Printf("error calling notifications %s", notificationsUrl)
+		errorLogger.Printf("error calling notifications %s", notificationsUrl)
 		return
 	}
 	defer cleanupResp(resp)
 
 	if resp.StatusCode != 200 {
-		infoLogger.Printf("Notifications [%s] status NOT OK: [%d]", notificationsUrl, resp.StatusCode)
+		errorLogger.Printf("Notifications [%s] status NOT OK: [%d]", notificationsUrl, resp.StatusCode)
 		return
 	}
 
 	var notifications notificationsResponse
 	err = json.NewDecoder(resp.Body).Decode(&notifications)
 	if err != nil {
-		infoLogger.Printf("Cannot decode json response: [%s]", err.Error())
+		errorLogger.Printf("Cannot decode json response: [%s]", err.Error())
 		return
 	}
 
@@ -99,18 +100,13 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 		f.notifications[uuid] = history
 	}
 
-	nextPageUrl, _ := url.Parse(notifications.Links[0].Href)
-	f.sinceDate = nextPageUrl.Query().Get("since")
-}
+	nextPageUrl, err := url.Parse(notifications.Links[0].Href)
+	if err != nil {
+		errorLogger.Printf("unparseable next url: [%s]", notifications.Links[0].Href)
+		return // and hope that a retry will fix this
+	}
 
-func (f *NotificationsPullFeed) buildNotificationsURL() string {
-	baseURL, _ := url.Parse(f.baseUrl)
-
-	q := baseURL.Query()
-	q.Add("since", f.sinceDate)
-	baseURL.RawQuery = q.Encode()
-
-	return baseURL.String()
+	f.notificationsQueryString = nextPageUrl.RawQuery
 }
 
 func (f *NotificationsPullFeed) buildNotificationsTxId() string {
