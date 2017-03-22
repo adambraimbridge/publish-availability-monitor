@@ -246,6 +246,15 @@ func isIgnorableMessage(tid string) bool {
 	return strings.HasPrefix(tid, "SYNTHETIC")
 }
 
+func getValidationCredentials(url string) (string, string) {
+	if strings.Contains(validatorCredentials, ":") {
+		unpw := strings.SplitN(validatorCredentials, ":", 2)
+		return unpw[0], unpw[1]
+	}
+
+	return "", ""
+}
+
 func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
 	//to be used for INFO-level logging: info.Println("foo is now bar")
 	infoLogger = log.New(infoHandle, "INFO  - ", logPattern)

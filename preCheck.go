@@ -106,15 +106,6 @@ func getValidationEndpointKey(publishedContent content.Content, tid string, uuid
 	return validationEndpointKey
 }
 
-func getValidationCredentials(url string) (string, string) {
-	if strings.Contains(validatorCredentials, ":") {
-		unpw := strings.SplitN(validatorCredentials, ":", 2)
-		return unpw[0], unpw[1]
-	}
-
-	return "", ""
-}
-
 func isMessagePastPublishSLA(date time.Time, threshold int) bool {
 	passedSLA := date.Add(time.Duration(threshold) * time.Second)
 	return time.Now().After(passedSLA)
