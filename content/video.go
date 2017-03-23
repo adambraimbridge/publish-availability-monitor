@@ -1,6 +1,7 @@
 package content
 
 import (
+	"net/http"
 	"regexp"
 )
 
@@ -35,7 +36,17 @@ func (v Video) IsValid(externalValidationEndpoint string, txId string, username 
 		return false
 	}
 
-	return isExternalValidationSuccessful(v.BinaryContent, externalValidationEndpoint, username, password, txId, contentUUID, v.GetType())
+	validationParam := validationParam{v.BinaryContent, externalValidationEndpoint, username, password, txId, contentUUID, v.GetType()}
+	return doExternalValidation(
+		validationParam,
+		func(status int) bool {
+			if status == http.StatusBadRequest {
+				return false
+			}
+
+			return true
+		},
+	)
 }
 
 func (v Video) IsMarkedDeleted() bool {

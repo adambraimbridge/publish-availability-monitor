@@ -71,41 +71,45 @@ func UnmarshalContent(msg consumer.Message) (Content, error) {
 	}
 }
 
-func isExternalValidationSuccessful(binaryContent []byte, validationURL, username, password, txID, uuid, contentType string) bool {
-	if validationURL == "" {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", uuid, txID, contentType)
+type validationParam struct {
+	binaryContent []byte
+	validationURL string
+	username      string
+	password      string
+	txID          string
+	uuid          string
+	contentType   string
+}
+
+func doExternalValidation(p validationParam, statusChecker func(int) bool) bool {
+	if p.validationURL == "" {
+		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", p.uuid, p.txID, p.contentType)
 		return false
 	}
+
 	resp, err := httpCaller.DoCallWithEntity(
-		"POST", validationURL,
-		username, password,
-		checks.ConstructPamTxId(txID),
-		"application/json", bytes.NewReader(binaryContent))
+		"POST", p.validationURL, p.username, p.password,
+		checks.ConstructPamTxId(p.txID),
+		"application/json", bytes.NewReader(p.binaryContent))
 
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", uuid, txID, err)
+		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", p.uuid, p.txID, err)
 		return true
 	}
 	defer cleanupResp(resp)
 
-	infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] received statusCode [%d]", uuid, txID, resp.StatusCode)
+	infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] received statusCode [%d]", p.uuid, p.txID, resp.StatusCode)
 
 	bs, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", uuid, txID, err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", uuid, txID, string(bs))
-	}
-	if resp.StatusCode == http.StatusTeapot {
-		return false
-	}
-	//invalid  contentplaceholder (link file) will not be published so do not monitor
-	if resp.StatusCode == http.StatusUnprocessableEntity {
-		return false
+		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", p.uuid, p.txID, err)
 	}
 
-	return true
+	if resp.StatusCode != http.StatusOK {
+		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", p.uuid, p.txID, string(bs))
+	}
+
+	return statusChecker(resp.StatusCode)
 }
 
 func cleanupResp(resp *http.Response) {

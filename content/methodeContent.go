@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 
 	"launchpad.net/xmlpath"
+	"net/http"
 )
 
 const sourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
@@ -56,7 +57,21 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string, txID string, u
 		return false
 	}
 
-	return isExternalValidationSuccessful(eomfile.BinaryContent, externalValidationEndpoint, username, password, txID, eomfile.GetUUID(), eomfile.GetType())
+	validationParam := validationParam{eomfile.BinaryContent, externalValidationEndpoint, username, password, txID, eomfile.GetUUID(), eomfile.GetType()}
+	return doExternalValidation(
+		validationParam,
+		func(status int) bool {
+			if status == http.StatusTeapot {
+				return false
+			}
+			//invalid  contentplaceholder (link file) will not be published so do not monitor
+			if status == http.StatusUnprocessableEntity {
+				return false
+			}
+
+			return true
+		},
+	)
 }
 
 func (eomfile EomFile) IsMarkedDeleted() bool {

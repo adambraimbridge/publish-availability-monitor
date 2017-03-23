@@ -85,7 +85,7 @@ func TestIsVideoValid_failedExternalValidation(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, videoInvalid.BinaryContent, reqBody)
 
-		w.WriteHeader(http.StatusUnprocessableEntity)
+		w.WriteHeader(http.StatusBadRequest)
 	}))
 
 	if videoInvalid.IsValid(testServer.URL+"/map", txId, "", "") {
