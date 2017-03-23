@@ -23,7 +23,7 @@ type EomFile struct {
 	WorkflowStatus   string        `json:"workflowStatus"`
 	Type             string        `json:"-"` //This field is for internal application usage
 	Source           Source        `json:"-"` //This field is for internal application usage
-	binaryContent    []byte        `json:"-"` //This field is for internal application usage
+	BinaryContent    []byte        `json:"-"` //This field is for internal application usage
 }
 
 type Source struct {
@@ -45,7 +45,7 @@ func (eomfile EomFile) initType() EomFile {
 }
 
 func (eomfile EomFile) Initialize(binaryContent []byte) Content {
-	eomfile.binaryContent = binaryContent
+	eomfile.BinaryContent = binaryContent
 	return eomfile.initType()
 }
 
@@ -56,7 +56,7 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string, txID string, u
 		return false
 	}
 
-	return isExternalValidationSuccessful(eomfile.binaryContent, externalValidationEndpoint, username, password, txID, eomfile.GetUUID(), eomfile.GetType())
+	return isExternalValidationSuccessful(eomfile.BinaryContent, externalValidationEndpoint, username, password, txID, eomfile.GetUUID(), eomfile.GetType())
 }
 
 func (eomfile EomFile) IsMarkedDeleted() bool {

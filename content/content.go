@@ -94,14 +94,14 @@ func isExternalValidationSuccessful(binaryContent []byte, validationURL, usernam
 	if err != nil {
 		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", uuid, txID, err)
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", uuid, txID, string(bs))
 	}
-	if resp.StatusCode == 418 {
+	if resp.StatusCode == http.StatusTeapot {
 		return false
 	}
 	//invalid  contentplaceholder (link file) will not be published so do not monitor
-	if resp.StatusCode == 422 {
+	if resp.StatusCode == http.StatusUnprocessableEntity {
 		return false
 	}
 

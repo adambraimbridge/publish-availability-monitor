@@ -16,7 +16,7 @@ func TestIsVideoValid_Valid(t *testing.T) {
 		Name:          "the-dark-knight.mp4",
 		UpdatedAt:     "2016-06-01T21:40:19.120Z",
 		PublishedAt:   "2016-06-01T21:40:19.120Z",
-		binaryContent: []byte("valid-json"),
+		BinaryContent: []byte("valid-json"),
 	}
 
 	txId := "tid_1234"
@@ -29,7 +29,7 @@ func TestIsVideoValid_Valid(t *testing.T) {
 		defer req.Body.Close()
 		reqBody, err := ioutil.ReadAll(req.Body)
 		assert.NoError(t, err)
-		assert.Equal(t, videoValid.binaryContent, reqBody)
+		assert.Equal(t, videoValid.BinaryContent, reqBody)
 	}))
 
 	if !videoValid.IsValid(testServer.URL+"/map", txId, "", "") {
@@ -70,7 +70,7 @@ func TestIsVideoValid_failedExternalValidation(t *testing.T) {
 		Name:          "the-dark-knight.mp4",
 		UpdatedAt:     "2016-06-01T21:40:19.120Z",
 		PublishedAt:   "2016-06-01T21:40:19.120Z",
-		binaryContent: []byte("invalid-json"),
+		BinaryContent: []byte("invalid-json"),
 	}
 
 	txId := "tid_1234"
@@ -83,7 +83,7 @@ func TestIsVideoValid_failedExternalValidation(t *testing.T) {
 		defer req.Body.Close()
 		reqBody, err := ioutil.ReadAll(req.Body)
 		assert.NoError(t, err)
-		assert.Equal(t, videoInvalid.binaryContent, reqBody)
+		assert.Equal(t, videoInvalid.BinaryContent, reqBody)
 
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}))

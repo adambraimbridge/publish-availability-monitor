@@ -14,11 +14,11 @@ type Video struct {
 	Name          string `json:"name"`
 	UpdatedAt     string `json:"updated_at"`
 	PublishedAt   string `json:"published_at"`
-	binaryContent []byte `json:"-"` //This field is for internal application usage
+	BinaryContent []byte `json:"-"` //This field is for internal application usage
 }
 
 func (video Video) Initialize(binaryContent []byte) Content {
-	video.binaryContent = binaryContent
+	video.BinaryContent = binaryContent
 	return video
 }
 
@@ -35,7 +35,7 @@ func (v Video) IsValid(externalValidationEndpoint string, txId string, username 
 		return false
 	}
 
-	return isExternalValidationSuccessful(v.binaryContent, externalValidationEndpoint, username, password, txId, contentUUID, v.GetType())
+	return isExternalValidationSuccessful(v.BinaryContent, externalValidationEndpoint, username, password, txId, contentUUID, v.GetType())
 }
 
 func (v Video) IsMarkedDeleted() bool {
