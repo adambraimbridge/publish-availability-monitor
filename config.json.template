@@ -92,5 +92,6 @@
    "EOM::WebContainer": "METHODE_LIST_VALIDATION_URL",
    "Image": "METHODE_IMAGE_MODEL_MAPPER_URL",
    "video": "VIDEO_MAPPER_URL"
+   "wordpress": "WORDPRESS_MAPPER_URL"
 }
 }
