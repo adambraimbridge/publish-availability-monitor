@@ -24,10 +24,8 @@ func (video Video) Initialize(binaryContent []byte) Content {
 }
 
 func (v Video) IsValid(externalValidationEndpoint string, txId string, username string, password string) bool {
-	contentUUID := v.UUID
-
-	if !isUUIDValid(contentUUID) {
-		warnLogger.Printf("Video invalid: invalid UUID: [%s]", contentUUID)
+	if !isUUIDValid(v.GetUUID()) {
+		warnLogger.Printf("Video invalid: invalid UUID: [%s]", v.GetUUID())
 		return false
 	}
 
@@ -36,16 +34,19 @@ func (v Video) IsValid(externalValidationEndpoint string, txId string, username 
 		return false
 	}
 
-	validationParam := validationParam{v.BinaryContent, externalValidationEndpoint, username, password, txId, contentUUID, v.GetType()}
+	validationParam := validationParam{
+		v.BinaryContent,
+		externalValidationEndpoint,
+		username,
+		password,
+		txId,
+		v.GetUUID(),
+		v.GetType(),
+	}
+
 	return doExternalValidation(
 		validationParam,
-		func(status int) bool {
-			if status == http.StatusBadRequest {
-				return false
-			}
-
-			return true
-		},
+		videoStatusCheck,
 	)
 }
 
@@ -62,4 +63,12 @@ func (v Video) GetType() string {
 
 func (v Video) GetUUID() string {
 	return v.UUID
+}
+
+func videoStatusCheck(status int) bool {
+	if status == http.StatusBadRequest {
+		return false
+	}
+
+	return true
 }

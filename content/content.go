@@ -81,7 +81,7 @@ type validationParam struct {
 	contentType   string
 }
 
-func doExternalValidation(p validationParam, statusChecker func(int) bool) bool {
+func doExternalValidation(p validationParam, statusCheck func(int) bool) bool {
 	if p.validationURL == "" {
 		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", p.uuid, p.txID, p.contentType)
 		return false
@@ -109,7 +109,7 @@ func doExternalValidation(p validationParam, statusChecker func(int) bool) bool 
 		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", p.uuid, p.txID, string(bs))
 	}
 
-	return statusChecker(resp.StatusCode)
+	return statusCheck(resp.StatusCode)
 }
 
 func cleanupResp(resp *http.Response) {

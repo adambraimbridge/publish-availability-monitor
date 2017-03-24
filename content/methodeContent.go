@@ -57,20 +57,19 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string, txID string, u
 		return false
 	}
 
-	validationParam := validationParam{eomfile.BinaryContent, externalValidationEndpoint, username, password, txID, eomfile.GetUUID(), eomfile.GetType()}
+	validationParam := validationParam{
+		eomfile.BinaryContent,
+		externalValidationEndpoint,
+		username,
+		password,
+		txID,
+		eomfile.GetUUID(),
+		eomfile.GetType(),
+	}
+
 	return doExternalValidation(
 		validationParam,
-		func(status int) bool {
-			if status == http.StatusTeapot {
-				return false
-			}
-			//invalid  contentplaceholder (link file) will not be published so do not monitor
-			if status == http.StatusUnprocessableEntity {
-				return false
-			}
-
-			return true
-		},
+		methodeContentStatusCheck,
 	)
 }
 
@@ -95,6 +94,18 @@ func (eomfile EomFile) GetUUID() string {
 	return eomfile.UUID
 }
 
+func methodeContentStatusCheck(status int) bool {
+	if status == http.StatusTeapot {
+		return false
+	}
+	//invalid  contentplaceholder (link file) will not be published so do not monitor
+	if status == http.StatusUnprocessableEntity {
+		return false
+	}
+
+	return true
+}
+
 func getXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool) {
 	path := xmlpath.MustCompile(lookupPath)
 	root, err := xmlpath.Parse(strings.NewReader(xml))
@@ -104,5 +115,4 @@ func getXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool
 	}
 	xpathValue, ok := path.String(root)
 	return xpathValue, ok
-
 }
