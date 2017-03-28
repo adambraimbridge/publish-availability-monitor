@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"regexp"
 	"strings"
 	"sync"
 	"syscall"
@@ -306,17 +305,7 @@ func isMessagePastPublishSLA(date time.Time, threshold int) bool {
 }
 
 func isIgnorableMessage(tid string) bool {
-	return isSyntheticTransactionID(tid) || isContentCarouselTransactionID(tid)
-}
-
-func isSyntheticTransactionID(tid string) bool {
 	return strings.HasPrefix(tid, "SYNTHETIC")
-}
-
-var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[a-zA-Z0-9]+)_carousel_[\d]{10}.*$`)
-
-func isContentCarouselTransactionID(tid string) bool {
-	return carouselTransactionIDRegExp.MatchString(tid)
 }
 
 func getValidationEndpointKey(publishedContent content.Content, tid string, uuid string) string {
