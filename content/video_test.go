@@ -89,7 +89,7 @@ func TestIsVideoValid_failedExternalValidation(t *testing.T) {
 	}))
 
 	if videoInvalid.IsValid(testServer.URL+"/map", txId, "", "") {
-		t.Error("Video should fail extrnal validation.")
+		t.Error("Video should fail external validation.")
 	}
 }
 

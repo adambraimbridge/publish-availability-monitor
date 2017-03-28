@@ -66,9 +66,5 @@ func (v Video) GetUUID() string {
 }
 
 func videoStatusCheck(status int) bool {
-	if status == http.StatusBadRequest {
-		return false
-	}
-
-	return true
+	return status != http.StatusBadRequest
 }

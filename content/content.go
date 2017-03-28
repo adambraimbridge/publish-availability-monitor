@@ -115,10 +115,10 @@ func doExternalValidation(p validationParam, statusCheck func(int) bool) bool {
 func cleanupResp(resp *http.Response) {
 	_, err := io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
-		warnLogger.Printf("[%v]", err)
+		warnLogger.Printf("External validation cleanup failed with error: [%v]", err)
 	}
 	err = resp.Body.Close()
 	if err != nil {
-		warnLogger.Printf("[%v]", err)
+		warnLogger.Printf("External validation cleanup failed with error: [%v]", err)
 	}
 }
