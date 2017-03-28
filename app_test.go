@@ -34,9 +34,15 @@ func TestIsIgnorableMessage_naturalMessage(t *testing.T) {
 	}
 }
 
-func TestIsIgnorableMessage_syntheticMessage(t *testing.T) {
+func TestIsIgnorableMessageForMessagesToIgnore(t *testing.T) {
 	if !isIgnorableMessage(syntheticTID) {
 		t.Error("Synthetic message marked as normal")
+	}
+	if !isIgnorableMessage(carouselRepublishTID) {
+		t.Error("Carousel republish message marked as normal")
+	}
+	if !isIgnorableMessage(carouselGeneratedTID) {
+		t.Error("Carousel generated message marked as normal")
 	}
 }
 
@@ -77,6 +83,8 @@ func TestGetValidationEndpointKey_Story(t *testing.T) {
 
 const threshold = 120
 const syntheticTID = "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd"
+const carouselRepublishTID = "tid_ofcysuifp0_carousel_1488384556"
+const carouselGeneratedTID = "tid_ofcysuifp0_carousel_1488384556_gentx"
 const naturalTID = "tid_xltcnbckvq"
 const testUuid = "uuid"
 

@@ -18,8 +18,9 @@ RUN apk --update add git go libc-dev bzr ca-certificates \
   && REPO_PATH="github.com/Financial-Times/publish-availability-monitor" \
   && mkdir -p $GOPATH/src/${REPO_PATH} \
   && mv /source/* $GOPATH/src/${REPO_PATH} \
+  && go get -u github.com/kardianos/govendor \
+  && $GOPATH/bin/govendor sync \
   && cd $GOPATH/src/${REPO_PATH} \
-  && go get -t -d -v ./... \
   && go build -ldflags="${LDFLAGS}" \
   && mv publish-availability-monitor / \
   && apk del git go libc-dev bzr \
