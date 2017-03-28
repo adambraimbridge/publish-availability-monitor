@@ -11,7 +11,7 @@ import (
 	"encoding/xml"
 
 	"github.com/Financial-Times/publish-availability-monitor/checks"
-	xmlpath "gopkg.in/xmlpath.v1"
+	"launchpad.net/xmlpath"
 )
 
 const sourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
