@@ -3,7 +3,7 @@
    "queueConfig": {
       "address": ["QUEUE_ADDR"],
       "group": "PubMonitor",
-      "topic": "NativeCmsPublicationEvents",
+      "topic": "KAFKA_TOPIC",
       "queue": "KAFKA_PROXY_HOST",
       "concurrentProcessing": true
    },
