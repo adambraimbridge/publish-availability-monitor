@@ -10,3 +10,6 @@ publish-availability-monitor
 /default.etcd
 *.iml
 /projectFilesBackup
+
+/vendor/*
+!/vendor/vendor.json
