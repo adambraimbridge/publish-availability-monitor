@@ -161,7 +161,7 @@ func attachProfiler(router *mux.Router) {
 }
 
 func readMessages() {
-	c := consumer.NewConsumer(appConfig.QueueConf, handleMessage, &http.Client{})
+	c := consumer.NewConsumer(appConfig.QueueConf, handleMessage, http.Client{})
 
 	var wg sync.WaitGroup
 	wg.Add(1)
