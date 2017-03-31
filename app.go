@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"io"
-	"log"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
@@ -21,6 +20,7 @@ import (
 	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 )
 
@@ -88,7 +88,6 @@ type publishHistory struct {
 }
 
 const dateLayout = time.RFC3339Nano
-const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
 var infoLogger *log.Logger
 var warnLogger *log.Logger
@@ -334,11 +333,14 @@ func getValidationEndpointKey(publishedContent content.Content, tid string, uuid
 
 func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
 	//to be used for INFO-level logging: info.Println("foo is now bar")
-	infoLogger = log.New(infoHandle, "INFO  - ", logPattern)
+	infoLogger = log.New()
+	infoLogger.Out = infoHandle
 	//to be used for WARN-level logging: warn.Println("foo is now bar")
-	warnLogger = log.New(warnHandle, "WARN  - ", logPattern)
+	warnLogger = log.New()
+	warnLogger.Out = warnHandle
 	//to be used for ERROR-level logging: errorL.Println("foo is now bar")
-	errorLogger = log.New(errorHandle, "ERROR - ", logPattern)
+	errorLogger = log.New()
+	errorLogger.Out = errorHandle
 }
 
 func (pm PublishMetric) String() string {

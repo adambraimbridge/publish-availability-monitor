@@ -1,22 +1,23 @@
 package feeds
 
 import (
-	"log"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
 	"time"
-)
 
-const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
+	log "github.com/Sirupsen/logrus"
+)
 
 var infoLogger *log.Logger
 var errorLogger *log.Logger
 
 func init() {
-	infoLogger = log.New(os.Stdout, "INFO  - ", logPattern)
-	errorLogger = log.New(os.Stderr, "ERROR  - ", logPattern)
+	infoLogger = log.New()
+	infoLogger.Out = os.Stdout
+
+	errorLogger = log.New()
 }
 
 func NewNotificationsFeed(name string, baseUrl url.URL, expiry int, interval int, username string, password string) Feed {
