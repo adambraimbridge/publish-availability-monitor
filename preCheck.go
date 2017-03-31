@@ -28,7 +28,7 @@ func mainPreCheck(publishedContent content.Content, tid string, publishDate time
 	var password string
 
 	if validationEndpoint, found = appConfig.ValidationEndpoints[validationEndpointKey]; found {
-		username, password = getValidationCredentials(validationEndpoint)
+		username, password = getValidationCredentials()
 	}
 
 	valRes := publishedContent.Validate(validationEndpoint, tid, username, password)
@@ -82,7 +82,7 @@ func internalComponentsPreCheck(publishedContent content.Content, tid string, pu
 	eomFileForInternalComponentsCheck.Type = "InternalComponents"
 
 	var internalComponentsValidationEndpoint = appConfig.ValidationEndpoints["InternalComponents"]
-	var usr, pass = getValidationCredentials(internalComponentsValidationEndpoint)
+	var usr, pass = getValidationCredentials()
 
 	icValRes := publishedContent.Validate(internalComponentsValidationEndpoint, tid, usr, pass)
 	if !icValRes.IsValid {
@@ -91,6 +91,15 @@ func internalComponentsPreCheck(publishedContent content.Content, tid string, pu
 	}
 
 	return true, &schedulerParam{eomFileForInternalComponentsCheck, publishDate, tid, icValRes.IsMarkedDeleted, &metricContainer, environments}
+}
+
+func getValidationCredentials() (string, string) {
+	if strings.Contains(validatorCredentials, ":") {
+		unpw := strings.SplitN(validatorCredentials, ":", 2)
+		return unpw[0], unpw[1]
+	}
+
+	return "", ""
 }
 
 func getValidationEndpointKey(publishedContent content.Content, tid string, uuid string) string {
