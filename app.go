@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"sync"
 	"syscall"
@@ -105,6 +106,8 @@ var subscribedFeeds = make(map[string][]feeds.Feed)
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 var validatorCredentials string
+
+var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[a-zA-Z0-9]+)_carousel_[\d]{10}.*$`)
 
 func main() {
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
@@ -243,16 +246,15 @@ func handleMessage(msg consumer.Message) {
 }
 
 func isIgnorableMessage(tid string) bool {
+	return isSyntheticTransactionID(tid) || isContentCarouselTransactionID(tid)
+}
+
+func isSyntheticTransactionID(tid string) bool {
 	return strings.HasPrefix(tid, "SYNTHETIC")
 }
 
-func getValidationCredentials(url string) (string, string) {
-	if strings.Contains(validatorCredentials, ":") {
-		unpw := strings.SplitN(validatorCredentials, ":", 2)
-		return unpw[0], unpw[1]
-	}
-
-	return "", ""
+func isContentCarouselTransactionID(tid string) bool {
+	return carouselTransactionIDRegExp.MatchString(tid)
 }
 
 func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
