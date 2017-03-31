@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Financial-Times/publish-availability-monitor/checks"
 	xmlpath "gopkg.in/xmlpath.v1"
 )
 
