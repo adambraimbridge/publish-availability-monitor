@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/kr/pretty"
 )
 

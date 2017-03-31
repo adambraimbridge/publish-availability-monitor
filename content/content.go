@@ -2,13 +2,13 @@ package content
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
-	"log"
 	"os"
 
-	"encoding/xml"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/checks"
+	log "github.com/Sirupsen/logrus"
 )
 
 // Content is the interface for different type of contents from different CMSs.
@@ -21,8 +21,6 @@ type Content interface {
 
 const systemIDKey = "Origin-System-Id"
 
-const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
-
 var infoLogger *log.Logger
 var warnLogger *log.Logger
 var errorLogger *log.Logger
@@ -30,11 +28,14 @@ var httpCaller checks.HttpCaller
 
 func init() {
 	//to be used for INFO-level logging: info.Println("foo is now bar")
-	infoLogger = log.New(os.Stdout, "INFO  - ", logPattern)
+	infoLogger = log.New()
+	infoLogger.Out = os.Stdout
 	//to be used for WARN-level logging: warn.Println("foo is now bar")
-	warnLogger = log.New(os.Stdout, "WARN  - ", logPattern)
+	warnLogger = log.New()
+	warnLogger.Out = os.Stdout
 	//to be used for ERROR-leve logging: errorL.Println("foo is now bar")
-	errorLogger = log.New(os.Stdout, "ERROR - ", logPattern)
+	errorLogger = log.New()
+	errorLogger.Out = os.Stderr
 	httpCaller = checks.NewHttpCaller(10)
 }
 
