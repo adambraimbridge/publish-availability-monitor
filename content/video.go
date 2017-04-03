@@ -46,11 +46,16 @@ func (video Video) Validate(externalValidationEndpoint string, txId string, user
 
 	return doExternalValidation(
 		validationParam,
-		video.videoStatusCheck,
+		video.isValid,
+		video.isMarkedDeleted,
 	)
 }
 
-func (video Video) isMarkedDeleted() bool {
+func (video Video) isValid(status int) bool {
+	return status != http.StatusBadRequest
+}
+
+func (video Video) isMarkedDeleted(status ...int) bool {
 	if video.PublishedAt != "" || video.UpdatedAt != "" {
 		return false
 	}
@@ -63,8 +68,4 @@ func (video Video) GetType() string {
 
 func (video Video) GetUUID() string {
 	return video.UUID
-}
-
-func (video Video) videoStatusCheck(status int) ValidationResponse {
-	return ValidationResponse{status != http.StatusBadRequest, video.isMarkedDeleted()}
 }

@@ -62,16 +62,30 @@ func (eomfile EomFile) Validate(externalValidationEndpoint string, txID string, 
 
 	return doExternalValidation(
 		validationParam,
-		eomfile.methodeContentStatusCheck,
+		eomfile.isValid,
+		eomfile.isMarkedDeleted,
 	)
 }
 
-func (eomfile EomFile) isMarkedDeleted(validationStatusCode int) bool {
+func (eomfile EomFile) isValid(status int) bool {
+	if status == http.StatusTeapot {
+		return false
+	}
+
+	//invalid  contentplaceholder (link file) will not be published so do not monitor
+	if status == http.StatusUnprocessableEntity {
+		return false
+	}
+
+	return true
+}
+
+func (eomfile EomFile) isMarkedDeleted(status ...int) bool {
 	if eomfile.Type == "Image" || eomfile.Type == "EOM::WebContainer" {
 		return false
 	}
 
-	if validationStatusCode == http.StatusNotFound {
+	if len(status) == 1 && status[0] == http.StatusNotFound {
 		infoLogger.Printf("Eomfile with uuid=[%s] is marked as deleted!", eomfile.UUID)
 		return true
 	}
@@ -85,19 +99,4 @@ func (eomfile EomFile) GetType() string {
 
 func (eomfile EomFile) GetUUID() string {
 	return eomfile.UUID
-}
-
-func (eomfile EomFile) methodeContentStatusCheck(status int) ValidationResponse {
-	deleted := eomfile.isMarkedDeleted(status)
-
-	if status == http.StatusTeapot {
-		return ValidationResponse{false, deleted}
-	}
-
-	//invalid  contentplaceholder (link file) will not be published so do not monitor
-	if status == http.StatusUnprocessableEntity {
-		return ValidationResponse{false, deleted}
-	}
-
-	return ValidationResponse{true, deleted}
 }

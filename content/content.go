@@ -85,10 +85,10 @@ type validationParam struct {
 	contentType   string
 }
 
-func doExternalValidation(p validationParam, statusCheck func(int) ValidationResponse) ValidationResponse {
+func doExternalValidation(p validationParam, validCheck func(int) bool, deletedCheck func(... int) bool) ValidationResponse {
 	if p.validationURL == "" {
 		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", p.uuid, p.txID, p.contentType)
-		return ValidationResponse{false, false}
+		return ValidationResponse{false, deletedCheck()}
 	}
 
 	resp, err := httpCaller.DoCallWithEntity(
@@ -98,7 +98,7 @@ func doExternalValidation(p validationParam, statusCheck func(int) ValidationRes
 
 	if err != nil {
 		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%video]. Skipping external validation.", p.uuid, p.txID, err)
-		return ValidationResponse{true, false}
+		return ValidationResponse{true, deletedCheck()}
 	}
 	defer cleanupResp(resp)
 
@@ -113,7 +113,7 @@ func doExternalValidation(p validationParam, statusCheck func(int) ValidationRes
 		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%video]", p.uuid, p.txID, string(bs))
 	}
 
-	return statusCheck(resp.StatusCode)
+	return ValidationResponse{validCheck(resp.StatusCode), deletedCheck(resp.StatusCode)}
 }
 
 func cleanupResp(resp *http.Response) {
