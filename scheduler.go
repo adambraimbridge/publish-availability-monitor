@@ -13,14 +13,23 @@ var (
 	absoluteUrlRegex = regexp.MustCompile("(?i)https?://.*")
 )
 
-func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid string, isMarkedDeleted bool, metricContainer *publishHistory, environments map[string]Environment) {
+type schedulerParam struct {
+	contentToCheck  content.Content
+	publishDate     time.Time
+	tid             string
+	isMarkedDeleted bool
+	metricContainer *publishHistory
+	environments    map[string]Environment
+}
+
+func scheduleChecks(p *schedulerParam) {
 	for _, metric := range appConfig.MetricConf {
-		if !validType(metric.ContentTypes, contentToCheck.GetType()) {
+		if !validType(metric.ContentTypes, p.contentToCheck.GetType()) {
 			continue
 		}
 
-		if len(environments) > 0 {
-			for name, env := range environments {
+		if len(p.environments) > 0 {
+			for name, env := range p.environments {
 				var endpointURL *url.URL
 				var err error
 
@@ -40,36 +49,36 @@ func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid s
 				}
 
 				var publishMetric = PublishMetric{
-					contentToCheck.GetUUID(),
+					p.contentToCheck.GetUUID(),
 					false,
-					publishDate,
+					p.publishDate,
 					name,
 					Interval{},
 					metric,
 					*endpointURL,
-					tid,
-					isMarkedDeleted,
+					p.tid,
+					p.isMarkedDeleted,
 				}
 
 				var checkInterval = appConfig.Threshold / metric.Granularity
 				var publishCheck = NewPublishCheck(publishMetric, env.Username, env.Password, appConfig.Threshold, checkInterval, metricSink)
-				go scheduleCheck(*publishCheck, metricContainer)
+				go scheduleCheck(*publishCheck, p.metricContainer)
 			}
 		} else {
 			// generate a generic failure metric so that the absence of monitoring is logged
 			var publishMetric = PublishMetric{
-				contentToCheck.GetUUID(),
+				p.contentToCheck.GetUUID(),
 				false,
-				publishDate,
+				p.publishDate,
 				"none",
 				Interval{},
 				metric,
 				url.URL{},
-				tid,
-				isMarkedDeleted,
+				p.tid,
+				p.isMarkedDeleted,
 			}
 			metricSink <- publishMetric
-			updateHistory(metricContainer, publishMetric)
+			updateHistory(p.metricContainer, publishMetric)
 		}
 	}
 }

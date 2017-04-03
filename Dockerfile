@@ -19,7 +19,8 @@ RUN apk --update add git go libc-dev bzr ca-certificates \
   && mkdir -p $GOPATH/src/${REPO_PATH} \
   && mv /source/* $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
-  && go get -t -d -v ./... \
+  && go get -u github.com/kardianos/govendor \
+  && $GOPATH/bin/govendor sync \
   && go build -ldflags="${LDFLAGS}" \
   && mv publish-availability-monitor / \
   && apk del git go libc-dev bzr \

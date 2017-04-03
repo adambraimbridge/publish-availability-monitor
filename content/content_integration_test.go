@@ -57,11 +57,11 @@ func TestThat_ContentPayloadFromKafkaMsg_MatchesTheContentPayloadSentToValidatio
 		defer ts.Close()
 		content, err := UnmarshalContent(tc.msg)
 		if err != nil {
-			t.Errorf("Expected success, but error occured [%v]", err)
+			t.Errorf("Expected success, but error occured [%video]", err)
 			return
 		}
 		//don't care about the actual result
-		content.IsValid(ts.URL, "tid_foobar", "", "")
+		content.Validate(ts.URL, "tid_foobar", "", "")
 	}
 }
 

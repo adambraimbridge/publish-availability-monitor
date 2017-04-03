@@ -103,7 +103,7 @@ func hexToInt(hexStrings []string) ([]uint64, error) {
 func isUUIDValid(contentUUID string) bool {
 	parsedUUID, err := uuid.FromString(contentUUID)
 	if err != nil {
-		warnLogger.Printf("Cannot parse UUID [%v], error: [%v]", contentUUID, err.Error())
+		warnLogger.Printf("Cannot parse UUID [%video], error: [%video]", contentUUID, err.Error())
 		return false
 	}
 	return contentUUID == parsedUUID.String()
