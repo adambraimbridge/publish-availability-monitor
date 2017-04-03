@@ -3,6 +3,8 @@ package content
 import (
 	"net/url"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type blogAPIEndpointMetadata struct {
@@ -12,7 +14,7 @@ type blogAPIEndpointMetadata struct {
 func isValidBrand(requestURI string) bool {
 	parsedURL, err := url.Parse(requestURI)
 	if err != nil || parsedURL.Host == "" {
-		warnLogger.Printf("Invalid request URI  [%s].", requestURI)
+		log.Warnf("Invalid request URI  [%s].", requestURI)
 		return false
 	}
 	requestHostAndPath := parsedURL.Host + parsedURL.Path

@@ -1,18 +1,12 @@
 package main
 
 import (
-	"os"
 	"testing"
 	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestMain(m *testing.M) {
-	initLogs(os.Stdout, os.Stdout, os.Stderr)
-	os.Exit(m.Run())
-}
 
 func TestIsMessagePastPublishSLA_pastSLA(t *testing.T) {
 	publishDate := time.Now().Add(-(threshold + 1) * time.Second)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	log "github.com/Sirupsen/logrus"
 )
 
 // PublishCheck performs an availability  check on a piece of content, at a
@@ -78,10 +79,10 @@ func init() {
 // endpoint, applying endpoint-specific processing.
 // Returns true if the content is available at the endpoint, false otherwise.
 func (pc PublishCheck) DoCheck() (checkSuccessful, ignoreCheck bool) {
-	infoLogger.Printf("Running check for %s\n", pc)
+	log.Infof("Running check for %s\n", pc)
 	check := endpointSpecificChecks[pc.Metric.config.Alias]
 	if check == nil {
-		warnLogger.Printf("No check for %s", pc)
+		log.Warnf("No check for %s", pc)
 		return false, false
 	}
 
@@ -97,7 +98,7 @@ func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFin
 	url := pm.endpoint.String() + pm.UUID
 	resp, err := c.httpCaller.DoCall(url, pc.username, pc.password, checks.ConstructPamTxId(pm.tid))
 	if err != nil {
-		warnLogger.Printf("Error calling URL: [%v] for %s : [%v]", url, pc, err.Error())
+		log.Warnf("Error calling URL: [%v] for %s : [%v]", url, pc, err.Error())
 		return false, false
 	}
 	defer cleanupResp(resp)
@@ -105,14 +106,14 @@ func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFin
 	// if the article was marked as deleted, operation is finished when the
 	// article cannot be found anymore
 	if pm.isMarkedDeleted {
-		infoLogger.Printf("Content Marked deleted. Checking %s, status code [%v]", pc, resp.StatusCode)
+		log.Infof("Content Marked deleted. Checking %s, status code [%v]", pc, resp.StatusCode)
 		return resp.StatusCode == 404, false
 	}
 
 	// if not marked deleted, operation isn't finished until status is 200
 	if resp.StatusCode != 200 {
 		if resp.StatusCode != 404 {
-			infoLogger.Printf("Checking %s, status code [%v]", pc, resp.StatusCode)
+			log.Infof("Checking %s, status code [%v]", pc, resp.StatusCode)
 		}
 		return false, false
 	}
@@ -121,7 +122,7 @@ func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFin
 	// this way we can handle updates
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warnLogger.Printf("Checking %s. Cannot read response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
+		log.Warnf("Checking %s. Cannot read response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
 		return false, false
 	}
 
@@ -129,7 +130,7 @@ func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFin
 
 	err = json.Unmarshal(data, &jsonResp)
 	if err != nil {
-		warnLogger.Printf("Checking %s. Cannot unmarshal JSON response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
+		log.Warnf("Checking %s. Cannot unmarshal JSON response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
 		return false, false
 	}
 
@@ -139,7 +140,7 @@ func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFin
 func isSamePublishEvent(jsonContent map[string]interface{}, pc *PublishCheck) (operationFinished, ignoreCheck bool) {
 	pm := pc.Metric
 	if jsonContent["publishReference"] == pm.tid {
-		infoLogger.Printf("Checking %s. Matched publish reference.", pc)
+		log.Infof("Checking %s. Matched publish reference.", pc)
 		return true, false
 	}
 
@@ -147,16 +148,16 @@ func isSamePublishEvent(jsonContent map[string]interface{}, pc *PublishCheck) (o
 	lastModifiedDate, ok := parseLastModifiedDate(jsonContent)
 	if ok {
 		if (*lastModifiedDate).After(pm.publishDate) {
-			infoLogger.Printf("Checking %s. Last modified date [%v] is after publish date [%v]", pc, lastModifiedDate, pm.publishDate)
+			log.Infof("Checking %s. Last modified date [%v] is after publish date [%v]", pc, lastModifiedDate, pm.publishDate)
 			return false, true
 		}
 		if (*lastModifiedDate).Equal(pm.publishDate) {
-			infoLogger.Printf("Checking %s. Last modified date [%v] is equal to publish date [%v]", pc, lastModifiedDate, pm.publishDate)
+			log.Infof("Checking %s. Last modified date [%v] is equal to publish date [%v]", pc, lastModifiedDate, pm.publishDate)
 			return true, false
 		}
-		infoLogger.Printf("Checking %s. Last modified date [%v] is before publish date [%v]", pc, lastModifiedDate, pm.publishDate)
+		log.Infof("Checking %s. Last modified date [%v] is before publish date [%v]", pc, lastModifiedDate, pm.publishDate)
 	} else {
-		warnLogger.Printf("The field 'lastModified' is not valid: [%v]. Skip checking rapid-fire publishes for %s.", jsonContent["lastModified"], pc)
+		log.Warnf("The field 'lastModified' is not valid: [%v]. Skip checking rapid-fire publishes for %s.", jsonContent["lastModified"], pc)
 	}
 
 	return false, false
@@ -177,13 +178,13 @@ func (s S3Check) isCurrentOperationFinished(pc *PublishCheck) (operationFinished
 	url := pm.endpoint.String() + pm.UUID
 	resp, err := s.httpCaller.DoCall(url, "", "", "")
 	if err != nil {
-		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, err.Error())
+		log.Warnf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, err.Error())
 		return false, false
 	}
 	defer cleanupResp(resp)
 
 	if resp.StatusCode != 200 {
-		warnLogger.Printf("Checking %s. Error calling URL: [%v] : Response status: [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, resp.Status)
+		log.Warnf("Checking %s. Error calling URL: [%v] : Response status: [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, resp.Status)
 		return false, false
 	}
 
@@ -191,12 +192,12 @@ func (s S3Check) isCurrentOperationFinished(pc *PublishCheck) (operationFinished
 	// uploaded to S3, but body is empty - in this case, we get 200 back but empty body
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warnLogger.Printf("Checking %s. Cannot read response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
+		log.Warnf("Checking %s. Cannot read response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
 		return false, false
 	}
 
 	if len(data) == 0 {
-		warnLogger.Printf("Checking %s. Image body is empty!", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid))
+		log.Warnf("Checking %s. Image body is empty!", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid))
 		return false, false
 	}
 	return true, false
@@ -223,7 +224,7 @@ func (n NotificationsCheck) shouldSkipCheck(pc *PublishCheck) bool {
 	url := pm.endpoint.String() + "/" + pm.UUID
 	resp, err := n.httpCaller.DoCall(url, pc.username, pc.password, checks.ConstructPamTxId(pm.tid))
 	if err != nil {
-		warnLogger.Printf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, err.Error())
+		log.Warnf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, err.Error())
 		return false
 	}
 	defer cleanupResp(resp)
@@ -262,10 +263,10 @@ func (n NotificationsCheck) checkFeed(uuid string, envName string) []*feeds.Noti
 func cleanupResp(resp *http.Response) {
 	_, err := io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
-		warnLogger.Printf("[%v]", err)
+		log.Warnf("[%v]", err)
 	}
 	err = resp.Body.Close()
 	if err != nil {
-		warnLogger.Printf("[%v]", err)
+		log.Warnf("[%v]", err)
 	}
 }

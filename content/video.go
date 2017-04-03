@@ -2,6 +2,8 @@ package content
 
 import (
 	"regexp"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 const videoType = "video"
@@ -19,11 +21,11 @@ type Video struct {
 func (v Video) IsValid(externalValidationEndpoint string, txId string, username string, password string) bool {
 	contentUUID := v.UUID
 	if !isUUIDValid(contentUUID) {
-		warnLogger.Printf("Video invalid: invalid UUID: [%s]", contentUUID)
+		log.Warnf("Video invalid: invalid UUID: [%s]", contentUUID)
 		return false
 	}
 	if !idRegexp.MatchString(v.Id) {
-		warnLogger.Printf("Video invalid: invalid ID: [%s]", v.Id)
+		log.Warnf("Video invalid: invalid ID: [%s]", v.Id)
 		return false
 	}
 	return true

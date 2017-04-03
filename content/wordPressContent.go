@@ -1,5 +1,9 @@
 package content
 
+import (
+	log "github.com/Sirupsen/logrus"
+)
+
 var validWordPressTypes []string
 
 func init() {
@@ -37,13 +41,13 @@ func (wordPressMessage WordPressMessage) IsValid(extValEndpoint string, txId str
 
 	contentUUID := wordPressMessage.Post.UUID
 	if !isUUIDValid(contentUUID) {
-		warnLogger.Printf("WordPress message invalid: invalid UUID: [%s]", contentUUID)
+		log.Warnf("WordPress message invalid: invalid UUID: [%s]", contentUUID)
 		return false
 	}
 
 	postURL := wordPressMessage.Post.Url
 	if !isValidBrand(postURL) {
-		warnLogger.Printf("WordPress message invalid: failed to resolve brand for uri [%s].", postURL)
+		log.Warnf("WordPress message invalid: failed to resolve brand for uri [%s].", postURL)
 		return false
 	}
 
@@ -53,7 +57,7 @@ func (wordPressMessage WordPressMessage) IsValid(extValEndpoint string, txId str
 			return true
 		}
 	}
-	warnLogger.Printf("WordPress message invalid: unexpected content type: [%s]", contentType)
+	log.Warnf("WordPress message invalid: unexpected content type: [%s]", contentType)
 	return false
 }
 

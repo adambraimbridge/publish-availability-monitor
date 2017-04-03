@@ -12,6 +12,7 @@ import (
 
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	log "github.com/Sirupsen/logrus"
 )
 
 // Healthcheck offers methods to measure application health.
@@ -91,7 +92,7 @@ func isConsumingFromPushFeeds() fthealth.Check {
 				for _, feed := range val {
 					push, ok := feed.(*feeds.NotificationsPushFeed)
 					if ok && !push.IsConnected() {
-						warnLogger.Println("Feed \"" + feed.FeedName() + "\" with URL \"" + feed.FeedURL() + "\" is not connected!")
+						log.Warnf("Feed \"%s\" with URL \"%s\" is not connected!", feed.FeedName(), feed.FeedURL())
 						failing = append(failing, feed.FeedURL())
 						result = false
 					}
@@ -136,7 +137,7 @@ func (h *Healthcheck) checkAggregateMessageQueueProxiesReachable() (string, erro
 func (h *Healthcheck) checkMessageQueueProxyReachable(address string) (string, error) {
 	req, err := http.NewRequest("GET", address+"/topics", nil)
 	if err != nil {
-		warnLogger.Printf("Could not connect to proxy: %v", err.Error())
+		log.Warnf("Could not connect to proxy: %v", err.Error())
 		return "", err
 	}
 
@@ -150,7 +151,7 @@ func (h *Healthcheck) checkMessageQueueProxyReachable(address string) (string, e
 
 	resp, err := h.client.Do(req)
 	if err != nil {
-		warnLogger.Printf("Could not connect to proxy: %v", err.Error())
+		log.Warnf("Could not connect to proxy: %v", err.Error())
 		return "", err
 	}
 	defer resp.Body.Close()
@@ -236,7 +237,7 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 		wg.Add(1)
 		healthcheckURL, err := inferHealthCheckUrl(url)
 		if err != nil {
-			errorLogger.Printf("Validation Service URL: [%s]. Err: [%v]", url, err.Error())
+			log.Errorf("Validation Service URL: [%s]. Err: [%v]", url, err.Error())
 			continue
 		}
 
@@ -255,7 +256,7 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 
 func checkServiceReachable(healthcheckURL string, client http.Client, hcRes chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
-	infoLogger.Println("Checking: " + healthcheckURL)
+	log.Info("Checking: %s", healthcheckURL)
 
 	resp, err := client.Get(healthcheckURL)
 	if err != nil {
@@ -307,7 +308,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		}
 
 		if err != nil {
-			errorLogger.Printf("Cannot parse url [%v], Err: [%v]", metric.Endpoint, err.Error())
+			log.Errorf("Cannot parse url [%v], Err: [%v]", metric.Endpoint, err.Error())
 			continue
 		}
 
@@ -319,7 +320,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		}
 
 		if err != nil {
-			errorLogger.Printf("Service URL: [%s]. Err: [%v]", endpointURL.String(), err.Error())
+			log.Errorf("Service URL: [%s]. Err: [%v]", endpointURL.String(), err.Error())
 			continue
 		}
 

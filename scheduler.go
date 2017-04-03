@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/content"
+	log "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -35,7 +36,7 @@ func scheduleChecks(contentToCheck content.Content, publishDate time.Time, tid s
 				}
 
 				if err != nil {
-					errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
+					log.Errorf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
 					continue
 				}
 
@@ -82,7 +83,7 @@ func scheduleCheck(check PublishCheck, metricContainer *publishHistory) {
 	//compute the actual seconds left until the SLA to compensate for the
 	//time passed between publish and the message reaching this point
 	secondsUntilSLA := publishSLA.Sub(time.Now()).Seconds()
-	infoLogger.Printf("Checking %s. [%v] seconds until SLA.", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.platform, check.Metric.tid), int(secondsUntilSLA))
+	log.Infof("Checking %s. [%v] seconds until SLA.", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.platform, check.Metric.tid), int(secondsUntilSLA))
 
 	//used to signal the ticker to stop after the threshold duration is reached
 	quitChan := make(chan bool)
@@ -92,10 +93,10 @@ func scheduleCheck(check PublishCheck, metricContainer *publishHistory) {
 	}()
 
 	secondsSincePublish := time.Since(check.Metric.publishDate).Seconds()
-	infoLogger.Printf("Checking %s. [%v] seconds elapsed since publish.", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.platform, check.Metric.tid), int(secondsSincePublish))
+	log.Infof("Checking %s. [%v] seconds elapsed since publish.", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.platform, check.Metric.tid), int(secondsSincePublish))
 
 	elapsedIntervals := secondsSincePublish / float64(check.CheckInterval)
-	infoLogger.Printf("Checking %s. Skipping first [%v] checks", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.platform, check.Metric.tid), int(elapsedIntervals))
+	log.Infof("Checking %s. Skipping first [%v] checks", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.platform, check.Metric.tid), int(elapsedIntervals))
 
 	checkNr := int(elapsedIntervals) + 1
 	// ticker to fire once per interval
@@ -103,7 +104,7 @@ func scheduleCheck(check PublishCheck, metricContainer *publishHistory) {
 	for {
 		checkSuccessful, ignoreCheck := check.DoCheck()
 		if ignoreCheck {
-			infoLogger.Printf("Ignore check for %s", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.platform, check.Metric.tid))
+			log.Infof("Ignore check for %s", loggingContextForCheck(check.Metric.config.Alias, check.Metric.UUID, check.Metric.platform, check.Metric.tid))
 			tickerChan.Stop()
 			return
 		}

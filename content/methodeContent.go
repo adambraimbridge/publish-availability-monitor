@@ -11,6 +11,7 @@ import (
 	"encoding/xml"
 
 	"github.com/Financial-Times/publish-availability-monitor/checks"
+	log "github.com/Sirupsen/logrus"
 	xmlpath "gopkg.in/xmlpath.v1"
 )
 
@@ -42,7 +43,7 @@ func (eomfile EomFile) initType() EomFile {
 
 	if contentSrc == "ContentPlaceholder" && contentType == "EOM::CompoundStory" {
 		eomfile.Type = "EOM::CompoundStory_ContentPlaceholder"
-		infoLogger.Printf("results [%v] ....", eomfile.Type)
+		log.Infof("results [%v] ....", eomfile.Type)
 		return eomfile
 	}
 	eomfile.Type = eomfile.ContentType
@@ -52,7 +53,7 @@ func (eomfile EomFile) initType() EomFile {
 func (eomfile EomFile) IsValid(externalValidationEndpoint string, txID string, username string, password string) bool {
 	contentUUID := eomfile.UUID
 	if !isUUIDValid(contentUUID) {
-		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]. transaction_id=[%s]", contentUUID, txID)
+		log.Warnf("Eomfile invalid: invalid UUID: [%s]. transaction_id=[%s]", contentUUID, txID)
 		return false
 	}
 
@@ -65,10 +66,10 @@ func (eomfile EomFile) IsMarkedDeleted() bool {
 	}
 	markDeletedFlag, ok := GetXPathValue(eomfile.Attributes, eomfile, markDeletedFlagXPath)
 	if !ok {
-		warnLogger.Printf("Eomfile with uuid=[%s]: Cannot match node in XML using xpath [%v]", eomfile.UUID, markDeletedFlagXPath)
+		log.Warnf("Eomfile with uuid=[%s]: Cannot match node in XML using xpath [%v]", eomfile.UUID, markDeletedFlagXPath)
 		return false
 	}
-	infoLogger.Printf("Eomfile with uuid=[%s]: MarkAsDeletedFlag: [%v]", eomfile.UUID, markDeletedFlag)
+	log.Infof("Eomfile with uuid=[%s]: MarkAsDeletedFlag: [%v]", eomfile.UUID, markDeletedFlag)
 	return markDeletedFlag == "True"
 }
 
@@ -84,7 +85,7 @@ func GetXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool
 	path := xmlpath.MustCompile(lookupPath)
 	root, err := xmlpath.Parse(strings.NewReader(xml))
 	if err != nil {
-		warnLogger.Printf("Cannot parse XML of eomfile with uuid=[%s] using xpath [%v], error: [%v]", eomfile.UUID, lookupPath, err.Error())
+		log.Warnf("Cannot parse XML of eomfile with uuid=[%s] using xpath [%v], error: [%v]", eomfile.UUID, lookupPath, err.Error())
 		return "", false
 	}
 	xpathValue, ok := path.String(root)
@@ -94,12 +95,12 @@ func GetXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool
 
 func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txID, username string, password string) bool {
 	if validationURL == "" {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", eomfile.UUID, txID, eomfile.Type)
+		log.Warnf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", eomfile.UUID, txID, eomfile.Type)
 		return false
 	}
 	marshalled, err := json.Marshal(eomfile)
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txID, err)
+		log.Warnf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txID, err)
 		return true
 	}
 
@@ -110,19 +111,19 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txID,
 		"application/json", bytes.NewReader(marshalled))
 
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txID, err)
+		log.Warnf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", eomfile.UUID, txID, err)
 		return true
 	}
 	defer cleanupResp(resp)
 
-	infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] received statusCode [%d]", eomfile.UUID, txID, resp.StatusCode)
+	log.Infof("External validation for content uuid=[%s] transaction_id=[%s] received statusCode [%d]", eomfile.UUID, txID, resp.StatusCode)
 
 	bs, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", eomfile.UUID, txID, err)
+		log.Warnf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", eomfile.UUID, txID, err)
 	}
 	if resp.StatusCode != 200 {
-		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", eomfile.UUID, txID, string(bs))
+		log.Infof("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", eomfile.UUID, txID, string(bs))
 	}
 	if resp.StatusCode == 418 {
 		return false
@@ -138,10 +139,10 @@ func isExternalValidationSuccessful(eomfile EomFile, validationURL string, txID,
 func cleanupResp(resp *http.Response) {
 	_, err := io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
-		warnLogger.Printf("[%v]", err)
+		log.Warnf("[%v]", err)
 	}
 	err = resp.Body.Close()
 	if err != nil {
-		warnLogger.Printf("[%v]", err)
+		log.Warnf("[%v]", err)
 	}
 }

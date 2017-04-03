@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"io"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
@@ -90,9 +89,6 @@ type publishHistory struct {
 
 const dateLayout = time.RFC3339Nano
 
-var infoLogger *log.Logger
-var warnLogger *log.Logger
-var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var etcdPeers = flag.String("etcd-peers", "http://localhost:2379", "Comma-separated list of addresses of etcd endpoints to connect to")
 var etcdReadEnvKey = flag.String("etcd-read-env-key", "/ft/config/monitoring/read-urls", "etcd key that lists the read environment URLs")
@@ -107,14 +103,18 @@ var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 var validatorCredentials string
 
+func init() {
+	f := logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
+	log.SetFormatter(f)
+}
+
 func main() {
-	initLogs(os.Stdout, os.Stdout, os.Stderr)
 	flag.Parse()
 
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
-		errorLogger.Printf("Cannot load configuration: [%v]", err)
+		log.Errorf("Cannot load configuration: [%v]", err)
 		return
 	}
 
@@ -144,7 +144,7 @@ func startHttpListener() {
 	http.Handle("/", router)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		errorLogger.Panicf("Couldn't set up HTTP listener: %+v\n", err)
+		log.Panicf("Couldn't set up HTTP listener: %+v\n", err)
 	}
 }
 
@@ -198,16 +198,16 @@ func loadHistory(w http.ResponseWriter, r *http.Request) {
 
 func handleMessage(msg consumer.Message) {
 	tid := msg.Headers["X-Request-Id"]
-	infoLogger.Printf("Received message with TID [%v]", tid)
+	log.Infof("Received message with TID [%v]", tid)
 
 	if isIgnorableMessage(tid) {
-		infoLogger.Printf("Message [%v] is ignorable. Skipping...", tid)
+		log.Infof("Message [%v] is ignorable. Skipping...", tid)
 		return
 	}
 
 	publishedContent, err := content.UnmarshalContent(msg)
 	if err != nil {
-		warnLogger.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
+		log.Warnf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return
 	}
 
@@ -223,22 +223,22 @@ func handleMessage(msg consumer.Message) {
 	}
 
 	if !publishedContent.IsValid(validationEndpoint, tid, username, password) {
-		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
+		log.Infof("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return
 	}
 
-	infoLogger.Printf("Message [%v] with UUID [%v] is VALID.", tid, uuid)
+	log.Infof("Message [%v] with UUID [%v] is VALID.", tid, uuid)
 
 	publishDateString := msg.Headers["Message-Timestamp"]
 	publishDate, err := time.Parse(dateLayout, publishDateString)
 	if err != nil {
-		errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
+		log.Errorf("Cannot parse publish date [%v] from message [%v], error: [%v]",
 			publishDateString, tid, err.Error())
 		return
 	}
 
 	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
-		infoLogger.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
+		log.Infof("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
 		return
 	}
 
@@ -249,7 +249,7 @@ func handleMessage(msg consumer.Message) {
 	if publishedContent.GetType() == "Image" {
 		eomFile, ok := publishedContent.(content.EomFile)
 		if !ok {
-			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
+			log.Errorf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
 			return
 		}
 		imageSetEomFile := spawnImageSet(eomFile)
@@ -284,14 +284,14 @@ func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
 
 	imageUUID, err := content.NewUUIDFromString(imageEomFile.UUID)
 	if err != nil {
-		warnLogger.Printf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
+		log.Warnf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
 			imageEomFile.UUID, err.Error())
 		return content.EomFile{}
 	}
 
 	imageSetUUID, err := content.GenerateImageSetUUID(*imageUUID)
 	if err != nil {
-		warnLogger.Printf("Cannot generate image set UUID: [%v], skipping image set check",
+		log.Warnf("Cannot generate image set UUID: [%v], skipping image set check",
 			err.Error())
 		return content.EomFile{}
 	}
@@ -324,27 +324,12 @@ func getValidationEndpointKey(publishedContent content.Content, tid string, uuid
 	if strings.Contains(publishedContent.GetType(), "EOM::CompoundStory") {
 		_, ok := publishedContent.(content.EomFile)
 		if !ok {
-			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
+			log.Errorf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
 			return ""
 		}
 
 	}
 	return validationEndpointKey
-}
-
-func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
-	//to be used for INFO-level logging: info.Println("foo is now bar")
-	infoLogger = log.New()
-	infoLogger.Out = infoHandle
-	infoLogger.Formatter = logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
-	//to be used for WARN-level logging: warn.Println("foo is now bar")
-	warnLogger = log.New()
-	warnLogger.Out = warnHandle
-	warnLogger.Formatter = logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
-	//to be used for ERROR-level logging: errorL.Println("foo is now bar")
-	errorLogger = log.New()
-	errorLogger.Out = errorHandle
-	errorLogger.Formatter = logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
 }
 
 func (pm PublishMetric) String() string {
