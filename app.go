@@ -19,6 +19,7 @@ import (
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	"github.com/Financial-Times/publish-availability-monitor/logformat"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -335,12 +336,15 @@ func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer)
 	//to be used for INFO-level logging: info.Println("foo is now bar")
 	infoLogger = log.New()
 	infoLogger.Out = infoHandle
+	infoLogger.Formatter = logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
 	//to be used for WARN-level logging: warn.Println("foo is now bar")
 	warnLogger = log.New()
 	warnLogger.Out = warnHandle
+	warnLogger.Formatter = logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
 	//to be used for ERROR-level logging: errorL.Println("foo is now bar")
 	errorLogger = log.New()
 	errorLogger.Out = errorHandle
+	errorLogger.Formatter = logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
 }
 
 func (pm PublishMetric) String() string {

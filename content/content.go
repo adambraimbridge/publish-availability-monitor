@@ -8,6 +8,7 @@ import (
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/checks"
+	"github.com/Financial-Times/publish-availability-monitor/logformat"
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -30,12 +31,15 @@ func init() {
 	//to be used for INFO-level logging: info.Println("foo is now bar")
 	infoLogger = log.New()
 	infoLogger.Out = os.Stdout
+	infoLogger.Formatter = logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
 	//to be used for WARN-level logging: warn.Println("foo is now bar")
 	warnLogger = log.New()
 	warnLogger.Out = os.Stdout
+	warnLogger.Formatter = logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
 	//to be used for ERROR-leve logging: errorL.Println("foo is now bar")
 	errorLogger = log.New()
 	errorLogger.Out = os.Stderr
+	errorLogger.Formatter = logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
 	httpCaller = checks.NewHttpCaller(10)
 }
 

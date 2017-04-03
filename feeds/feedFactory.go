@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Financial-Times/publish-availability-monitor/logformat"
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -16,8 +17,11 @@ var errorLogger *log.Logger
 func init() {
 	infoLogger = log.New()
 	infoLogger.Out = os.Stdout
+	infoLogger.Formatter = logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
 
 	errorLogger = log.New()
+	errorLogger.Level = log.ErrorLevel
+	errorLogger.Formatter = logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
 }
 
 func NewNotificationsFeed(name string, baseUrl url.URL, expiry int, interval int, username string, password string) Feed {
@@ -46,7 +50,7 @@ func newNotificationsPullFeed(name string, baseUrl url.URL, expiry int, interval
 	bootstrapValues.Add("since", time.Now().Format(time.RFC3339))
 	baseUrl.RawQuery = ""
 
-	infoLogger.Printf("constructing NotificationsPullFeed for [%s], baseUrl = [%s], bootstrapValues = [%s]", feedUrl, baseUrl.String(), bootstrapValues.Encode())
+	infoLogger.Infof("constructing NotificationsPullFeed for [%s], baseUrl = [%s], bootstrapValues = [%s]", feedUrl, baseUrl.String(), bootstrapValues.Encode())
 	return &NotificationsPullFeed{
 		baseNotificationsFeed{
 			name,
