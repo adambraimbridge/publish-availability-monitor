@@ -3,13 +3,7 @@ package content
 import (
 	"encoding/xml"
 	"net/http"
-	"strings"
-
-	xmlpath "gopkg.in/xmlpath.v1"
 )
-
-const sourceXPath = "//ObjectMetadata/EditorialNotes/Sources/Source/SourceCode"
-const markDeletedFlagXPath = "//ObjectMetadata/OutputChannels/DIFTcom/DIFTcomMarkDeleted"
 
 // EomFile models Methode content
 type EomFile struct {
@@ -49,11 +43,11 @@ func (eomfile EomFile) Initialize(binaryContent []byte) Content {
 	return eomfile.initType()
 }
 
-func (eomfile EomFile) IsValid(externalValidationEndpoint string, txID string, username string, password string) bool {
+func (eomfile EomFile) Validate(externalValidationEndpoint string, txID string, username string, password string) ValidationResponse {
 	contentUUID := eomfile.UUID
 	if !isUUIDValid(contentUUID) {
 		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]. transaction_id=[%s]", contentUUID, txID)
-		return false
+		return ValidationResponse{IsValid:false}
 	}
 
 	validationParam := validationParam{
@@ -68,35 +62,16 @@ func (eomfile EomFile) IsValid(externalValidationEndpoint string, txID string, u
 
 	return doExternalValidation(
 		validationParam,
-		methodeContentStatusCheck,
+		eomfile.isValid,
+		eomfile.isMarkedDeleted,
 	)
 }
 
-func (eomfile EomFile) IsMarkedDeleted() bool {
-	if eomfile.Type == "Image" || eomfile.Type == "EOM::WebContainer" {
-		return false
-	}
-	markDeletedFlag, ok := getXPathValue(eomfile.Attributes, eomfile, markDeletedFlagXPath)
-	if !ok {
-		warnLogger.Printf("Eomfile with uuid=[%s]: Cannot match node in XML using xpath [%v]", eomfile.UUID, markDeletedFlagXPath)
-		return false
-	}
-	infoLogger.Printf("Eomfile with uuid=[%s]: MarkAsDeletedFlag: [%v]", eomfile.UUID, markDeletedFlag)
-	return markDeletedFlag == "True"
-}
-
-func (eomfile EomFile) GetType() string {
-	return eomfile.Type
-}
-
-func (eomfile EomFile) GetUUID() string {
-	return eomfile.UUID
-}
-
-func methodeContentStatusCheck(status int) bool {
+func (eomfile EomFile) isValid(status int) bool {
 	if status == http.StatusTeapot {
 		return false
 	}
+
 	//invalid  contentplaceholder (link file) will not be published so do not monitor
 	if status == http.StatusUnprocessableEntity {
 		return false
@@ -105,13 +80,23 @@ func methodeContentStatusCheck(status int) bool {
 	return true
 }
 
-func getXPathValue(xml string, eomfile EomFile, lookupPath string) (string, bool) {
-	path := xmlpath.MustCompile(lookupPath)
-	root, err := xmlpath.Parse(strings.NewReader(xml))
-	if err != nil {
-		warnLogger.Printf("Cannot parse XML of eomfile with uuid=[%s] using xpath [%v], error: [%v]", eomfile.UUID, lookupPath, err.Error())
-		return "", false
+func (eomfile EomFile) isMarkedDeleted(status ...int) bool {
+	if eomfile.Type == "Image" || eomfile.Type == "EOM::WebContainer" {
+		return false
 	}
-	xpathValue, ok := path.String(root)
-	return xpathValue, ok
+
+	if len(status) == 1 && status[0] == http.StatusNotFound {
+		infoLogger.Printf("Eomfile with uuid=[%s] is marked as deleted!", eomfile.UUID)
+		return true
+	}
+
+	return false
+}
+
+func (eomfile EomFile) GetType() string {
+	return eomfile.Type
+}
+
+func (eomfile EomFile) GetUUID() string {
+	return eomfile.UUID
 }

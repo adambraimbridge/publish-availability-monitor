@@ -107,6 +107,8 @@ var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 var validatorCredentials string
 
+var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[a-zA-Z0-9]+)_carousel_[\d]{10}.*$`)
+
 func main() {
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
 	flag.Parse()
@@ -205,30 +207,6 @@ func handleMessage(msg consumer.Message) {
 		return
 	}
 
-	publishedContent, err := content.UnmarshalContent(msg)
-	if err != nil {
-		warnLogger.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
-		return
-	}
-
-	uuid := publishedContent.GetUUID()
-	validationEndpointKey := getValidationEndpointKey(publishedContent, tid, uuid)
-	var validationEndpoint string
-	var found bool
-	var username string
-	var password string
-
-	if validationEndpoint, found = appConfig.ValidationEndpoints[validationEndpointKey]; found {
-		username, password = getValidationCredentials(validationEndpoint)
-	}
-
-	if !publishedContent.IsValid(validationEndpoint, tid, username, password) {
-		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
-		return
-	}
-
-	infoLogger.Printf("Message [%v] with UUID [%v] is VALID.", tid, uuid)
-
 	publishDateString := msg.Headers["Message-Timestamp"]
 	publishDate, err := time.Parse(dateLayout, publishDateString)
 	if err != nil {
@@ -237,72 +215,34 @@ func handleMessage(msg consumer.Message) {
 		return
 	}
 
-	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
-		infoLogger.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
+	publishedContent, err := content.UnmarshalContent(msg)
+	if err != nil {
+		warnLogger.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return
 	}
 
-	scheduleChecks(publishedContent, publishDate, tid, publishedContent.IsMarkedDeleted(), &metricContainer, environments)
+	var paramsToSchedule []*schedulerParam
 
-	// for images we need to check their corresponding image sets
-	// the image sets don't have messages of their own so we need to create one
-	if publishedContent.GetType() == "Image" {
-		eomFile, ok := publishedContent.(content.EomFile)
-		if !ok {
-			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, uuid)
+	for _, preCheck := range mainPreChecks() {
+		ok, scheduleParam := preCheck(publishedContent, tid, publishDate)
+		if ok {
+			paramsToSchedule = append(paramsToSchedule, scheduleParam)
+		} else {
+			//if a main check is not ok, additional checks make no sense
 			return
 		}
-		imageSetEomFile := spawnImageSet(eomFile)
-		if imageSetEomFile.UUID != "" {
-			scheduleChecks(imageSetEomFile, publishDate, tid, false, &metricContainer, environments)
-		}
 	}
-}
 
-func getCredentials(url string) (string, string) {
-	for _, env := range environments {
-		if strings.HasPrefix(url, env.ReadUrl) {
-			return env.Username, env.Password
+	for _, preCheck := range additionalPreChecks() {
+		ok, scheduleParam := preCheck(publishedContent, tid, publishDate)
+		if ok {
+			paramsToSchedule = append(paramsToSchedule, scheduleParam)
 		}
 	}
 
-	return "", ""
-}
-
-func getValidationCredentials(url string) (string, string) {
-	if strings.Contains(validatorCredentials, ":") {
-		unpw := strings.SplitN(validatorCredentials, ":", 2)
-		return unpw[0], unpw[1]
+	for _, scheduleParam := range paramsToSchedule {
+		scheduleChecks(scheduleParam)
 	}
-
-	return "", ""
-}
-
-func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
-	imageSetEomFile := imageEomFile
-	imageSetEomFile.Type = "ImageSet"
-
-	imageUUID, err := content.NewUUIDFromString(imageEomFile.UUID)
-	if err != nil {
-		warnLogger.Printf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
-			imageEomFile.UUID, err.Error())
-		return content.EomFile{}
-	}
-
-	imageSetUUID, err := content.GenerateImageSetUUID(*imageUUID)
-	if err != nil {
-		warnLogger.Printf("Cannot generate image set UUID: [%v], skipping image set check",
-			err.Error())
-		return content.EomFile{}
-	}
-
-	imageSetEomFile.UUID = imageSetUUID.String()
-	return imageSetEomFile
-}
-
-func isMessagePastPublishSLA(date time.Time, threshold int) bool {
-	passedSLA := date.Add(time.Duration(threshold) * time.Second)
-	return time.Now().After(passedSLA)
 }
 
 func isIgnorableMessage(tid string) bool {
@@ -313,23 +253,8 @@ func isSyntheticTransactionID(tid string) bool {
 	return strings.HasPrefix(tid, "SYNTHETIC")
 }
 
-var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[a-zA-Z0-9]+)_carousel_[\d]{10}.*$`)
-
 func isContentCarouselTransactionID(tid string) bool {
 	return carouselTransactionIDRegExp.MatchString(tid)
-}
-
-func getValidationEndpointKey(publishedContent content.Content, tid string, uuid string) string {
-	validationEndpointKey := publishedContent.GetType()
-	if strings.Contains(publishedContent.GetType(), "EOM::CompoundStory") {
-		_, ok := publishedContent.(content.EomFile)
-		if !ok {
-			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
-			return ""
-		}
-
-	}
-	return validationEndpointKey
 }
 
 func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {

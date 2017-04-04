@@ -26,11 +26,11 @@ func (wordPressMessage WordPressMessage) Initialize(binaryContent []byte) Conten
 	return wordPressMessage
 }
 
-func (wordPressMessage WordPressMessage) IsValid(extValEndpoint string, txId string, username string, password string) bool {
+func (wordPressMessage WordPressMessage) Validate(extValEndpoint string, txId string, username string, password string) ValidationResponse {
 	contentUUID := wordPressMessage.Post.UUID
 	if !isUUIDValid(contentUUID) {
 		warnLogger.Printf("WordPress message invalid: invalid UUID: [%s]", contentUUID)
-		return false
+		return ValidationResponse{IsValid:false, IsMarkedDeleted: wordPressMessage.isMarkedDeleted()}
 	}
 
 	validationParam := validationParam{

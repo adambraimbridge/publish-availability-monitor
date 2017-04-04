@@ -18,10 +18,14 @@ import (
 // Content is the interface for different type of contents from different CMSs.
 type Content interface {
 	Initialize(binaryContent []byte) Content
-	IsValid(externalValidationEndpoint string, txID string, username string, password string) bool
-	IsMarkedDeleted() bool
+	Validate(externalValidationEndpoint string, txID string, username string, password string) ValidationResponse
 	GetType() string
 	GetUUID() string
+}
+
+type ValidationResponse struct {
+	IsValid bool
+	IsMarkedDeleted bool
 }
 
 const systemIDKey = "Origin-System-Id"
@@ -81,10 +85,10 @@ type validationParam struct {
 	contentType   string
 }
 
-func doExternalValidation(p validationParam, statusCheck func(int) bool) bool {
+func doExternalValidation(p validationParam, validCheck func(int) bool, deletedCheck func(... int) bool) ValidationResponse {
 	if p.validationURL == "" {
 		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", p.uuid, p.txID, p.contentType)
-		return false
+		return ValidationResponse{false, deletedCheck()}
 	}
 
 	resp, err := httpCaller.DoCallWithEntity(
@@ -94,7 +98,7 @@ func doExternalValidation(p validationParam, statusCheck func(int) bool) bool {
 
 	if err != nil {
 		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", p.uuid, p.txID, err)
-		return true
+		return ValidationResponse{true, deletedCheck()}
 	}
 	defer cleanupResp(resp)
 
@@ -109,16 +113,16 @@ func doExternalValidation(p validationParam, statusCheck func(int) bool) bool {
 		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", p.uuid, p.txID, string(bs))
 	}
 
-	return statusCheck(resp.StatusCode)
+	return ValidationResponse{validCheck(resp.StatusCode), deletedCheck(resp.StatusCode)}
 }
 
 func cleanupResp(resp *http.Response) {
 	_, err := io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
-		warnLogger.Printf("[%v]", err)
+		warnLogger.Printf("External validation cleanup failed with error: [%v]", err)
 	}
 	err = resp.Body.Close()
 	if err != nil {
-		warnLogger.Printf("[%v]", err)
+		warnLogger.Printf("External validation cleanup failed with error: [%v]", err)
 	}
 }

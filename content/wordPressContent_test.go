@@ -18,13 +18,15 @@ var wordpressContentMarkedDeletedFalse = WordPressMessage{
 }
 
 func TestIsMarkedDeleted_True(t *testing.T) {
-	if !wordpressContentMarkedDeletedTrue.IsMarkedDeleted() {
+	valRes := wordpressContentMarkedDeletedTrue.Validate("", "", "", "")
+	if !valRes.IsMarkedDeleted {
 		t.Error("Expected True, the story IS marked deleted")
 	}
 }
 
 func TestIsMarkedDeleted_False(t *testing.T) {
-	if wordpressContentMarkedDeletedFalse.IsMarkedDeleted() {
+	valRes := wordpressContentMarkedDeletedFalse.Validate("", "", "", "")
+	if valRes.IsMarkedDeleted {
 		t.Error("Expected False, the wordPress article IS NOT marked deleted")
 	}
 }

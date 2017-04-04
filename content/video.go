@@ -23,52 +23,49 @@ func (video Video) Initialize(binaryContent []byte) Content {
 	return video
 }
 
-func (v Video) IsValid(externalValidationEndpoint string, txId string, username string, password string) bool {
-	if !isUUIDValid(v.GetUUID()) {
-		warnLogger.Printf("Video invalid: invalid UUID: [%s]", v.GetUUID())
-		return false
+func (video Video) Validate(externalValidationEndpoint string, txId string, username string, password string) ValidationResponse {
+	if !isUUIDValid(video.GetUUID()) {
+		warnLogger.Printf("Video invalid: invalid UUID: [%s]", video.GetUUID())
+		return ValidationResponse{IsValid: false, IsMarkedDeleted: video.isMarkedDeleted()}
 	}
 
-	if !idRegexp.MatchString(v.Id) {
-		warnLogger.Printf("Video invalid: invalid ID: [%s]", v.Id)
-		return false
+	if !idRegexp.MatchString(video.Id) {
+		warnLogger.Printf("Video invalid: invalid ID: [%s]", video.Id)
+		return ValidationResponse{IsValid: false, IsMarkedDeleted: video.isMarkedDeleted()}
 	}
 
 	validationParam := validationParam{
-		v.BinaryContent,
+		video.BinaryContent,
 		externalValidationEndpoint,
 		username,
 		password,
 		txId,
-		v.GetUUID(),
-		v.GetType(),
+		video.GetUUID(),
+		video.GetType(),
 	}
 
 	return doExternalValidation(
 		validationParam,
-		videoStatusCheck,
+		video.isValid,
+		video.isMarkedDeleted,
 	)
 }
 
-func (v Video) IsMarkedDeleted() bool {
-	if v.PublishedAt != "" || v.UpdatedAt != "" {
+func (video Video) isValid(status int) bool {
+	return status != http.StatusBadRequest
+}
+
+func (video Video) isMarkedDeleted(status ...int) bool {
+	if video.PublishedAt != "" || video.UpdatedAt != "" {
 		return false
 	}
 	return true
 }
 
-func (v Video) GetType() string {
+func (video Video) GetType() string {
 	return videoType
 }
 
-func (v Video) GetUUID() string {
-	return v.UUID
-}
-
-func videoStatusCheck(status int) bool {
-	if status == http.StatusBadRequest {
-		return false
-	}
-
-	return true
+func (video Video) GetUUID() string {
+	return video.UUID
 }
