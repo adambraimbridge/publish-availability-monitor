@@ -46,7 +46,7 @@ func TestUnmarshalContent_InvalidWordPressContentWrongJSONFormat_Error(t *testin
 func TestUnmarshalContent_ValidWordPressMessageWithTypeField_TypeIsCorrectlyUnmarshalled(t *testing.T) {
 	content, err := UnmarshalContent(validWordPressMessageWithTypeField)
 	if err != nil {
-		t.Errorf("Expected success, but error occured [%video]", err)
+		t.Errorf("Expected success, but error occured [%v]", err)
 		return
 	}
 	if content.GetType() != "post" {
@@ -57,7 +57,7 @@ func TestUnmarshalContent_ValidWordPressMessageWithTypeField_TypeIsCorrectlyUnma
 func TestUnmarshalContent_ValidVideoMessage(t *testing.T) {
 	content, err := UnmarshalContent(validVideoMsg)
 	if err != nil {
-		t.Errorf("Expected success, but error occured [%video]", err)
+		t.Errorf("Expected success, but error occured [%v]", err)
 		return
 	}
 	valRes := content.Validate("", "", "", "")
@@ -69,7 +69,7 @@ func TestUnmarshalContent_ValidVideoMessage(t *testing.T) {
 func TestUnmarshalContent_ValidDeletedVideoMessage(t *testing.T) {
 	content, err := UnmarshalContent(validDeleteVideoMsg)
 	if err != nil {
-		t.Errorf("Expected success, but error occured [%video]", err)
+		t.Errorf("Expected success, but error occured [%v]", err)
 		return
 	}
 	valRes := content.Validate("", "", "", "")
@@ -81,7 +81,7 @@ func TestUnmarshalContent_ValidDeletedVideoMessage(t *testing.T) {
 func TestUnmarshalContent_InvalidVideoMessage(t *testing.T) {
 	content, err := UnmarshalContent(invalidVideoMsg)
 	if err != nil {
-		t.Errorf("Expected success, but error occured [%video]", err)
+		t.Errorf("Expected success, but error occured [%v]", err)
 		return
 	}
 	valRes := content.Validate("", "", "", "")
@@ -99,7 +99,7 @@ func TestUnmarshalContent_ContentIsMethodeList_LinkedObjectsFieldIsMarshalled(t 
 	}
 	content, err := UnmarshalContent(validMethodeListMessage)
 	if err != nil {
-		t.Errorf("Expected success, but error occured [%video]", err)
+		t.Errorf("Expected success, but error occured [%v]", err)
 		return
 	}
 	methodeContent, ok := content.(EomFile)
@@ -120,7 +120,7 @@ func TestUnmarshalContent_ContentIsMethodeArticle_LinkedObjectsFieldIsEmpty(t *t
 	}
 	content, err := UnmarshalContent(validMethodeListMessage)
 	if err != nil {
-		t.Errorf("Expected success, but error occured [%video]", err)
+		t.Errorf("Expected success, but error occured [%v]", err)
 		return
 	}
 	methodeContent, ok := content.(EomFile)

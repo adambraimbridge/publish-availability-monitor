@@ -97,7 +97,7 @@ func doExternalValidation(p validationParam, validCheck func(int) bool, deletedC
 		"application/json", bytes.NewReader(p.binaryContent))
 
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%video]. Skipping external validation.", p.uuid, p.txID, err)
+		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", p.uuid, p.txID, err)
 		return ValidationResponse{true, deletedCheck()}
 	}
 	defer cleanupResp(resp)
@@ -106,11 +106,11 @@ func doExternalValidation(p validationParam, validCheck func(int) bool, deletedC
 
 	bs, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%video]", p.uuid, p.txID, err)
+		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", p.uuid, p.txID, err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%video]", p.uuid, p.txID, string(bs))
+		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", p.uuid, p.txID, string(bs))
 	}
 
 	return ValidationResponse{validCheck(resp.StatusCode), deletedCheck(resp.StatusCode)}
@@ -119,10 +119,10 @@ func doExternalValidation(p validationParam, validCheck func(int) bool, deletedC
 func cleanupResp(resp *http.Response) {
 	_, err := io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
-		warnLogger.Printf("External validation cleanup failed with error: [%video]", err)
+		warnLogger.Printf("External validation cleanup failed with error: [%v]", err)
 	}
 	err = resp.Body.Close()
 	if err != nil {
-		warnLogger.Printf("External validation cleanup failed with error: [%video]", err)
+		warnLogger.Printf("External validation cleanup failed with error: [%v]", err)
 	}
 }

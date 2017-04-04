@@ -57,7 +57,7 @@ func TestThat_ContentPayloadFromKafkaMsg_MatchesTheContentPayloadSentToValidatio
 		defer ts.Close()
 		content, err := UnmarshalContent(tc.msg)
 		if err != nil {
-			t.Errorf("Expected success, but error occured [%video]", err)
+			t.Errorf("Expected success, but error occured [%v]", err)
 			return
 		}
 		//don't care about the actual result

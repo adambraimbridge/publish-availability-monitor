@@ -31,7 +31,7 @@ func (eomfile EomFile) initType() EomFile {
 
 	if contentSrc == "ContentPlaceholder" && contentType == "EOM::CompoundStory" {
 		eomfile.Type = "EOM::CompoundStory_ContentPlaceholder"
-		infoLogger.Printf("results [%video] ....", eomfile.Type)
+		infoLogger.Printf("results [%v] ....", eomfile.Type)
 		return eomfile
 	}
 	eomfile.Type = eomfile.ContentType
