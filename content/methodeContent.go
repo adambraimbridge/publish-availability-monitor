@@ -47,7 +47,7 @@ func (eomfile EomFile) Validate(externalValidationEndpoint string, txID string, 
 	contentUUID := eomfile.UUID
 	if !isUUIDValid(contentUUID) {
 		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]. transaction_id=[%s]", contentUUID, txID)
-		return ValidationResponse{IsValid:false}
+		return ValidationResponse{IsValid: false}
 	}
 
 	validationParam := validationParam{

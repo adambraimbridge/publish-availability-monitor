@@ -2,8 +2,6 @@ package content
 
 import "net/http"
 
-const notFoundError = "Not found."
-
 // WordPressMessage models messages from Wordpress
 type WordPressMessage struct {
 	Status        string `json:"status"`
@@ -30,7 +28,7 @@ func (wordPressMessage WordPressMessage) Validate(extValEndpoint string, txId st
 	contentUUID := wordPressMessage.Post.UUID
 	if !isUUIDValid(contentUUID) {
 		warnLogger.Printf("WordPress message invalid: invalid UUID: [%s]", contentUUID)
-		return ValidationResponse{IsValid:false, IsMarkedDeleted: wordPressMessage.isMarkedDeleted()}
+		return ValidationResponse{IsValid: false, IsMarkedDeleted: wordPressMessage.isMarkedDeleted(0)}
 	}
 
 	validationParam := validationParam{
@@ -45,12 +43,17 @@ func (wordPressMessage WordPressMessage) Validate(extValEndpoint string, txId st
 
 	return doExternalValidation(
 		validationParam,
-		wordpressStatusCheck,
+		wordPressMessage.isValid,
+		wordPressMessage.isMarkedDeleted,
 	)
 }
 
-func (wordPressMessage WordPressMessage) IsMarkedDeleted() bool {
-	return wordPressMessage.Status == "error" && wordPressMessage.Error == notFoundError
+func (wordPressMessage WordPressMessage) isValid(status int) bool {
+	return status != http.StatusUnprocessableEntity
+}
+
+func (wordPressMessage WordPressMessage) isMarkedDeleted(status ...int) bool {
+	return status[0] == http.StatusNotFound
 }
 
 func (wordPressMessage WordPressMessage) GetType() string {
@@ -59,8 +62,4 @@ func (wordPressMessage WordPressMessage) GetType() string {
 
 func (wordPressMessage WordPressMessage) GetUUID() string {
 	return wordPressMessage.Post.UUID
-}
-
-func wordpressStatusCheck(status int) bool {
-	return status != http.StatusUnprocessableEntity
 }

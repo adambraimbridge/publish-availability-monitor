@@ -24,7 +24,7 @@ type Content interface {
 }
 
 type ValidationResponse struct {
-	IsValid bool
+	IsValid         bool
 	IsMarkedDeleted bool
 }
 
@@ -85,7 +85,7 @@ type validationParam struct {
 	contentType   string
 }
 
-func doExternalValidation(p validationParam, validCheck func(int) bool, deletedCheck func(... int) bool) ValidationResponse {
+func doExternalValidation(p validationParam, validCheck func(int) bool, deletedCheck func(...int) bool) ValidationResponse {
 	if p.validationURL == "" {
 		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", p.uuid, p.txID, p.contentType)
 		return ValidationResponse{false, deletedCheck()}
