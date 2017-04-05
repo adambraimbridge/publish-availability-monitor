@@ -102,7 +102,7 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 	for _, env := range envReadEndpoints {
 		nameAndUrl := strings.SplitN(env, ":", 2)
 		if len(nameAndUrl) != 2 {
-			log.Warnf("etcd read-urls contain an invalid value")
+			log.Warn("etcd read-urls contain an invalid value")
 			continue
 		}
 
