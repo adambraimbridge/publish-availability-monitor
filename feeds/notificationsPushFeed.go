@@ -72,7 +72,7 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		log.WithField("transaction_id", txId).Infof("Received invalid statusCode: [%v]", resp.StatusCode)
+		log.WithField("transaction_id", txId).Errorf("Received invalid statusCode: [%v]", resp.StatusCode)
 		return f.isConsuming()
 	}
 
