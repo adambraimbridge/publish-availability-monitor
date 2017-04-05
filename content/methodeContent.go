@@ -49,12 +49,12 @@ func (eomfile EomFile) Validate(externalValidationEndpoint string, txID string, 
 	contentUUID := eomfile.UUID
 	if !isUUIDValid(contentUUID) {
 		log.Warnf("Eomfile invalid: invalid UUID: [%s]. transaction_id=[%s]", contentUUID, txID)
-		return ValidationResponse{IsValid:false}
+		return ValidationResponse{IsValid: false}
 	}
 
 	isValid, statusCode := isExternalValidationSuccessful(eomfile, externalValidationEndpoint, txID, username, password)
 
-	return ValidationResponse{IsValid:isValid, IsMarkedDeleted: eomfile.isMarkedDeleted(statusCode)}
+	return ValidationResponse{IsValid: isValid, IsMarkedDeleted: eomfile.isMarkedDeleted(statusCode)}
 }
 
 func (eomfile EomFile) isMarkedDeleted(validationStatusCode int) bool {

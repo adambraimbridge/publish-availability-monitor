@@ -22,13 +22,13 @@ func (v Video) Validate(externalValidationEndpoint string, txId string, username
 	contentUUID := v.UUID
 	if !isUUIDValid(contentUUID) {
 		log.Warnf("Video invalid: invalid UUID: [%s]", contentUUID)
-		return ValidationResponse{IsValid:false, IsMarkedDeleted: v.isMarkedDeleted()}
+		return ValidationResponse{IsValid: false, IsMarkedDeleted: v.isMarkedDeleted()}
 	}
 	if !idRegexp.MatchString(v.Id) {
 		log.Warnf("Video invalid: invalid ID: [%s]", v.Id)
-		return ValidationResponse{IsValid:false, IsMarkedDeleted: v.isMarkedDeleted()}
+		return ValidationResponse{IsValid: false, IsMarkedDeleted: v.isMarkedDeleted()}
 	}
-	return ValidationResponse{IsValid:true, IsMarkedDeleted: v.isMarkedDeleted()}
+	return ValidationResponse{IsValid: true, IsMarkedDeleted: v.isMarkedDeleted()}
 }
 
 func (v Video) isMarkedDeleted() bool {
