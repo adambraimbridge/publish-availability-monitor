@@ -97,20 +97,20 @@ func doExternalValidation(p validationParam, validCheck func(int) bool, deletedC
 		"application/json", bytes.NewReader(p.binaryContent))
 
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]. Skipping external validation.", p.uuid, p.txID, err)
+		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], creating validation request error: [%v]. Skipping external validation.", p.uuid, p.txID, p.validationURL, err)
 		return ValidationResponse{true, deletedCheck()}
 	}
 	defer cleanupResp(resp)
 
-	infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] received statusCode [%d]", p.uuid, p.txID, resp.StatusCode)
+	infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], received statusCode [%d]", p.uuid, p.txID, p.validationURL, resp.StatusCode)
 
 	bs, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", p.uuid, p.txID, err)
+		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], reading response body error: [%v]", p.uuid, p.txID, p.validationURL, err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] error: [%v]", p.uuid, p.txID, string(bs))
+		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], received statusCode [%d], received error: [%v]", p.uuid, p.txID, p.validationURL, resp.StatusCode, string(bs))
 	}
 
 	return ValidationResponse{validCheck(resp.StatusCode), deletedCheck(resp.StatusCode)}
