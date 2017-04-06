@@ -53,7 +53,7 @@ func (wordPressMessage WordPressMessage) isValid(status int) bool {
 }
 
 func (wordPressMessage WordPressMessage) isMarkedDeleted(status ...int) bool {
-	return status[0] == http.StatusNotFound
+	return len(status) == 1 && status[0] == http.StatusNotFound
 }
 
 func (wordPressMessage WordPressMessage) GetType() string {
