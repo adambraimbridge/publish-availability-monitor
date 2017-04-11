@@ -49,8 +49,8 @@ func TestUnmarshalContent_ValidWordPressMessageWithTypeField_TypeIsCorrectlyUnma
 		t.Errorf("Expected success, but error occured [%v]", err)
 		return
 	}
-	if content.GetType() != "post" {
-		t.Errorf("Expected [post] content type, but found [%s].", content.GetType())
+	if content.GetType() != wordpressType {
+		t.Errorf("Expected [%s] content type, but found [%s].", wordpressType, content.GetType())
 	}
 }
 

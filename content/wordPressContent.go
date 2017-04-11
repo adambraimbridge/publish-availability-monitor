@@ -2,6 +2,8 @@ package content
 
 import "net/http"
 
+const wordpressType = "wordpress"
+
 // WordPressMessage models messages from Wordpress
 type WordPressMessage struct {
 	Status        string `json:"status"`
@@ -57,7 +59,7 @@ func (wordPressMessage WordPressMessage) isMarkedDeleted(status ...int) bool {
 }
 
 func (wordPressMessage WordPressMessage) GetType() string {
-	return wordPressMessage.Post.Type
+	return wordpressType
 }
 
 func (wordPressMessage WordPressMessage) GetUUID() string {

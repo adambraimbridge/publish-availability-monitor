@@ -21,11 +21,8 @@
         "EOM::Story",
         "Image",
         "ImageSet",
-        "post",
-        "webchat-markets-live",
-        "webchat-live-blogs",
-        "webchat-live-qa",
-        "video"
+        "video",
+        "wordpress"
       ]
     },
     {
