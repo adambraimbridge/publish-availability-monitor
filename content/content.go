@@ -28,6 +28,16 @@ type ValidationResponse struct {
 	IsMarkedDeleted bool
 }
 
+type validationParam struct {
+	binaryContent []byte
+	validationURL string
+	username      string
+	password      string
+	txID          string
+	uuid          string
+	contentType   string
+}
+
 const systemIDKey = "Origin-System-Id"
 
 const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
@@ -73,16 +83,6 @@ func UnmarshalContent(msg consumer.Message) (Content, error) {
 	default:
 		return nil, fmt.Errorf("Unsupported content with system ID: [%s].", systemID)
 	}
-}
-
-type validationParam struct {
-	binaryContent []byte
-	validationURL string
-	username      string
-	password      string
-	txID          string
-	uuid          string
-	contentType   string
 }
 
 func doExternalValidation(p validationParam, validCheck func(int) bool, deletedCheck func(...int) bool) ValidationResponse {
