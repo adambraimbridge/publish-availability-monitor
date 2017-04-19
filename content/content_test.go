@@ -49,8 +49,8 @@ func TestUnmarshalContent_ValidWordPressMessageWithTypeField_TypeIsCorrectlyUnma
 		t.Errorf("Expected success, but error occured [%v]", err)
 		return
 	}
-	if content.GetType() != "post" {
-		t.Errorf("Expected [post] content type, but found [%s].", content.GetType())
+	if content.GetType() != wordpressType {
+		t.Errorf("Expected [%s] content type, but found [%s].", wordpressType, content.GetType())
 	}
 }
 
@@ -130,6 +130,26 @@ func TestUnmarshalContent_ContentIsMethodeArticle_LinkedObjectsFieldIsEmpty(t *t
 	if len(methodeContent.LinkedObjects) != 0 {
 		t.Error("Expected article to have zero linked objects, but found several")
 	}
+}
+
+func TestUnmarshalContent_MethodeBinaryContentSet(t *testing.T) {
+	content, err := UnmarshalContent(validMethodeMessage)
+	assert.NoError(t, err)
+
+	eomFile, ok := content.(EomFile)
+	assert.True(t, ok)
+
+	assert.Equal(t, []byte(validMethodeMessage.Body), eomFile.BinaryContent)
+}
+
+func TestUnmarshalContent_VideoBinaryContentSet(t *testing.T) {
+	content, err := UnmarshalContent(validVideoMsg)
+	assert.NoError(t, err)
+
+	video, ok := content.(Video)
+	assert.True(t, ok)
+
+	assert.Equal(t, []byte(validVideoMsg.Body), video.BinaryContent)
 }
 
 func TestIsUUIDValid_UUIDValid(t *testing.T) {

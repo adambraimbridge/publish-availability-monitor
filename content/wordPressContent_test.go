@@ -1,47 +1,75 @@
 package content
 
-import "testing"
+import (
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 
-func TestIsMarkedDeleted_True(t *testing.T) {
-	valRes := wordpressContentMarkedDeletedTrue.Validate("", "", "", "")
-	if !valRes.IsMarkedDeleted {
-		t.Error("Expected True, the story IS marked deleted")
+	"github.com/Financial-Times/publish-availability-monitor/checks"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestIsValid_ExternalValidationInvalidArticle422(t *testing.T) {
+	var wordpressMessage = WordPressMessage{
+		Status:        "ok",
+		Error:         "",
+		Post:          Post{UUID: "e28b12f7-9796-3331-b030-05082f0b8157"},
+		PreviousURL:   "",
+		BinaryContent: []byte{},
+	}
+
+	txId := "tid_1234"
+	pamTxId := checks.ConstructPamTxId(txId)
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, "/map", req.RequestURI)
+		assert.Equal(t, pamTxId, req.Header.Get("X-Request-Id"))
+
+		defer req.Body.Close()
+		reqBody, err := ioutil.ReadAll(req.Body)
+		assert.NoError(t, err)
+		assert.Equal(t, wordpressMessage.BinaryContent, reqBody)
+
+		w.WriteHeader(http.StatusUnprocessableEntity)
+	}))
+
+	valResp := wordpressMessage.Validate(testServer.URL+"/map", txId, "", "")
+	if valResp.IsValid {
+		t.Error("Wordpress should fail external validation.")
 	}
 }
 
-func TestIsMarkedDeleted_False(t *testing.T) {
-	valRes := wordpressContentMarkedDeletedFalse.Validate("", "", "", "")
-	if valRes.IsMarkedDeleted {
-		t.Error("Expected False, the wordPress article IS NOT marked deleted")
+func TestIsValid_ExternalValidationMarkedAsDeleted404(t *testing.T) {
+	var wordpressMessage = WordPressMessage{
+		Status:        "ok",
+		Error:         "",
+		Post:          Post{UUID: "e28b12f7-9796-3331-b030-05082f0b8157"},
+		PreviousURL:   "",
+		BinaryContent: []byte{},
 	}
-}
 
-var wordpressContentMarkedDeletedTrue = WordPressMessage{
-	Status: "error", Error: "Not found.",
-}
+	txId := "tid_1234"
+	pamTxId := checks.ConstructPamTxId(txId)
 
-var wordpressContentMarkedDeletedFalse = WordPressMessage{
-	Status: "ok", Post: Post{},
-}
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, "/map", req.RequestURI)
+		assert.Equal(t, pamTxId, req.Header.Get("X-Request-Id"))
 
-var wordpressContentWithValidBlogDomain = WordPressMessage{
-	Status: "ok", Post: Post{"post", "58bdb656-8f7a-4a8c-b2b9-f9722824b318", "http://ftalphaville.ft.com/2016/10/28/2178195/firstft-eu-canada-trade-deal-salvaged-crimes-of-the-future-and-the-price-of-fast-fashion/"},
-}
+		defer req.Body.Close()
+		reqBody, err := ioutil.ReadAll(req.Body)
+		assert.NoError(t, err)
+		assert.Equal(t, wordpressMessage.BinaryContent, reqBody)
 
-var wordpressContentWithInvalidBlogDomain = WordPressMessage{
-	Status: "ok", Post: Post{"post", "58bdb656-8f7a-4a8c-b2b9-f9722824b318", "http://ftalphaville-wp.ft.com/?pid=1234"},
-}
+		w.WriteHeader(http.StatusNotFound)
+	}))
 
-func TestIsValidBlogDomain_True(t *testing.T) {
-	valRes := wordpressContentWithValidBlogDomain.Validate("", "", "", "")
-	if !valRes.IsValid {
-		t.Error("Expected True")
+	valResp := wordpressMessage.Validate(testServer.URL+"/map", txId, "", "")
+	if !valResp.IsValid {
+		t.Error("Wordpress article marked as deleted shouldn't fail external validation.")
 	}
-}
 
-func TestIsValidBlogDomain_False(t *testing.T) {
-	valRes := wordpressContentWithInvalidBlogDomain.Validate("", "", "", "")
-	if valRes.IsValid {
-		t.Error("Expected False")
+	if !valResp.IsMarkedDeleted {
+		t.Error("Wordpress article should be marked as deleted.")
 	}
 }
