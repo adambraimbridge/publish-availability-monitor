@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseEtcdValues(t *testing.T) {
+func TestParseConfigMapValues(t *testing.T) {
 	environments := make(map[string]Environment)
 	parseEnvironmentsIntoMap("t1:https://t1.example.org,t2:https://t2.example.com", "t1:user1:pass1,t2:user2:pass2", "t1:https://s1.example.org,t2:https://s2.example.org", environments)
 
@@ -27,7 +27,7 @@ func TestParseEtcdValues(t *testing.T) {
 	assert.Equal(t, len(environments), 2, "environments")
 }
 
-func TestParseEtcdUnauthValues(t *testing.T) {
+func TestParseConfigUnauthValues(t *testing.T) {
 	environments := make(map[string]Environment)
 	parseEnvironmentsIntoMap("t1:https://t1.example.org,t2:https://t2.example.com", "t2:user2:pass2", "t1:https://s1.example.org,t2:https://s2.example.org", environments)
 
@@ -48,7 +48,7 @@ func TestParseEtcdUnauthValues(t *testing.T) {
 	assert.Equal(t, len(environments), 2, "environments")
 }
 
-func TestParseEmptyEtcdValues(t *testing.T) {
+func TestParseEmptyConfigMapValues(t *testing.T) {
 	environments := make(map[string]Environment)
 	parseEnvironmentsIntoMap("", "", "", environments)
 

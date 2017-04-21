@@ -17,4 +17,4 @@ sed -i "s METHODE_ARTICLE_INTERNAL_COMPONENTS_MAPPER_URL $METHODE_ARTICLE_INTERN
 sed -i "s VIDEO_MAPPER_URL $VIDEO_MAPPER_URL " /config.json
 sed -i "s WORDPRESS_MAPPER_URL $WORDPRESS_MAPPER_URL " /config.json
 
-exec ./publish-availability-monitor -etcd-peers $ETCD_PEERS -config /config.json
+exec ./publish-availability-monitor -config /config.json

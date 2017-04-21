@@ -1,107 +1,145 @@
 package main
 
 import (
-	"net/http"
 	"net/url"
 	"strings"
-	"time"
-
-	etcd "github.com/coreos/etcd/client"
-	"golang.org/x/net/context"
-	"golang.org/x/net/proxy"
-
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/watch"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	"fmt"
 )
 
 var (
-	etcdKeysAPI  etcd.KeysAPI
+	k8sClient kubernetes.Interface
 	readEnvKey   *string
 	s3EnvKey     *string
 	credKey      *string
 	validatorKey *string
 )
 
-func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string, etcdCredKey *string, etcdS3EnvKey *string, etcdValidatorCredKey *string, environments map[string]Environment) error {
-	readEnvKey = etcdReadEnvKey
-	s3EnvKey = etcdS3EnvKey
-	credKey = etcdCredKey
-	validatorKey = etcdValidatorCredKey
+func getEnvCredentials(validatorCredK8sSecretName string, credKey string) (string, error) {
+	//todo: use Secret instead of configMaps
+	k8sSecret, err := k8sClient.CoreV1().ConfigMaps("default").Get(validatorCredK8sSecretName)
 
-	transport := &http.Transport{
-		Dial: proxy.Direct.Dial,
-		ResponseHeaderTimeout: 10 * time.Second,
-		MaxIdleConnsPerHost:   100,
-	}
-	etcdCfg := etcd.Config{
-		Endpoints:               strings.Split(*etcdPeers, ","),
-		Transport:               transport,
-		HeaderTimeoutPerRequest: 10 * time.Second,
-	}
-	etcdClient, err := etcd.New(etcdCfg)
 	if err != nil {
-		errorLogger.Printf("Cannot load etcd configuration: [%v]", err)
-		return err
+		return "", fmt.Errorf("Error retriving validator credentials k8s secret with name %s. Error was: %s", validatorCredK8sSecretName, err.Error())
 	}
 
-	etcdKeysAPI = etcd.NewKeysAPI(etcdClient)
+	secretMap := k8sSecret.Data
+	if credentials, found := secretMap[credKey]; found {
+		return credentials, nil
+	}
 
-	for len(environments) == 0 {
-		if err = redefineEnvironments(environments); err != nil {
-			infoLogger.Print("retry in 60s...")
-			time.Sleep(time.Minute)
+	return "", fmt.Errorf("Entry with key %s was not found in k8s secret with name %s", credKey, validatorCredK8sSecretName)
+}
+
+func watchEnvironments(configMapName string, validatorCredK8sSecretName string, readEnvKey string, s3EnvKey string, credKey string, environments map[string]Environment) {
+	fieldSelector := fmt.Sprintf("metadata.name=%s", configMapName)
+	watcher, err := k8sClient.CoreV1().ConfigMaps("default").Watch(v1.ListOptions{FieldSelector: fieldSelector})
+
+	if err != nil {
+		errorLogger.Printf("Error while starting to watch envs configMap with field selector: %s. Error was: %s", fieldSelector, err.Error())
+	}
+
+	infoLogger.Print("Started watching envs configMap")
+	resultChannel := watcher.ResultChan()
+	for msg := range resultChannel {
+		switch msg.Type {
+		case watch.Added, watch.Modified:
+			infoLogger.Printf("ConfigMap with name %s has been updated.", configMapName)
+			k8sConfigMap := msg.Object.(*v1.ConfigMap)
+			configMapData := k8sConfigMap.Data
+			envReadEndpoints, found := configMapData[readEnvKey]
+			if !found {
+				errorLogger.Printf("Entry with key %s was not found in envs configMap. Skipping the current update on envs configMap", readEnvKey)
+				continue
+			}
+
+			envS3Endpoints, found := configMapData[s3EnvKey]
+			if !found {
+				errorLogger.Printf("Entry with key %s was not found in envs configMap.", s3EnvKey)
+			}
+
+			envCredentials, err := getEnvCredentials(validatorCredK8sSecretName, credKey)
+			if err != nil {
+				errorLogger.Printf("Cannot retrieve envs credentials. Error was: %s", err.Error())
+			}
+
+			removedEnvs := parseEnvironmentsIntoMap(envReadEndpoints, envCredentials, envS3Endpoints, environments)
+			configureFeeds(removedEnvs)
+
+		case watch.Deleted:
+			errorLogger.Print("Envs configMap has been removed.")
+		default:
+			errorLogger.Print("Error received on watch envs configMap. Channel may be full")
 		}
 	}
 
-	fn := func() {
-		redefineEnvironments(environments)
-	}
-	go watch(readEnvKey, fn)
-	go watch(s3EnvKey, fn)
-	go watch(credKey, fn)
-
-	validatorCredentials = redefineValidatorCredentials()
-	go watch(validatorKey, func() {
-		validatorCredentials = redefineValidatorCredentials()
-	})
-
-	return nil
+	infoLogger.Print("Env configMap watching terminated. Reconnecting...")
+	watchEnvironments(configMapName,validatorCredK8sSecretName, readEnvKey, s3EnvKey, credKey,environments)
 }
 
-func redefineEnvironments(environments map[string]Environment) error {
-	etcdReadEnvResp, err := etcdKeysAPI.Get(context.Background(), *readEnvKey, &etcd.GetOptions{Sort: true})
+func watchValidatorCredentials(validatorCredSecretName string, validatorCredKey string) {
+	fieldSelector := fmt.Sprintf("metadata.name=%s", validatorCredSecretName)
+	//todo: use Secrets here instead of configMap
+	watcher, err := k8sClient.CoreV1().ConfigMaps("default").Watch(v1.ListOptions{FieldSelector: fieldSelector})
+
 	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", *readEnvKey, err.Error())
-		return err
+		errorLogger.Printf("Error while starting to watch validatorCreds secretsMap with field selector: %s. Error was: %s", fieldSelector, err.Error())
 	}
 
-	etcdCredResp, err := etcdKeysAPI.Get(context.Background(), *credKey, &etcd.GetOptions{Sort: true})
-	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", *credKey, err.Error())
-		return err
+	infoLogger.Print("Started watching validator credentials secretsMap")
+	resultChannel := watcher.ResultChan()
+	for msg := range resultChannel {
+		switch msg.Type {
+		case watch.Added, watch.Modified:
+			infoLogger.Printf("Secret map with name %s has been updated.", validatorCredSecretName)
+			//todo: use secret instead of configMap
+			k8sSecret := msg.Object.(*v1.ConfigMap)
+			secretMap := k8sSecret.Data
+			var found bool
+			if validatorCredentials, found = secretMap[validatorCredKey]; !found {
+				errorLogger.Printf("Cannot find validator credentials in secretsMap. The key to be searched is %s", validatorCredKey)
+			}
+		case watch.Deleted:
+			errorLogger.Printf("Secret map with name %s has been removed.", validatorCredSecretName)
+		default:
+			errorLogger.Print("Error received on watch validatorCreds secretsMap. Channel may be full")
+		}
 	}
 
-	etcdS3EnvResp, err := etcdKeysAPI.Get(context.Background(), *s3EnvKey, &etcd.GetOptions{Sort: true})
-	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", *s3EnvKey, err.Error())
-		return err
-	}
-	removedEnvs := parseEnvironmentsIntoMap(etcdReadEnvResp.Node.Value, etcdCredResp.Node.Value, etcdS3EnvResp.Node.Value, environments)
-
-	configureFeeds(removedEnvs)
-
-	return nil
+	infoLogger.Print("ValidatorCreds secretsMap watching terminated. Reconnecting...")
+	watchValidatorCredentials(validatorCredSecretName, validatorCredKey)
 }
 
-func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env string, environments map[string]Environment) []string {
-	envReadEndpoints := strings.Split(etcdReadEnv, ",")
-	envCredentials := strings.Split(etcdCred, ",")
-	envS3Endpoints := strings.Split(etcdS3Env, ",")
+func DiscoverEnvironmentsAndValidators(envConfigMapName *string, validatorCredSecretName *string, readEnvConfigMapKey *string, credConfigMapKey *string, s3EnvConfigMapKey *string, validatorCredConfigMapKey *string, environments map[string]Environment) {
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create in cluster config for k8s client. Error was: %s", err.Error()))
+	}
+	// creates the clientset
+	k8sClient, err = kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create k8s client, error was: %s", err.Error()))
+	}
+
+	go watchEnvironments(*envConfigMapName, *validatorCredSecretName, *readEnvConfigMapKey, *s3EnvConfigMapKey, *credConfigMapKey,environments)
+	go watchValidatorCredentials(*validatorCredSecretName, *validatorCredConfigMapKey)
+}
+
+func parseEnvironmentsIntoMap(readEnv string, readCredentials string, s3Env string, environments map[string]Environment) []string {
+	envReadEndpoints := strings.Split(readEnv, ",")
+	envCredentials := strings.Split(readCredentials, ",")
+	envS3Endpoints := strings.Split(s3Env, ",")
 
 	seen := make(map[string]struct{})
 	for _, env := range envReadEndpoints {
 		nameAndUrl := strings.SplitN(env, ":", 2)
 		if len(nameAndUrl) != 2 {
-			warnLogger.Printf("etcd read-urls contain an invalid value")
+			warnLogger.Printf("read-urls contain an invalid value: %s",env)
 			continue
 		}
 
@@ -112,7 +150,7 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 		var username string
 		var password string
 		for _, cred := range envCredentials {
-			if strings.HasPrefix(cred, name+":") {
+			if strings.HasPrefix(cred, name + ":") {
 				nameAndCredentials := strings.Split(cred, ":")
 				username = nameAndCredentials[1]
 				password = nameAndCredentials[2]
@@ -126,8 +164,8 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 
 		var s3Url string
 		for _, endpoint := range envS3Endpoints {
-			if strings.HasPrefix(endpoint, name+":") {
-				s3Url = strings.TrimPrefix(endpoint, name+":")
+			if strings.HasPrefix(endpoint, name + ":") {
+				s3Url = strings.TrimPrefix(endpoint, name + ":")
 				break
 			}
 		}
@@ -151,31 +189,6 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 	}
 
 	return toDelete
-}
-
-func redefineValidatorCredentials() string {
-	etcdCredResp, err := etcdKeysAPI.Get(context.Background(), *validatorKey, &etcd.GetOptions{Sort: true})
-	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", *validatorKey, err.Error())
-		return ""
-	}
-
-	return etcdCredResp.Node.Value
-}
-
-func watch(etcdKey *string, fn func()) {
-	watcher := etcdKeysAPI.Watcher(*etcdKey, &etcd.WatcherOptions{AfterIndex: 0, Recursive: true})
-	limiter := NewEventLimiter(fn)
-
-	for {
-		_, err := watcher.Next(context.Background())
-		if err != nil {
-			errorLogger.Printf("Error waiting for change under %v in etcd. %v\n Sleeping 10s...", *etcdKey, err.Error())
-			time.Sleep(10 * time.Second)
-			continue
-		}
-		limiter.trigger <- true
-	}
 }
 
 func configureFeeds(removedEnvs []string) {

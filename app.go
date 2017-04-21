@@ -94,11 +94,12 @@ var infoLogger *log.Logger
 var warnLogger *log.Logger
 var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
-var etcdPeers = flag.String("etcd-peers", "http://localhost:2379", "Comma-separated list of addresses of etcd endpoints to connect to")
-var etcdReadEnvKey = flag.String("etcd-read-env-key", "/ft/config/monitoring/read-urls", "etcd key that lists the read environment URLs")
-var etcdS3EnvKey = flag.String("etcd-s3-env-key", "/ft/config/monitoring/s3-image-bucket-urls", "etcd key that lists the S3 image bucket URLs")
-var etcdCredKey = flag.String("etcd-cred-key", "/ft/_credentials/publish-read/read-credentials", "etcd key that lists the read environment credentials")
-var etcdValidatorCredKey = flag.String("etcd-validator-cred-key", "/ft/_credentials/publish-read/validator-credentials", "etcd key that specifies the validator credentials")
+var readEnvConfigMapKey = flag.String("read-env-key", "read-urls", "K8s configMap key that lists the read environment URLs")
+var s3EnvConfigMapKey = flag.String("s3-env-key", "s3-image-bucket-urls", "K8s configMap key that lists the S3 image bucket URLs")
+var credConfigMapKey = flag.String("envs-cred-key", "read-credentials", "K8s Secret key that lists the read environment credentials")
+var validatorCredConfigMapKey = flag.String("validator-cred-key", "validator-credentials", "K8s Secret key that specifies the validator credentials")
+var envConfigMapName = flag.String("env-config-map-name", "publish-availability-monitor-config", "K8s configMap that stores read endpoint urls and s3 urls")
+var credentialsK8sSecretName = flag.String("credentials-k8s-secret-name", "publish-availability-monitor-secrets", "K8s Secret that stores credentials required to access read and s3 endpoints")
 
 var appConfig *AppConfig
 var environments = make(map[string]Environment)
@@ -120,7 +121,7 @@ func main() {
 		return
 	}
 
-	go DiscoverEnvironmentsAndValidators(etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey, environments)
+	go DiscoverEnvironmentsAndValidators(envConfigMapName,credentialsK8sSecretName,readEnvConfigMapKey,credConfigMapKey,s3EnvConfigMapKey,validatorCredConfigMapKey,environments)
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
