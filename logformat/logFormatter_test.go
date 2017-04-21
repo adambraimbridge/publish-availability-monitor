@@ -1,7 +1,6 @@
 package logformat
 
 import (
-	//	"os"
 	"regexp"
 	"strings"
 	"testing"
