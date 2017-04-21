@@ -68,16 +68,7 @@ func (eomfile EomFile) isValid(status int) bool {
 }
 
 func (eomfile EomFile) isMarkedDeleted(status ...int) bool {
-	if eomfile.Type == "Image" || eomfile.Type == "EOM::WebContainer" {
-		return false
-	}
-
-	if len(status) == 1 && status[0] == http.StatusNotFound {
-		log.Infof("Eomfile with uuid=[%s] is marked as deleted!", eomfile.UUID)
-		return true
-	}
-
-	return false
+	return len(status) == 1 && status[0] == http.StatusNotFound
 }
 
 func (eomfile EomFile) GetType() string {

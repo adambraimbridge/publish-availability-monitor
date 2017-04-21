@@ -151,32 +151,6 @@ func TestIsMarkedDeleted_Story_False(t *testing.T) {
 	}
 }
 
-func TestIsMarkedDeleted_Image(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/map", r.RequestURI, "Invalid external validation URL")
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer ts.Close()
-	valRes := imageEomFile.Validate(ts.URL+"/map", "", "", "")
-
-	if valRes.IsMarkedDeleted {
-		t.Error("Expected False, the image IS NOT marked deleted")
-	}
-}
-
-func TestIsMarkedDeleted_WebContainer(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/map", r.RequestURI, "Invalid external validation URL")
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer ts.Close()
-	valRes := webContainerEomFile.Validate(ts.URL+"/map", "", "", "")
-
-	if valRes.IsMarkedDeleted {
-		t.Error("Expected False, the webContainer IS NOT marked deleted")
-	}
-}
-
 func TestIsNotGoingToMarshallInternalApplicationFieldOfEomFile(t *testing.T) {
 	expectedJSON := loadBytesForFile(t, "methode_article.json")
 	var methodeArticle EomFile
@@ -205,14 +179,6 @@ var storyMarkedDeletedTrue = EomFile{
 	SystemAttributes: systemAttributes,
 }
 
-var imageEomFile = EomFile{
-	UUID:             UUIDString,
-	Type:             "Image",
-	Value:            "image bytes",
-	Attributes:       "fooAttributes",
-	SystemAttributes: "barsystemAttributes",
-}
-
 var compoundStoryMarkedDeletedFalse = EomFile{
 	UUID:             UUIDString,
 	Type:             "EOM::CompoundStory",
@@ -227,14 +193,6 @@ var storyMarkedDeletedFalse = EomFile{
 	Value:            content,
 	Attributes:       attributesMarkedDeletedFalse,
 	SystemAttributes: systemAttributes,
-}
-
-var webContainerEomFile = EomFile{
-	UUID:             UUIDString,
-	Type:             "EOM::WebContainer",
-	Value:            "list bytes",
-	Attributes:       "fooAttributes",
-	SystemAttributes: "barSystemAttributes",
 }
 
 const UUIDString = "e28b12f7-9796-3331-b030-05082f0b8157"
