@@ -2,8 +2,6 @@ package main
 
 import (
 	"flag"
-	"io"
-	"log"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
@@ -20,7 +18,9 @@ import (
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	"github.com/Financial-Times/publish-availability-monitor/logformat"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 )
 
@@ -88,11 +88,7 @@ type publishHistory struct {
 }
 
 const dateLayout = time.RFC3339Nano
-const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
-var infoLogger *log.Logger
-var warnLogger *log.Logger
-var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var etcdPeers = flag.String("etcd-peers", "http://localhost:2379", "Comma-separated list of addresses of etcd endpoints to connect to")
 var etcdReadEnvKey = flag.String("etcd-read-env-key", "/ft/config/monitoring/read-urls", "etcd key that lists the read environment URLs")
@@ -109,14 +105,18 @@ var validatorCredentials string
 
 var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[a-zA-Z0-9]+)_carousel_[\d]{10}.*$`)
 
+func init() {
+	f := logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
+	log.SetFormatter(f)
+}
+
 func main() {
-	initLogs(os.Stdout, os.Stdout, os.Stderr)
 	flag.Parse()
 
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
-		errorLogger.Printf("Cannot load configuration: [%v]", err)
+		log.Errorf("Cannot load configuration: [%v]", err)
 		return
 	}
 
@@ -146,7 +146,7 @@ func startHttpListener() {
 	http.Handle("/", router)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		errorLogger.Panicf("Couldn't set up HTTP listener: %+v\n", err)
+		log.Panicf("Couldn't set up HTTP listener: %+v\n", err)
 	}
 }
 
@@ -200,24 +200,24 @@ func loadHistory(w http.ResponseWriter, r *http.Request) {
 
 func handleMessage(msg consumer.Message) {
 	tid := msg.Headers["X-Request-Id"]
-	infoLogger.Printf("Received message with TID [%v]", tid)
+	log.Infof("Received message with TID [%v]", tid)
 
 	if isIgnorableMessage(tid) {
-		infoLogger.Printf("Message [%v] is ignorable. Skipping...", tid)
+		log.Infof("Message [%v] is ignorable. Skipping...", tid)
 		return
 	}
 
 	publishDateString := msg.Headers["Message-Timestamp"]
 	publishDate, err := time.Parse(dateLayout, publishDateString)
 	if err != nil {
-		errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
+		log.Errorf("Cannot parse publish date [%v] from message [%v], error: [%v]",
 			publishDateString, tid, err.Error())
 		return
 	}
 
 	publishedContent, err := content.UnmarshalContent(msg)
 	if err != nil {
-		warnLogger.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
+		log.Warnf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return
 	}
 
@@ -255,15 +255,6 @@ func isSyntheticTransactionID(tid string) bool {
 
 func isContentCarouselTransactionID(tid string) bool {
 	return carouselTransactionIDRegExp.MatchString(tid)
-}
-
-func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
-	//to be used for INFO-level logging: info.Println("foo is now bar")
-	infoLogger = log.New(infoHandle, "INFO  - ", logPattern)
-	//to be used for WARN-level logging: warn.Println("foo is now bar")
-	warnLogger = log.New(warnHandle, "WARN  - ", logPattern)
-	//to be used for ERROR-level logging: errorL.Println("foo is now bar")
-	errorLogger = log.New(errorHandle, "ERROR - ", logPattern)
 }
 
 func (pm PublishMetric) String() string {

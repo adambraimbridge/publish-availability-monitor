@@ -1,6 +1,10 @@
 package content
 
-import "net/http"
+import (
+	"net/http"
+
+	log "github.com/Sirupsen/logrus"
+)
 
 const wordpressType = "wordpress"
 
@@ -50,7 +54,7 @@ func (wordPressMessage WordPressMessage) isValid(status int) bool {
 
 func (wordPressMessage WordPressMessage) isMarkedDeleted(status ...int) bool {
 	if len(status) == 1 && status[0] == http.StatusNotFound {
-		infoLogger.Printf("Eomfile with uuid=[%s] is marked as deleted!", wordPressMessage.Post.UUID)
+		log.Infof("Eomfile with uuid=[%s] is marked as deleted!", wordPressMessage.Post.UUID)
 		return true
 	}
 

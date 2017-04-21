@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/kr/pretty"
 )
 
@@ -12,17 +12,17 @@ import (
 func ParseConfig(configFileName string) (*AppConfig, error) {
 	file, err := ioutil.ReadFile(configFileName)
 	if err != nil {
-		log.Printf("Error reading configuration file [%v]: [%v]", configFileName, err.Error())
+		log.Errorf("Error reading configuration file [%v]: [%v]", configFileName, err.Error())
 		return nil, err
 	}
 
 	var conf AppConfig
 	err = json.Unmarshal(file, &conf)
 	if err != nil {
-		log.Printf("Error unmarshalling configuration file [%v]: [%v]", configFileName, err.Error())
+		log.Errorf("Error unmarshalling configuration file [%v]: [%v]", configFileName, err.Error())
 		return nil, err
 	}
 
-	infoLogger.Printf("Using configuration: %# v", pretty.Formatter(conf))
+	log.Infof("Using configuration: %# v", pretty.Formatter(conf))
 	return &conf, nil
 }

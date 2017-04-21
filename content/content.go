@@ -2,17 +2,17 @@ package content
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
-	"log"
-	"os"
 
 	"bytes"
-	"encoding/xml"
-	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"io"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/Financial-Times/publish-availability-monitor/checks"
+	log "github.com/Sirupsen/logrus"
 )
 
 // Content is the interface for different type of contents from different CMSs.
@@ -40,18 +40,9 @@ type validationParam struct {
 
 const systemIDKey = "Origin-System-Id"
 
-const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
-
-var infoLogger *log.Logger
-var warnLogger *log.Logger
 var httpCaller checks.HttpCaller
 
 func init() {
-	//to be used for INFO-level logging: info.Println("foo is now bar")
-	infoLogger = log.New(os.Stdout, "INFO  - ", logPattern)
-	//to be used for WARN-level logging: warn.Println("foo is now bar")
-	warnLogger = log.New(os.Stdout, "WARN  - ", logPattern)
-
 	httpCaller = checks.NewHttpCaller(10)
 }
 
@@ -87,7 +78,7 @@ func UnmarshalContent(msg consumer.Message) (Content, error) {
 
 func doExternalValidation(p validationParam, validCheck func(int) bool, deletedCheck func(...int) bool) ValidationResponse {
 	if p.validationURL == "" {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", p.uuid, p.txID, p.contentType)
+		log.Warnf("External validation for content uuid=[%s] transaction_id=[%s]. Validation endpoint URL is missing for content type=[%s]", p.uuid, p.txID, p.contentType)
 		return ValidationResponse{false, deletedCheck()}
 	}
 
@@ -97,20 +88,20 @@ func doExternalValidation(p validationParam, validCheck func(int) bool, deletedC
 		"application/json", bytes.NewReader(p.binaryContent))
 
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], creating validation request error: [%v]. Skipping external validation.", p.uuid, p.txID, p.validationURL, err)
+		log.Warnf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], creating validation request error: [%v]. Skipping external validation.", p.uuid, p.txID, p.validationURL, err)
 		return ValidationResponse{true, deletedCheck()}
 	}
 	defer cleanupResp(resp)
 
-	infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], received statusCode [%d]", p.uuid, p.txID, p.validationURL, resp.StatusCode)
+	log.Infof("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], received statusCode [%d]", p.uuid, p.txID, p.validationURL, resp.StatusCode)
 
 	bs, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		warnLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], reading response body error: [%v]", p.uuid, p.txID, p.validationURL, err)
+		log.Warnf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], reading response body error: [%v]", p.uuid, p.txID, p.validationURL, err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		infoLogger.Printf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], received statusCode [%d], received error: [%v]", p.uuid, p.txID, p.validationURL, resp.StatusCode, string(bs))
+		log.Infof("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], received statusCode [%d], received error: [%v]", p.uuid, p.txID, p.validationURL, resp.StatusCode, string(bs))
 	}
 
 	return ValidationResponse{validCheck(resp.StatusCode), deletedCheck(resp.StatusCode)}
@@ -119,10 +110,10 @@ func doExternalValidation(p validationParam, validCheck func(int) bool, deletedC
 func cleanupResp(resp *http.Response) {
 	_, err := io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
-		warnLogger.Printf("External validation cleanup failed with error: [%v]", err)
+		log.Warnf("External validation cleanup failed with error: [%v]", err)
 	}
 	err = resp.Body.Close()
 	if err != nil {
-		warnLogger.Printf("External validation cleanup failed with error: [%v]", err)
+		log.Warnf("External validation cleanup failed with error: [%v]", err)
 	}
 }

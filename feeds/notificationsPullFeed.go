@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/checks"
+	log "github.com/Sirupsen/logrus"
 )
 
 const NotificationsPull = "Notifications-Pull"
@@ -51,7 +52,7 @@ func (f *NotificationsPullFeed) Start() {
 }
 
 func (f *NotificationsPullFeed) Stop() {
-	infoLogger.Printf("shutting down notifications pull feed for %s", f.baseUrl)
+	log.Infof("shutting down notifications pull feed for %s", f.baseUrl)
 	close(f.poller)
 }
 
@@ -68,20 +69,20 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password, txId)
 
 	if err != nil {
-		errorLogger.Printf("error calling notifications %s", notificationsUrl)
+		log.WithField("transaction_id", txId).Errorf("error calling notifications %s", notificationsUrl)
 		return
 	}
 	defer cleanupResp(resp)
 
 	if resp.StatusCode != 200 {
-		errorLogger.Printf("Notifications [%s] status NOT OK: [%d]", notificationsUrl, resp.StatusCode)
+		log.WithField("transaction_id", txId).Errorf("Notifications [%s] status NOT OK: [%d]", notificationsUrl, resp.StatusCode)
 		return
 	}
 
 	var notifications notificationsResponse
 	err = json.NewDecoder(resp.Body).Decode(&notifications)
 	if err != nil {
-		errorLogger.Printf("Cannot decode json response: [%s]", err.Error())
+		log.WithField("transaction_id", txId).Errorf("Cannot decode json response: [%s]", err.Error())
 		return
 	}
 
@@ -102,7 +103,7 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 
 	nextPageUrl, err := url.Parse(notifications.Links[0].Href)
 	if err != nil {
-		errorLogger.Printf("unparseable next url: [%s]", notifications.Links[0].Href)
+		log.Errorf("unparseable next url: [%s]", notifications.Links[0].Href)
 		return // and hope that a retry will fix this
 	}
 

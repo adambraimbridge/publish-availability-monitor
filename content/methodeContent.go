@@ -3,6 +3,8 @@ package content
 import (
 	"encoding/xml"
 	"net/http"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // EomFile models Methode content
@@ -31,7 +33,7 @@ func (eomfile EomFile) initType() EomFile {
 
 	if contentSrc == "ContentPlaceholder" && contentType == "EOM::CompoundStory" {
 		eomfile.Type = "EOM::CompoundStory_ContentPlaceholder"
-		infoLogger.Printf("results [%v] ....", eomfile.Type)
+		log.Infof("results [%v] ....", eomfile.Type)
 		return eomfile
 	}
 	eomfile.Type = eomfile.ContentType
@@ -71,7 +73,7 @@ func (eomfile EomFile) isMarkedDeleted(status ...int) bool {
 	}
 
 	if len(status) == 1 && status[0] == http.StatusNotFound {
-		infoLogger.Printf("Eomfile with uuid=[%s] is marked as deleted!", eomfile.UUID)
+		log.Infof("Eomfile with uuid=[%s] is marked as deleted!", eomfile.UUID)
 		return true
 	}
 
