@@ -3,6 +3,8 @@ package content
 import (
 	"net/http"
 	"regexp"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 const videoType = "video"
@@ -25,12 +27,12 @@ func (video Video) Initialize(binaryContent []byte) Content {
 
 func (video Video) Validate(externalValidationEndpoint string, txId string, username string, password string) ValidationResponse {
 	if !isUUIDValid(video.GetUUID()) {
-		warnLogger.Printf("Video invalid: invalid UUID: [%s]", video.GetUUID())
+		log.Warnf("Video invalid: invalid UUID: [%s]", video.GetUUID())
 		return ValidationResponse{IsValid: false, IsMarkedDeleted: video.isMarkedDeleted()}
 	}
 
 	if !idRegexp.MatchString(video.Id) {
-		warnLogger.Printf("Video invalid: invalid ID: [%s]", video.Id)
+		log.Warnf("Video invalid: invalid ID: [%s]", video.Id)
 		return ValidationResponse{IsValid: false, IsMarkedDeleted: video.isMarkedDeleted()}
 	}
 

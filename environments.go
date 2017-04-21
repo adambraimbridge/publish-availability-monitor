@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/proxy"
 
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	log "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -39,7 +40,7 @@ func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string
 	}
 	etcdClient, err := etcd.New(etcdCfg)
 	if err != nil {
-		errorLogger.Printf("Cannot load etcd configuration: [%v]", err)
+		log.Errorf("Cannot load etcd configuration: [%v]", err)
 		return err
 	}
 
@@ -47,7 +48,7 @@ func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string
 
 	for len(environments) == 0 {
 		if err = redefineEnvironments(environments); err != nil {
-			infoLogger.Print("retry in 60s...")
+			log.Info("retry in 60s...")
 			time.Sleep(time.Minute)
 		}
 	}
@@ -70,19 +71,19 @@ func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string
 func redefineEnvironments(environments map[string]Environment) error {
 	etcdReadEnvResp, err := etcdKeysAPI.Get(context.Background(), *readEnvKey, &etcd.GetOptions{Sort: true})
 	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", *readEnvKey, err.Error())
+		log.Errorf("Failed to get value from %v: %v.", *readEnvKey, err.Error())
 		return err
 	}
 
 	etcdCredResp, err := etcdKeysAPI.Get(context.Background(), *credKey, &etcd.GetOptions{Sort: true})
 	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", *credKey, err.Error())
+		log.Errorf("Failed to get value from %v: %v.", *credKey, err.Error())
 		return err
 	}
 
 	etcdS3EnvResp, err := etcdKeysAPI.Get(context.Background(), *s3EnvKey, &etcd.GetOptions{Sort: true})
 	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", *s3EnvKey, err.Error())
+		log.Errorf("Failed to get value from %v: %v.", *s3EnvKey, err.Error())
 		return err
 	}
 	removedEnvs := parseEnvironmentsIntoMap(etcdReadEnvResp.Node.Value, etcdCredResp.Node.Value, etcdS3EnvResp.Node.Value, environments)
@@ -101,7 +102,7 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 	for _, env := range envReadEndpoints {
 		nameAndUrl := strings.SplitN(env, ":", 2)
 		if len(nameAndUrl) != 2 {
-			warnLogger.Printf("etcd read-urls contain an invalid value")
+			log.Warn("etcd read-urls contain an invalid value")
 			continue
 		}
 
@@ -119,9 +120,9 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 				break
 			}
 		}
-		infoLogger.Printf("adding environment to monitoring: %v", name)
+		log.Infof("adding environment to monitoring: %v", name)
 		if username == "" || password == "" {
-			infoLogger.Printf("no credentials supplied for access to environment %v", name)
+			log.Infof("no credentials supplied for access to environment %v", name)
 		}
 
 		var s3Url string
@@ -132,7 +133,7 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 			}
 		}
 		if s3Url == "" {
-			infoLogger.Printf("No S3 url supplied for access to environment %v", name)
+			log.Infof("No S3 url supplied for access to environment %v", name)
 		}
 
 		environments[name] = Environment{name, readUrl, s3Url, username, password}
@@ -146,7 +147,7 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 		}
 	}
 	for _, name := range toDelete {
-		infoLogger.Printf("removing environment from monitoring: %v", name)
+		log.Infof("removing environment from monitoring: %v", name)
 		delete(environments, name)
 	}
 
@@ -156,7 +157,7 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 func redefineValidatorCredentials() string {
 	etcdCredResp, err := etcdKeysAPI.Get(context.Background(), *validatorKey, &etcd.GetOptions{Sort: true})
 	if err != nil {
-		errorLogger.Printf("Failed to get value from %v: %v.", *validatorKey, err.Error())
+		log.Errorf("Failed to get value from %v: %v.", *validatorKey, err.Error())
 		return ""
 	}
 
@@ -170,7 +171,7 @@ func watch(etcdKey *string, fn func()) {
 	for {
 		_, err := watcher.Next(context.Background())
 		if err != nil {
-			errorLogger.Printf("Error waiting for change under %v in etcd. %v\n Sleeping 10s...", *etcdKey, err.Error())
+			log.Errorf("Error waiting for change under %v in etcd. %v\n Sleeping 10s...", *etcdKey, err.Error())
 			time.Sleep(10 * time.Second)
 			continue
 		}
@@ -210,7 +211,7 @@ func configureFeeds(removedEnvs []string) {
 			if !found {
 				endpointUrl, err := url.Parse(env.ReadUrl + metric.Endpoint)
 				if err != nil {
-					errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
+					log.Errorf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
 					continue
 				}
 

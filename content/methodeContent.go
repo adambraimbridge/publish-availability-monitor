@@ -3,6 +3,8 @@ package content
 import (
 	"encoding/xml"
 	"net/http"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // EomFile models Methode content
@@ -31,7 +33,7 @@ func (eomfile EomFile) initType() EomFile {
 
 	if contentSrc == "ContentPlaceholder" && contentType == "EOM::CompoundStory" {
 		eomfile.Type = "EOM::CompoundStory_ContentPlaceholder"
-		infoLogger.Printf("results [%v] ....", eomfile.Type)
+		log.Infof("results [%v] ....", eomfile.Type)
 		return eomfile
 	}
 	eomfile.Type = eomfile.ContentType
@@ -46,7 +48,7 @@ func (eomfile EomFile) Initialize(binaryContent []byte) Content {
 func (eomfile EomFile) Validate(externalValidationEndpoint string, txID string, username string, password string) ValidationResponse {
 	contentUUID := eomfile.UUID
 	if !isUUIDValid(contentUUID) {
-		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]. transaction_id=[%s]", contentUUID, txID)
+		log.Warnf("Eomfile invalid: invalid UUID: [%s]. transaction_id=[%s]", contentUUID, txID)
 		return ValidationResponse{IsValid: false}
 	}
 
@@ -86,7 +88,7 @@ func (eomfile EomFile) isMarkedDeleted(status ...int) bool {
 	}
 
 	if len(status) == 1 && status[0] == http.StatusNotFound {
-		infoLogger.Printf("Eomfile with uuid=[%s] is marked as deleted!", eomfile.UUID)
+		log.Infof("Eomfile with uuid=[%s] is marked as deleted!", eomfile.UUID)
 		return true
 	}
 

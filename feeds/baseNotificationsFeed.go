@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/checks"
+	log "github.com/Sirupsen/logrus"
 )
 
 type baseNotificationsFeed struct {
@@ -25,11 +26,11 @@ type baseNotificationsFeed struct {
 func cleanupResp(resp *http.Response) {
 	_, err := io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
-		infoLogger.Printf("[%v]", err)
+		log.Infof("[%v]", err)
 	}
 	err = resp.Body.Close()
 	if err != nil {
-		infoLogger.Printf("[%v]", err)
+		log.Infof("[%v]", err)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +23,7 @@ func (resp *mockPushNotificationsStream) Read(p []byte) (n int, err error) {
 	} else {
 		data = []byte("data: [" + resp.notifications[resp.index] + "]\n")
 		resp.index++
-		infoLogger.Printf("data: %v", string(data))
+		log.Infof("data: %v", string(data))
 	}
 	actual := len(data)
 	for i := 0; i < actual; i++ {
