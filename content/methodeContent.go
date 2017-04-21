@@ -44,12 +44,6 @@ func (eomfile EomFile) Initialize(binaryContent []byte) Content {
 }
 
 func (eomfile EomFile) Validate(externalValidationEndpoint string, txID string, username string, password string) ValidationResponse {
-	contentUUID := eomfile.UUID
-	if !isUUIDValid(contentUUID) {
-		warnLogger.Printf("Eomfile invalid: invalid UUID: [%s]. transaction_id=[%s]", contentUUID, txID)
-		return ValidationResponse{IsValid: false}
-	}
-
 	validationParam := validationParam{
 		eomfile.BinaryContent,
 		externalValidationEndpoint,
@@ -68,16 +62,7 @@ func (eomfile EomFile) Validate(externalValidationEndpoint string, txID string, 
 }
 
 func (eomfile EomFile) isValid(status int) bool {
-	if status == http.StatusTeapot {
-		return false
-	}
-
-	//invalid  contentplaceholder (link file) will not be published so do not monitor
-	if status == http.StatusUnprocessableEntity {
-		return false
-	}
-
-	return true
+	return status == http.StatusOK || status == http.StatusNotFound
 }
 
 func (eomfile EomFile) isMarkedDeleted(status ...int) bool {
