@@ -13,15 +13,10 @@ import (
 
 var (
 	k8sClient kubernetes.Interface
-	readEnvKey   *string
-	s3EnvKey     *string
-	credKey      *string
-	validatorKey *string
 )
 
 func getEnvCredentials(validatorCredK8sSecretName string, credKey string) (string, error) {
-	//todo: use Secret instead of configMaps
-	k8sSecret, err := k8sClient.CoreV1().ConfigMaps("default").Get(validatorCredK8sSecretName)
+	k8sSecret, err := k8sClient.CoreV1().Secrets("default").Get(validatorCredK8sSecretName)
 
 	if err != nil {
 		return "", fmt.Errorf("Error retriving validator credentials k8s secret with name %s. Error was: %s", validatorCredK8sSecretName, err.Error())
@@ -29,7 +24,7 @@ func getEnvCredentials(validatorCredK8sSecretName string, credKey string) (strin
 
 	secretMap := k8sSecret.Data
 	if credentials, found := secretMap[credKey]; found {
-		return credentials, nil
+		return  string(credentials[:]), nil
 	}
 
 	return "", fmt.Errorf("Entry with key %s was not found in k8s secret with name %s", credKey, validatorCredK8sSecretName)
@@ -83,8 +78,8 @@ func watchEnvironments(configMapName string, validatorCredK8sSecretName string, 
 
 func watchValidatorCredentials(validatorCredSecretName string, validatorCredKey string) {
 	fieldSelector := fmt.Sprintf("metadata.name=%s", validatorCredSecretName)
-	//todo: use Secrets here instead of configMap
-	watcher, err := k8sClient.CoreV1().ConfigMaps("default").Watch(v1.ListOptions{FieldSelector: fieldSelector})
+	//todo: also update environments with new readCredentials if they were changed.
+	watcher, err := k8sClient.CoreV1().Secrets("default").Watch(v1.ListOptions{FieldSelector: fieldSelector})
 
 	if err != nil {
 		errorLogger.Printf("Error while starting to watch validatorCreds secretsMap with field selector: %s. Error was: %s", fieldSelector, err.Error())
@@ -96,11 +91,11 @@ func watchValidatorCredentials(validatorCredSecretName string, validatorCredKey 
 		switch msg.Type {
 		case watch.Added, watch.Modified:
 			infoLogger.Printf("Secret map with name %s has been updated.", validatorCredSecretName)
-			//todo: use secret instead of configMap
-			k8sSecret := msg.Object.(*v1.ConfigMap)
+			k8sSecret := msg.Object.(*v1.Secret)
 			secretMap := k8sSecret.Data
-			var found bool
-			if validatorCredentials, found = secretMap[validatorCredKey]; !found {
+			if validatorCreds, found := secretMap[validatorCredKey]; found {
+				validatorCredentials = string(validatorCreds[:])
+			} else {
 				errorLogger.Printf("Cannot find validator credentials in secretsMap. The key to be searched is %s", validatorCredKey)
 			}
 		case watch.Deleted:

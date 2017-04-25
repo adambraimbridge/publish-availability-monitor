@@ -12,6 +12,7 @@ import (
 
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	"github.com/Financial-Times/service-status-go/gtg"
 )
 
 // Healthcheck offers methods to measure application health.
@@ -66,15 +67,16 @@ func (h *Healthcheck) checkHealth(writer http.ResponseWriter, req *http.Request)
 	)(writer, req)
 }
 
-func (h *Healthcheck) gtg(writer http.ResponseWriter, req *http.Request) {
+func (h *Healthcheck) gtg() gtg.Status {
 	healthChecks := []func() (string, error){h.checkAggregateMessageQueueProxiesReachable, h.checkValidationServicesReachable}
 
 	for _, hCheck := range healthChecks {
 		if _, err := hCheck(); err != nil {
-			writer.WriteHeader(http.StatusServiceUnavailable)
-			return
+			return gtg.Status{GoodToGo: false, Message: err.Error()}
 		}
 	}
+
+	return gtg.Status{GoodToGo: true}
 }
 
 func isConsumingFromPushFeeds() fthealth.Check {

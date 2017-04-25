@@ -121,7 +121,7 @@ func main() {
 		return
 	}
 
-	go DiscoverEnvironmentsAndValidators(envConfigMapName,credentialsK8sSecretName,readEnvConfigMapKey,credConfigMapKey,s3EnvConfigMapKey,validatorCredConfigMapKey,environments)
+	go DiscoverEnvironmentsAndValidators(envConfigMapName, credentialsK8sSecretName, readEnvConfigMapKey, credConfigMapKey, s3EnvConfigMapKey, validatorCredConfigMapKey, environments)
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
@@ -154,7 +154,8 @@ func startHttpListener() {
 func setupHealthchecks(router *mux.Router) {
 	healthcheck := &Healthcheck{http.Client{}, *appConfig, &metricContainer}
 	router.HandleFunc("/__health", healthcheck.checkHealth)
-	router.HandleFunc("/__gtg", healthcheck.gtg)
+	gtgHandler := status.NewGoodToGoHandler(healthcheck.gtg)
+	router.HandleFunc(status.GTGPath, gtgHandler)
 }
 
 func attachProfiler(router *mux.Router) {
