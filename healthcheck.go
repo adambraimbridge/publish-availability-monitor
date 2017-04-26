@@ -241,8 +241,8 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 			errorLogger.Printf("Validation Service URL: [%s]. Err: [%v]", url, err.Error())
 			continue
 		}
-
-		go checkServiceReachable(healthcheckURL,"","", h.client, hcErrs, &wg)
+		username,password := getValidationCredentials()
+		go checkServiceReachable(healthcheckURL,username,password, h.client, hcErrs, &wg)
 	}
 
 	wg.Wait()
