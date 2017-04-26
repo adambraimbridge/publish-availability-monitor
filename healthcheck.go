@@ -307,7 +307,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 	for _, metric := range appConfig.MetricConf {
 		var endpointURL *url.URL
 		var err error
-
+		var username,password string
 		if absoluteUrlRegex.MatchString(metric.Endpoint) {
 			endpointURL, err = url.Parse(metric.Endpoint)
 		} else {
@@ -315,6 +315,8 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 				endpointURL, err = url.Parse(h.env.S3Url + metric.Endpoint)
 			} else {
 				endpointURL, err = url.Parse(h.env.ReadUrl + metric.Endpoint)
+				username=h.env.Username
+				password=h.env.Password
 			}
 		}
 
@@ -336,7 +338,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		}
 
 		wg.Add(1)
-		go checkServiceReachable(healthcheckURL, h.env.Username, h.env.Password,h.client, hcErrs, &wg)
+		go checkServiceReachable(healthcheckURL, username, password,h.client, hcErrs, &wg)
 	}
 
 	wg.Wait()
