@@ -78,7 +78,6 @@ func watchEnvironments(configMapName string, validatorCredK8sSecretName string, 
 
 func watchValidatorCredentials(validatorCredSecretName string, validatorCredKey string) {
 	fieldSelector := fmt.Sprintf("metadata.name=%s", validatorCredSecretName)
-	//todo: also update environments with new readCredentials if they were changed.
 	watcher, err := k8sClient.CoreV1().Secrets("default").Watch(v1.ListOptions{FieldSelector: fieldSelector})
 
 	if err != nil {
@@ -90,6 +89,7 @@ func watchValidatorCredentials(validatorCredSecretName string, validatorCredKey 
 	for msg := range resultChannel {
 		switch msg.Type {
 		case watch.Added, watch.Modified:
+			//todo: also update environments with new readCredentials if they were changed.
 			infoLogger.Printf("Secret map with name %s has been updated.", validatorCredSecretName)
 			k8sSecret := msg.Object.(*v1.Secret)
 			secretMap := k8sSecret.Data

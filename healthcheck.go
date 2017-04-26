@@ -136,7 +136,7 @@ func (h *Healthcheck) checkAggregateMessageQueueProxiesReachable() (string, erro
 }
 
 func (h *Healthcheck) checkMessageQueueProxyReachable(address string) (string, error) {
-	req, err := http.NewRequest("GET", address+"/topics", nil)
+	req, err := http.NewRequest("GET", address + "/topics", nil)
 	if err != nil {
 		warnLogger.Printf("Could not connect to proxy: %v", err.Error())
 		return "", err
@@ -242,7 +242,7 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 			continue
 		}
 
-		go checkServiceReachable(healthcheckURL, h.client, hcErrs, &wg)
+		go checkServiceReachable(healthcheckURL,"","", h.client, hcErrs, &wg)
 	}
 
 	wg.Wait()
@@ -255,11 +255,21 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 	return "", nil
 }
 
-func checkServiceReachable(healthcheckURL string, client http.Client, hcRes chan<- error, wg *sync.WaitGroup) {
+func checkServiceReachable(healthcheckURL string, username string, password string, client http.Client, hcRes chan <- error, wg *sync.WaitGroup) {
 	defer wg.Done()
 	infoLogger.Println("Checking: " + healthcheckURL)
 
-	resp, err := client.Get(healthcheckURL)
+	req, err := http.NewRequest("GET", healthcheckURL, nil)
+	if err != nil {
+		hcRes <- fmt.Errorf("Cannot create HTTP request with URL: [%s]. Error: [%v]", healthcheckURL, err)
+		return
+	}
+
+	if username != "" && password != "" {
+		req.SetBasicAuth(username, password)
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		hcRes <- fmt.Errorf("Healthcheck URL: [%s]. Error: [%v]", healthcheckURL, err)
 		return
@@ -326,7 +336,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		}
 
 		wg.Add(1)
-		go checkServiceReachable(healthcheckURL, h.client, hcErrs, &wg)
+		go checkServiceReachable(healthcheckURL, h.env.Username, h.env.Password,h.client, hcErrs, &wg)
 	}
 
 	wg.Wait()
