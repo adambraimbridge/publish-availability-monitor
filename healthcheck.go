@@ -39,7 +39,7 @@ var noReadEnvironments = fthealth.Check{
 	Name:             "ReadEnvironments",
 	PanicGuide:       pam_run_book_url,
 	Severity:         1,
-	TechnicalSummary: "There are no read environments to monitor. This could be because none have been configured, or that etcd is not reachable/healthy",
+	TechnicalSummary: "There are no read environments to monitor. This could be because none have been configured",
 	Checker: func() (string, error) {
 		return "", errors.New("There are no read environments to monitor.")
 	},

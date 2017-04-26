@@ -96,7 +96,7 @@ var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var readEnvConfigMapKey = flag.String("read-env-key", "read-urls", "K8s configMap key that lists the read environment URLs")
 var s3EnvConfigMapKey = flag.String("s3-env-key", "s3-image-bucket-urls", "K8s configMap key that lists the S3 image bucket URLs")
-var credConfigMapKey = flag.String("envs-cred-key", "read-credentials", "K8s Secret key that lists the read environment credentials")
+var envCredentialsSecretKey = flag.String("envs-cred-key", "read-credentials", "K8s Secret key that lists the read environment credentials")
 var validatorCredConfigMapKey = flag.String("validator-cred-key", "validator-credentials", "K8s Secret key that specifies the validator credentials")
 var envConfigMapName = flag.String("env-config-map-name", "monitoring-configs", "K8s configMap that stores read endpoint urls and s3 urls")
 var credentialsK8sSecretName = flag.String("credentials-k8s-secret-name", "publish-availability-monitor-secrets", "K8s Secret that stores credentials required to access read and s3 endpoints")
@@ -121,7 +121,7 @@ func main() {
 		return
 	}
 
-	go DiscoverEnvironmentsAndValidators(envConfigMapName, credentialsK8sSecretName, readEnvConfigMapKey, credConfigMapKey, s3EnvConfigMapKey, validatorCredConfigMapKey, environments)
+	go DiscoverEnvironmentsAndValidators(envConfigMapName, credentialsK8sSecretName, readEnvConfigMapKey, envCredentialsSecretKey, s3EnvConfigMapKey, validatorCredConfigMapKey, environments)
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 

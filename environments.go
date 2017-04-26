@@ -24,7 +24,7 @@ func getEnvCredentials(validatorCredK8sSecretName string, credKey string) (strin
 
 	secretMap := k8sSecret.Data
 	if credentials, found := secretMap[credKey]; found {
-		return  string(credentials[:]), nil
+		return string(credentials[:]), nil
 	}
 
 	return "", fmt.Errorf("Entry with key %s was not found in k8s secret with name %s", credKey, validatorCredK8sSecretName)
@@ -73,11 +73,30 @@ func watchEnvironments(configMapName string, validatorCredK8sSecretName string, 
 	}
 
 	infoLogger.Print("Env configMap watching terminated. Reconnecting...")
-	watchEnvironments(configMapName,validatorCredK8sSecretName, readEnvKey, s3EnvKey, credKey,environments)
+	watchEnvironments(configMapName, validatorCredK8sSecretName, readEnvKey, s3EnvKey, credKey, environments)
 }
 
-func watchValidatorCredentials(validatorCredSecretName string, validatorCredKey string) {
-	fieldSelector := fmt.Sprintf("metadata.name=%s", validatorCredSecretName)
+func updateEnvCredentials(readCredentials string) {
+	envCredentials := strings.Split(readCredentials, ",")
+	for _, cred := range envCredentials {
+		nameAndCredentials := strings.Split(cred, ":")
+		if len(nameAndCredentials) != 3 {
+			warnLogger.Printf("Cannot parse credentials string: %s", nameAndCredentials)
+			continue
+		}
+
+		envName := nameAndCredentials[0]
+		if env, found := environments[envName]; found {
+			env.Username = nameAndCredentials[1]
+			env.Password = nameAndCredentials[2]
+			environments[envName] = env
+			infoLogger.Printf("Updated credentials for env with name %s", envName)
+		}
+	}
+}
+
+func watchCredentials(credSecretName string, validatorCredKey string, envCredentialsSecretKey string) {
+	fieldSelector := fmt.Sprintf("metadata.name=%s", credSecretName)
 	watcher, err := k8sClient.CoreV1().Secrets("default").Watch(v1.ListOptions{FieldSelector: fieldSelector})
 
 	if err != nil {
@@ -89,8 +108,7 @@ func watchValidatorCredentials(validatorCredSecretName string, validatorCredKey 
 	for msg := range resultChannel {
 		switch msg.Type {
 		case watch.Added, watch.Modified:
-			//todo: also update environments with new readCredentials if they were changed.
-			infoLogger.Printf("Secret map with name %s has been updated.", validatorCredSecretName)
+			infoLogger.Printf("Secret map with name %s has been updated.", credSecretName)
 			k8sSecret := msg.Object.(*v1.Secret)
 			secretMap := k8sSecret.Data
 			if validatorCreds, found := secretMap[validatorCredKey]; found {
@@ -98,18 +116,25 @@ func watchValidatorCredentials(validatorCredSecretName string, validatorCredKey 
 			} else {
 				errorLogger.Printf("Cannot find validator credentials in secretsMap. The key to be searched is %s", validatorCredKey)
 			}
+
+			if envCreds, found := secretMap[envCredentialsSecretKey]; found {
+				envCredentials := string(envCreds[:])
+				updateEnvCredentials(envCredentials)
+			} else {
+				errorLogger.Printf("Cannot find env credentials in secretsMap. The key to be searched is %s", envCredentialsSecretKey)
+			}
 		case watch.Deleted:
-			errorLogger.Printf("Secret map with name %s has been removed.", validatorCredSecretName)
+			errorLogger.Printf("Secret map with name %s has been removed.", credSecretName)
 		default:
 			errorLogger.Print("Error received on watch validatorCreds secretsMap. Channel may be full")
 		}
 	}
 
 	infoLogger.Print("ValidatorCreds secretsMap watching terminated. Reconnecting...")
-	watchValidatorCredentials(validatorCredSecretName, validatorCredKey)
+	watchCredentials(credSecretName, validatorCredKey, envCredentialsSecretKey)
 }
 
-func DiscoverEnvironmentsAndValidators(envConfigMapName *string, validatorCredSecretName *string, readEnvConfigMapKey *string, credConfigMapKey *string, s3EnvConfigMapKey *string, validatorCredConfigMapKey *string, environments map[string]Environment) {
+func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecretName *string, readEnvConfigMapKey *string, envCredentialsSecretKey *string, s3EnvConfigMapKey *string, validatorCredSecretMapKey *string, environments map[string]Environment) {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -121,8 +146,8 @@ func DiscoverEnvironmentsAndValidators(envConfigMapName *string, validatorCredSe
 		panic(fmt.Sprintf("Failed to create k8s client, error was: %s", err.Error()))
 	}
 
-	go watchEnvironments(*envConfigMapName, *validatorCredSecretName, *readEnvConfigMapKey, *s3EnvConfigMapKey, *credConfigMapKey,environments)
-	go watchValidatorCredentials(*validatorCredSecretName, *validatorCredConfigMapKey)
+	go watchEnvironments(*envConfigMapName, *credentialsSecretName, *readEnvConfigMapKey, *s3EnvConfigMapKey, *envCredentialsSecretKey, environments)
+	go watchCredentials(*credentialsSecretName, *validatorCredSecretMapKey, * envCredentialsSecretKey)
 }
 
 func parseEnvironmentsIntoMap(readEnv string, readCredentials string, s3Env string, environments map[string]Environment) []string {
@@ -134,7 +159,7 @@ func parseEnvironmentsIntoMap(readEnv string, readCredentials string, s3Env stri
 	for _, env := range envReadEndpoints {
 		nameAndUrl := strings.SplitN(env, ":", 2)
 		if len(nameAndUrl) != 2 {
-			warnLogger.Printf("read-urls contain an invalid value: %s",env)
+			warnLogger.Printf("read-urls contain an invalid value: %s", env)
 			continue
 		}
 
