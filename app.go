@@ -98,7 +98,7 @@ var readEnvConfigMapKey = flag.String("read-env-key", "read-urls", "K8s configMa
 var s3EnvConfigMapKey = flag.String("s3-env-key", "s3-image-bucket-urls", "K8s configMap key that lists the S3 image bucket URLs")
 var credConfigMapKey = flag.String("envs-cred-key", "read-credentials", "K8s Secret key that lists the read environment credentials")
 var validatorCredConfigMapKey = flag.String("validator-cred-key", "validator-credentials", "K8s Secret key that specifies the validator credentials")
-var envConfigMapName = flag.String("env-config-map-name", "publish-availability-monitor-config", "K8s configMap that stores read endpoint urls and s3 urls")
+var envConfigMapName = flag.String("env-config-map-name", "monitoring-configs", "K8s configMap that stores read endpoint urls and s3 urls")
 var credentialsK8sSecretName = flag.String("credentials-k8s-secret-name", "publish-availability-monitor-secrets", "K8s Secret that stores credentials required to access read and s3 endpoints")
 
 var appConfig *AppConfig
