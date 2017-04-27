@@ -9,6 +9,8 @@ import (
 	"k8s.io/client-go/pkg/watch"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	"fmt"
+	"github.com/fsnotify/fsnotify"
+	"log"
 )
 
 var (
@@ -81,7 +83,7 @@ func updateEnvCredentials(readCredentials string) {
 	for _, cred := range envCredentials {
 		nameAndCredentials := strings.Split(cred, ":")
 		if len(nameAndCredentials) != 3 {
-			warnLogger.Printf("Cannot parse credentials string: %s", nameAndCredentials)
+			warnLogger.Printf("Cannot parse credentials string: %s", cred)
 			continue
 		}
 
@@ -148,6 +150,39 @@ func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecr
 
 	go watchEnvironments(*envConfigMapName, *credentialsSecretName, *readEnvConfigMapKey, *s3EnvConfigMapKey, *envCredentialsSecretKey, environments)
 	go watchCredentials(*credentialsSecretName, *validatorCredSecretMapKey, * envCredentialsSecretKey)
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	go watchTestFiles(watcher)
+
+	err = watcher.Add("/etc/pam/envs/environments.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = watcher.Add("/etc/pam/credentials/read-credentials.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func watchTestFiles(watcher *fsnotify.Watcher) {
+	infoLogger.Print("Starting to watch json files.")
+	for {
+		select {
+		case event := <-watcher.Events:
+			infoLogger.Printf("event: %s", event)
+			if event.Op&fsnotify.Write == fsnotify.Write {
+				infoLogger.Printf("modified file: %s", event.Name)
+			}
+		case err := <-watcher.Errors:
+			infoLogger.Printf("error: %s", err)
+		}
+	}
 }
 
 func parseEnvironmentsIntoMap(readEnv string, readCredentials string, s3Env string, environments map[string]Environment) []string {
