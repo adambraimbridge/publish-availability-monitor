@@ -111,6 +111,12 @@
 			"revisionTime": "2017-02-18T20:36:51Z"
 		},
 		{
+			"checksumSHA1": "kDwAmTpFYx2cvyBQ8xz5eHNrb3U=",
+			"path": "golang.org/x/sys",
+			"revision": "9ccfe848b9db8435a24c424abbc07a921adf1df5",
+			"revisionTime": "2017-04-27T03:54:25Z"
+		},
+		{
 			"checksumSHA1": "SSbMBSzzGF6XGcEnH5SijHEWLjA=",
 			"path": "k8s.io/client-go",
 			"revision": "e121606b0d09b2e1c467183ee46217fa85a6b672",
