@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"log"
+	"os"
 )
 
 var (
@@ -156,18 +157,21 @@ func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecr
 		log.Fatal(err)
 	}
 	defer watcher.Close()
-
+	_,err = os.Create("/etc/pam/envs/t.txt")
+	if err != nil {
+		panic("Cannot create file.")
+	}
 	go watchTestFiles(watcher)
 
-	err = watcher.Add("/etc/pam/envs/environments.json")
+	err = watcher.Add("/etc/pam/envs/t.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = watcher.Add("/etc/pam/credentials/read-credentials.json")
-	if err != nil {
-		log.Fatal(err)
-	}
+	//err = watcher.Add("/etc/pam/credentials/read-credentials.json")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 }
 
 func watchTestFiles(watcher *fsnotify.Watcher) {
