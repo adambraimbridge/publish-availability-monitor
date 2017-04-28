@@ -100,7 +100,7 @@ func doExternalValidation(p validationParam, validCheck func(int) bool, deletedC
 		log.Warnf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], reading response body error: [%v]", p.uuid, p.txID, p.validationURL, err)
 	}
 
-	if resp.StatusCode != http.StatusOK || resp.StatusCode != http.StatusNotFound {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
 		log.Infof("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], received statusCode [%d], received error: [%v]", p.uuid, p.txID, p.validationURL, resp.StatusCode, string(bs))
 	}
 
