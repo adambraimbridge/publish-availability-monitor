@@ -157,7 +157,7 @@ func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecr
 		log.Fatal(err)
 	}
 	defer watcher.Close()
-	_,err = os.Create("/etc/pam/envs/t.txt")
+	_,err = os.Create("/etc/pam/t.txt")
 	if err != nil {
 		panic("Cannot create file.")
 	}
