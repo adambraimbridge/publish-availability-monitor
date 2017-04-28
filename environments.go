@@ -163,7 +163,7 @@ func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecr
 	}
 	go watchTestFiles(watcher)
 
-	err = watcher.Add("/etc/pam/envs/t.txt")
+	err = watcher.Add("/etc/pam/t.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
