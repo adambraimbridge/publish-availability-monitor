@@ -180,7 +180,7 @@ func watchTestFiles(watcher *fsnotify.Watcher) {
 				infoLogger.Printf("modified file: %s", event.Name)
 			}
 		case err := <-watcher.Errors:
-			infoLogger.Printf("error: %s", err)
+			infoLogger.Printf("error: %s", err.Error())
 		}
 	}
 }
