@@ -69,7 +69,7 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password, txId)
 
 	if err != nil {
-		log.WithField("transaction_id", txId).Errorf("error calling notifications %s", notificationsUrl)
+		log.WithField("transaction_id", txId).WithError(err).Errorf("error calling notifications %s", notificationsUrl)
 		return
 	}
 	defer cleanupResp(resp)
