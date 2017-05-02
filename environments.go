@@ -167,10 +167,12 @@ func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecr
 		log.Fatal(err)
 	}
 
-	go useFsNotifyTest()
+	fileName := "/etc/pam/envs/environments.json"
+	go useFsNotifyTest(fileName)
 }
 
-func useFsNotifyTest() {
+func useFsNotifyTest(fileName string) {
+	infoLogger.Printf("Started watching events for file with name %s",fileName)
 	var watcher *fsnotify.Watcher
 	var err error
 	var found bool
@@ -181,8 +183,8 @@ func useFsNotifyTest() {
 				errorLogger.Printf("failed to create fsnotify watcher: %v", err)
 			}
 			defer watcher.Close()
-			if err := watcher.Add("/etc/pam/t.txt"); err != nil {
-				errorLogger.Printf("failed to watch file %q: %v", "/etc/pam/t.txt", err)
+			if err := watcher.Add(fileName); err != nil {
+				errorLogger.Printf("failed to watch file %q: %v", fileName, err)
 			}
 		}
 
@@ -194,7 +196,6 @@ func useFsNotifyTest() {
 		//continue
 
 		infoLogger.Print("File has been changed.")
-
 	}
 }
 
