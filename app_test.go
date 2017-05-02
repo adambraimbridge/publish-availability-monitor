@@ -5,8 +5,8 @@ import (
 )
 
 const syntheticTID = "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd"
-const carouselRepublishTID = "tid_ofcysuifp0_carousel_1488384556"
-const carouselGeneratedTID = "tid_ofcysuifp0_carousel_1488384556_gentx"
+const carouselRepublishTID = "something123_carousel_1488384556"
+const carouselGeneratedTID = "something-else-321_carousel_1488384556_gentx"
 const naturalTID = "tid_xltcnbckvq"
 
 func TestIsIgnorableMessage_naturalMessage(t *testing.T) {
