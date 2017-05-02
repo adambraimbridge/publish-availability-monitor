@@ -12,7 +12,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"log"
 	"os"
-	"time"
 )
 
 var (
@@ -158,7 +157,7 @@ func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecr
 		log.Fatal(err)
 	}
 	defer watcher.Close()
-	_,err = os.Create("/etc/pam/t.txt")
+	_, err = os.Create("/etc/pam/t.txt")
 	if err != nil {
 		panic("Cannot create file.")
 	}
@@ -169,12 +168,6 @@ func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecr
 	}
 
 	go useFsNotifyTest()
-
-
-	//err = watcher.Add("/etc/pam/credentials/read-credentials.json")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
 }
 
 func useFsNotifyTest() {
@@ -193,8 +186,8 @@ func useFsNotifyTest() {
 			}
 
 			// Wait until the next log change.
-			if found, err = waitTestLogs( watcher); !found {
-				errorLogger.Printf("Err received on wating test logs. Err is %s",err)
+			if found, err = waitTestLogs(watcher); !found {
+				errorLogger.Printf("Err received on wating test logs. Err is %s", err)
 				return
 			}
 			//continue
