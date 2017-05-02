@@ -184,16 +184,17 @@ func useFsNotifyTest() {
 			if err := watcher.Add("/etc/pam/t.txt"); err != nil {
 				errorLogger.Printf("failed to watch file %q: %v", "/etc/pam/t.txt", err)
 			}
-
-			// Wait until the next log change.
-			if found, err = waitTestLogs(watcher); !found {
-				errorLogger.Printf("Err received on wating test logs. Err is %s", err)
-				return
-			}
-			//continue
-
-			infoLogger.Print("File has been changed.")
 		}
+
+		// Wait until the next log change.
+		if found, err = waitTestLogs(watcher); !found {
+			errorLogger.Printf("Err received on wating test logs. Err is %s", err)
+			return
+		}
+		//continue
+
+		infoLogger.Print("File has been changed.")
+
 	}
 }
 
