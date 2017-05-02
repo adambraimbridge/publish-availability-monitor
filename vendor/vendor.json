@@ -115,14 +115,6 @@
 			"path": "golang.org/x/sys/unix",
 			"revision": "9ccfe848b9db8435a24c424abbc07a921adf1df5",
 			"revisionTime": "2017-04-27T03:54:25Z"
-		},
-		{
-			"checksumSHA1": "SSbMBSzzGF6XGcEnH5SijHEWLjA=",
-			"path": "k8s.io/client-go",
-			"revision": "e121606b0d09b2e1c467183ee46217fa85a6b672",
-			"tree": true,
-			"version": "=v2.0.0",
-			"versionExact": "v2.0.0"
 		}
 	],
 	"rootPath": "github.com/Financial-Times/publish-availability-monitor"

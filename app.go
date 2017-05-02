@@ -75,11 +75,11 @@ type HealthConfig struct {
 
 // Environment defines an environment in which the publish metrics should be checked
 type Environment struct {
-	Name     string
-	ReadUrl  string
-	S3Url    string
-	Username string
-	Password string
+	Name     string `json:"name"`
+	ReadUrl  string `json:"read-url"`
+	S3Url    string `json:"s3-url"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type publishHistory struct {
