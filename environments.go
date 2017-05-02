@@ -175,9 +175,12 @@ func useFsNotifyTest(fileName string) {
 	infoLogger.Printf("Started watching events for file with name %s",fileName)
 	var watcher *fsnotify.Watcher
 	var err error
-	var found bool
+	var receivedRemoveEvent bool
 	for {
+		//TODO: read file here
+
 		if watcher == nil {
+			infoLogger.Print("Creating new watcher.")
 			// Intialize the watcher if it has not been initialized yet.
 			if watcher, err = fsnotify.NewWatcher(); err != nil {
 				errorLogger.Printf("failed to create fsnotify watcher: %v", err)
@@ -189,23 +192,34 @@ func useFsNotifyTest(fileName string) {
 		}
 
 		// Wait until the next log change.
-		if found, err = waitTestLogs(watcher); !found {
+		receivedRemoveEvent, err = waitTestLogs(watcher)
+		if err!= nil {
 			errorLogger.Printf("Err received on wating test logs. Err is %s", err)
 			return
 		}
-		//continue
+
+		if receivedRemoveEvent {
+			errorLogger.Printf("Received remove event, removing watcher.")
+			//watcher.Close()
+			watcher = nil
+			continue
+		}
 
 		infoLogger.Print("File has been changed.")
 	}
 }
 
 func waitTestLogs(w *fsnotify.Watcher) (bool, error) {
+	infoLogger.Print("Waiting for changes on file")
 	errRetry := 5
 	for {
 		select {
 		case e := <-w.Events:
 			switch e.Op {
 			case fsnotify.Write:
+				return false, nil
+			case fsnotify.Remove:
+				errorLogger.Printf("Received remove event: %v", e)
 				return true, nil
 			default:
 				errorLogger.Printf("Unexpected fsnotify event: %v, retrying...", e)
