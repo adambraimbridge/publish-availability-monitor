@@ -12,6 +12,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"log"
 	"os"
+	"time"
 )
 
 var (
@@ -161,12 +162,14 @@ func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecr
 	if err != nil {
 		panic("Cannot create file.")
 	}
-	go watchTestFiles(watcher)
 
 	err = watcher.Add("/etc/pam/t.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	go useFsNotifyTest()
+
 
 	//err = watcher.Add("/etc/pam/credentials/read-credentials.json")
 	//if err != nil {
@@ -174,17 +177,50 @@ func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecr
 	//}
 }
 
-func watchTestFiles(watcher *fsnotify.Watcher) {
-	infoLogger.Print("Starting to watch json files.")
+func useFsNotifyTest() {
+	var watcher *fsnotify.Watcher
+	var err error
+	var found bool
+	for {
+		if watcher == nil {
+			// Intialize the watcher if it has not been initialized yet.
+			if watcher, err = fsnotify.NewWatcher(); err != nil {
+				errorLogger.Printf("failed to create fsnotify watcher: %v", err)
+			}
+			defer watcher.Close()
+			if err := watcher.Add("/etc/pam/t.txt"); err != nil {
+				errorLogger.Printf("failed to watch file %q: %v", "/etc/pam/t.txt", err)
+			}
+
+			// Wait until the next log change.
+			if found, err = waitTestLogs( watcher); !found {
+				errorLogger.Printf("Err received on wating test logs. Err is %s",err)
+				return
+			}
+			//continue
+
+			infoLogger.Print("File has been changed.")
+		}
+	}
+}
+
+func waitTestLogs(w *fsnotify.Watcher) (bool, error) {
+	errRetry := 5
 	for {
 		select {
-		case event := <-watcher.Events:
-			infoLogger.Printf("event: %s", event)
-			if event.Op&fsnotify.Write == fsnotify.Write {
-				infoLogger.Printf("modified file: %s", event.Name)
+		case e := <-w.Events:
+			switch e.Op {
+			case fsnotify.Write:
+				return true, nil
+			default:
+				errorLogger.Printf("Unexpected fsnotify event: %v, retrying...", e)
 			}
-		case err := <-watcher.Errors:
-			infoLogger.Printf("error: %v", err)
+		case err := <-w.Errors:
+			errorLogger.Printf("Fsnotify watch error: %v, %d error retries remaining", err, errRetry)
+			if errRetry == 0 {
+				return false, err
+			}
+			errRetry--
 		}
 	}
 }
