@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/url"
-	"k8s.io/client-go/kubernetes"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	"github.com/fsnotify/fsnotify"
 	"os"
@@ -10,44 +9,29 @@ import (
 	"fmt"
 )
 
-var (
-	k8sClient kubernetes.Interface
-)
-
-type Credentials struct {
-	EnvName string `json:"env-name"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecretName *string, readEnvConfigMapKey *string, envCredentialsSecretKey *string, s3EnvConfigMapKey *string, validatorCredSecretMapKey *string, environments map[string]Environment) {
 	//todo: remove kubernetes from vendoring
 	//go watchEnvironments(*envConfigMapName, *credentialsSecretName, *readEnvConfigMapKey, *s3EnvConfigMapKey, *envCredentialsSecretKey, environments)
 	//go watchCredentials(*credentialsSecretName, *validatorCredSecretMapKey, * envCredentialsSecretKey)
 
+	//todo: these values should be passed through params to this function.
 	envsFileName := "/etc/pam/envs/read-environments.json"
 	envCredentialsFileName := "/etc/pam/credentials/read-environments-credentials.json"
-	//validatorCredentialsFileName := "/etc/pam/credentials/validator-credentials.json"
-	go watchConfigFiles(envsFileName, envCredentialsFileName)
+	validatorCredentialsFileName := "/etc/pam/credentials/validator-credentials.json"
+	go watchConfigFiles(envsFileName, envCredentialsFileName, validatorCredentialsFileName)
 }
 
-func updateEnvs(envsFileName string, envCredentialsFileName string) error {
-	removedEnvs, err := parseEnvsIntoMap(envsFileName, envCredentialsFileName)
-
-	if err != nil {
-		return err
-	}
-
-	configureFeeds(removedEnvs)
-	return nil
-}
-
-func watchConfigFiles(envsFileName string, envCredentialsFileName string) {
+func watchConfigFiles(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string) {
 	infoLogger.Printf("Started watching events for file with name %s", envsFileName)
 	var watcher *fsnotify.Watcher
 	var receivedRemoveEvent bool
 	for {
-		err := updateEnvs(envsFileName,envCredentialsFileName)
+		err := updateEnvs(envsFileName, envCredentialsFileName)
+		if err != nil {
+			errorLogger.Printf("Cannot update envs. Error was: %s", err)
+		}
+
+		err = updateValidationCredentials(validationCredentialsFileName)
 		if err != nil {
 			errorLogger.Printf("Cannot update envs. Error was: %s", err)
 		}
@@ -63,6 +47,8 @@ func watchConfigFiles(envsFileName string, envCredentialsFileName string) {
 			if err := watcher.Add(envsFileName); err != nil {
 				errorLogger.Printf("failed to watch file %q: %v", envsFileName, err)
 			}
+
+			//todo: add watchers for read-env-credentials file and for validation-credentials file.
 		}
 
 		// Wait until the next log change.
@@ -106,6 +92,34 @@ func monitorFilesForChanges(w *fsnotify.Watcher) (bool, error) {
 			errRetry--
 		}
 	}
+}
+
+func updateEnvs(envsFileName string, envCredentialsFileName string) error {
+	removedEnvs, err := parseEnvsIntoMap(envsFileName, envCredentialsFileName)
+
+	if err != nil {
+		return err
+	}
+
+	configureFeeds(removedEnvs)
+	return nil
+}
+
+func updateValidationCredentials(validationCredsFileName string) error {
+	data, err := os.Open(validationCredsFileName)
+	if err != nil {
+		return err
+	}
+
+	jsonParser := json.NewDecoder(data)
+	credentials := Credentials{}
+	err = jsonParser.Decode(&credentials)
+	if err != nil {
+		return err
+	}
+
+	validatorCredentials = credentials
+	return nil
 }
 
 func configureFeeds(removedEnvs []string) {
@@ -204,8 +218,8 @@ func readEnvs(fileName string) ([]Environment, error) {
 
 	jsonParser := json.NewDecoder(data)
 	envs := []Environment{}
-	jsonParser.Decode(&envs)
-	return envs, nil
+	err = jsonParser.Decode(&envs)
+	return envs, err
 }
 
 func readEnvCredentials(fileName string) ([]Credentials, error) {
@@ -216,9 +230,9 @@ func readEnvCredentials(fileName string) ([]Credentials, error) {
 
 	jsonParser := json.NewDecoder(data)
 	credentials := []Credentials{}
-	jsonParser.Decode(&credentials)
+	err = jsonParser.Decode(&credentials)
 
-	return credentials, nil
+	return credentials, err
 }
 
 func isEnvInSlice(envName string, envs []Environment) bool {

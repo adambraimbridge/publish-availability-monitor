@@ -82,6 +82,12 @@ type Environment struct {
 	Password string `json:"password"`
 }
 
+type Credentials struct {
+	EnvName string `json:"env-name"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type publishHistory struct {
 	sync.RWMutex
 	publishMetrics []PublishMetric
@@ -106,7 +112,7 @@ var environments = make(map[string]Environment)
 var subscribedFeeds = make(map[string][]feeds.Feed)
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
-var validatorCredentials string
+var validatorCredentials Credentials
 
 var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[a-zA-Z0-9]+)_carousel_[\d]{10}.*$`)
 

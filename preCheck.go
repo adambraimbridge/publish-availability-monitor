@@ -94,12 +94,11 @@ func internalComponentsPreCheck(publishedContent content.Content, tid string, pu
 }
 
 func getValidationCredentials() (string, string) {
-	if strings.Contains(validatorCredentials, ":") {
-		unpw := strings.SplitN(validatorCredentials, ":", 2)
-		return unpw[0], unpw[1]
+	if validatorCredentials.Username == "" {
+		return "", ""
 	}
 
-	return "", ""
+	return validatorCredentials.Username,validatorCredentials.Password
 }
 
 func getValidationEndpointKey(publishedContent content.Content, tid string, uuid string) string {
