@@ -89,7 +89,8 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	f.notificationsLock.Lock()
 	defer f.notificationsLock.Unlock()
 
-	for _, n := range notifications.Notifications {
+	for _, v := range notifications.Notifications {
+		n := v
 		uuid := parseUuidFromUrl(n.ID)
 		var history []*Notification
 		var found bool
