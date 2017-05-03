@@ -164,11 +164,39 @@ func configureFeeds(removedEnvs []string) {
 	}
 }
 
+func filterInvalidEnvs(envsFromFile []Environment) []Environment {
+	var validEnvs []Environment
+	for _, env := range envsFromFile {
+		//envs without name are invalid
+		if env.Name == "" {
+			errorLogger.Printf("Env %v has an empty name.", env)
+			continue
+		}
+
+		//envs without read-url are invalid
+		if env.ReadUrl == "" {
+			errorLogger.Printf("Env with name %s does not have readUrl.", env.Name)
+			continue
+		}
+
+		//envs without s3 are still valid, but still a heads up is given.
+		if env.S3Url == "" {
+			infoLogger.Printf("Env with name %s does not have s3 url.", env.S3Url)
+		}
+
+		validEnvs = append(validEnvs, env)
+	}
+
+	return validEnvs
+}
+
 func parseEnvsIntoMap(envsFileName string, envCredentialsFileName string) ([]string, error) {
 	envsFromFile, err := readEnvs(envsFileName)
 	if err != nil {
 		return []string{}, fmt.Errorf("Cannot parse environments. Error was: %s", err)
 	}
+
+	validEnvs := filterInvalidEnvs(envsFromFile)
 
 	envCredentials, err := readEnvCredentials(envCredentialsFileName)
 	if err != nil {
@@ -176,19 +204,24 @@ func parseEnvsIntoMap(envsFileName string, envCredentialsFileName string) ([]str
 	}
 
 	//enhance envs with credentials
-	for i, env := range envsFromFile {
+	for i, env := range validEnvs {
 		for _, envCredentials := range envCredentials {
 			if env.Name == envCredentials.EnvName {
-				envsFromFile[i].Username = envCredentials.Username
-				envsFromFile[i].Password = envCredentials.Password
+				validEnvs[i].Username = envCredentials.Username
+				validEnvs[i].Password = envCredentials.Password
+				break
 			}
+		}
+
+		if validEnvs[i].Username == "" || validEnvs[i].Password {
+			infoLogger.Printf("No credentials provided for env with name %s", env.Name)
 		}
 	}
 
 	//remove envs that don't exist anymore
 	removedEnvs := make([]string, 0)
 	for envName := range environments {
-		if !isEnvInSlice(envName, envsFromFile) {
+		if !isEnvInSlice(envName, validEnvs) {
 			fmt.Printf("removing environment from monitoring: %v", envName)
 			delete(environments, envName)
 			removedEnvs = append(removedEnvs, envName)
@@ -196,7 +229,7 @@ func parseEnvsIntoMap(envsFileName string, envCredentialsFileName string) ([]str
 	}
 
 	//update envs
-	for _, env := range envsFromFile {
+	for _, env := range validEnvs {
 		envName := env.Name
 		environments[envName] = env
 		infoLogger.Printf("Added environment to monitoring: %s", envName)
