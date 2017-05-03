@@ -213,7 +213,7 @@ func parseEnvsIntoMap(envsFileName string, envCredentialsFileName string) ([]str
 			}
 		}
 
-		if validEnvs[i].Username == "" || validEnvs[i].Password {
+		if validEnvs[i].Username == "" || validEnvs[i].Password == "" {
 			infoLogger.Printf("No credentials provided for env with name %s", env.Name)
 		}
 	}
