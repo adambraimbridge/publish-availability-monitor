@@ -103,7 +103,7 @@ var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 var validatorCredentials string
 
-var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[a-zA-Z0-9]+)_carousel_[\d]{10}.*$`)
+var carouselTransactionIDRegExp = regexp.MustCompile(`^.+_carousel_[\d]{10}.*$`)
 
 func init() {
 	f := logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
