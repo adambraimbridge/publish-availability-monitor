@@ -123,7 +123,7 @@ func main() {
 		return
 	}
 
-	go watchConfigFiles(envsFileName, envCredentialsFileName, validatorCredentialsFileName)
+	go watchConfigFiles(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName)
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
 	go startHttpListener()
