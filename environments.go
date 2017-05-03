@@ -1,28 +1,15 @@
 package main
 
 import (
-	"net/url"
-	"github.com/Financial-Times/publish-availability-monitor/feeds"
-	"github.com/fsnotify/fsnotify"
-	"os"
 	"encoding/json"
 	"fmt"
+	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	"github.com/fsnotify/fsnotify"
+	"net/url"
+	"os"
 )
 
-func DiscoverEnvironmentsAndValidators(envConfigMapName *string, credentialsSecretName *string, readEnvConfigMapKey *string, envCredentialsSecretKey *string, s3EnvConfigMapKey *string, validatorCredSecretMapKey *string, environments map[string]Environment) {
-	//todo: remove kubernetes from vendoring
-	//go watchEnvironments(*envConfigMapName, *credentialsSecretName, *readEnvConfigMapKey, *s3EnvConfigMapKey, *envCredentialsSecretKey, environments)
-	//go watchCredentials(*credentialsSecretName, *validatorCredSecretMapKey, * envCredentialsSecretKey)
-
-	//todo: these values should be passed through params to this function.
-	envsFileName := "/etc/pam/envs/read-environments.json"
-	envCredentialsFileName := "/etc/pam/credentials/read-environments-credentials.json"
-	validatorCredentialsFileName := "/etc/pam/credentials/validator-credentials.json"
-	go watchConfigFiles(envsFileName, envCredentialsFileName, validatorCredentialsFileName)
-}
-
 func watchConfigFiles(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string) {
-	infoLogger.Printf("Started watching events for file with name %s", envsFileName)
 	var watcher *fsnotify.Watcher
 	var receivedRemoveEvent bool
 	for {
@@ -44,11 +31,17 @@ func watchConfigFiles(envsFileName string, envCredentialsFileName string, valida
 			}
 
 			defer watcher.Close()
-			if err := watcher.Add(envsFileName); err != nil {
-				errorLogger.Printf("failed to watch file %q: %v", envsFileName, err)
-			}
 
-			//todo: add watchers for read-env-credentials file and for validation-credentials file.
+			//watch configuration files
+			filesToBeWatched := []string{envsFileName, envCredentialsFileName, validationCredentialsFileName}
+			for _, fileToBeWatched := range filesToBeWatched {
+				if err := watcher.Add(fileToBeWatched); err != nil {
+					errorLogger.Printf("failed to watch file %q: %v", fileToBeWatched, err)
+					continue
+				}
+
+				infoLogger.Printf("Started watching file with name %s", fileToBeWatched)
+			}
 		}
 
 		// Wait until the next log change.
@@ -95,6 +88,7 @@ func monitorFilesForChanges(w *fsnotify.Watcher) (bool, error) {
 }
 
 func updateEnvs(envsFileName string, envCredentialsFileName string) error {
+	infoLogger.Print("Updating envs")
 	removedEnvs, err := parseEnvsIntoMap(envsFileName, envCredentialsFileName)
 
 	if err != nil {
@@ -106,6 +100,7 @@ func updateEnvs(envsFileName string, envCredentialsFileName string) error {
 }
 
 func updateValidationCredentials(validationCredsFileName string) error {
+	infoLogger.Print("Updating credentials")
 	data, err := os.Open(validationCredsFileName)
 	if err != nil {
 		return err
@@ -244,4 +239,3 @@ func isEnvInSlice(envName string, envs []Environment) bool {
 
 	return false
 }
-

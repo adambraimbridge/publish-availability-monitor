@@ -83,7 +83,7 @@ type Environment struct {
 }
 
 type Credentials struct {
-	EnvName string `json:"env-name"`
+	EnvName  string `json:"env-name"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
@@ -100,13 +100,9 @@ var infoLogger *log.Logger
 var warnLogger *log.Logger
 var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
-var readEnvConfigMapKey = flag.String("read-env-key", "read-urls", "K8s configMap key that lists the read environment URLs")
-var s3EnvConfigMapKey = flag.String("s3-env-key", "s3-image-bucket-urls", "K8s configMap key that lists the S3 image bucket URLs")
-var envCredentialsSecretKey = flag.String("envs-cred-key", "read-credentials", "K8s Secret key that lists the read environment credentials")
-var validatorCredConfigMapKey = flag.String("validator-cred-key", "validator-credentials", "K8s Secret key that specifies the validator credentials")
-var envConfigMapName = flag.String("env-config-map-name", "monitoring-configs", "K8s configMap that stores read endpoint urls and s3 urls")
-var credentialsK8sSecretName = flag.String("credentials-k8s-secret-name", "publish-availability-monitor-secrets", "K8s Secret that stores credentials required to access read and s3 endpoints")
-
+var envsFileName = flag.String("envs-file-name", "/etc/pam/envs/read-environments.json", "Path to json file that contains environmnets configuration")
+var envCredentialsFileName = flag.String("envs-credentials-file-name", "/etc/pam/credentials/read-environments-credentials.json", "Path to json file that contains environmnets credentials")
+var validatorCredentialsFileName = flag.String("validator-credentials-file-name", "/etc/pam/credentials/validator-credentials.json", "Path to json file that contains validation endpoints configuration")
 var appConfig *AppConfig
 var environments = make(map[string]Environment)
 var subscribedFeeds = make(map[string][]feeds.Feed)
@@ -127,8 +123,7 @@ func main() {
 		return
 	}
 
-	go DiscoverEnvironmentsAndValidators(envConfigMapName, credentialsK8sSecretName, readEnvConfigMapKey, envCredentialsSecretKey, s3EnvConfigMapKey, validatorCredConfigMapKey, environments)
-
+	go watchConfigFiles(envsFileName, envCredentialsFileName, validatorCredentialsFileName)
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
 	go startHttpListener()

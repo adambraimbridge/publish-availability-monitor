@@ -98,7 +98,7 @@ func getValidationCredentials() (string, string) {
 		return "", ""
 	}
 
-	return validatorCredentials.Username,validatorCredentials.Password
+	return validatorCredentials.Username, validatorCredentials.Password
 }
 
 func getValidationEndpointKey(publishedContent content.Content, tid string, uuid string) string {

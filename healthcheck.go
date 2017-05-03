@@ -136,7 +136,7 @@ func (h *Healthcheck) checkAggregateMessageQueueProxiesReachable() (string, erro
 }
 
 func (h *Healthcheck) checkMessageQueueProxyReachable(address string) (string, error) {
-	req, err := http.NewRequest("GET", address + "/topics", nil)
+	req, err := http.NewRequest("GET", address+"/topics", nil)
 	if err != nil {
 		warnLogger.Printf("Could not connect to proxy: %v", err.Error())
 		return "", err
@@ -241,8 +241,8 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 			errorLogger.Printf("Validation Service URL: [%s]. Err: [%v]", url, err.Error())
 			continue
 		}
-		username,password := getValidationCredentials()
-		go checkServiceReachable(healthcheckURL,username,password, h.client, hcErrs, &wg)
+		username, password := getValidationCredentials()
+		go checkServiceReachable(healthcheckURL, username, password, h.client, hcErrs, &wg)
 	}
 
 	wg.Wait()
@@ -255,7 +255,7 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 	return "", nil
 }
 
-func checkServiceReachable(healthcheckURL string, username string, password string, client http.Client, hcRes chan <- error, wg *sync.WaitGroup) {
+func checkServiceReachable(healthcheckURL string, username string, password string, client http.Client, hcRes chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
 	infoLogger.Println("Checking: " + healthcheckURL)
 
@@ -307,7 +307,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 	for _, metric := range appConfig.MetricConf {
 		var endpointURL *url.URL
 		var err error
-		var username,password string
+		var username, password string
 		if absoluteUrlRegex.MatchString(metric.Endpoint) {
 			endpointURL, err = url.Parse(metric.Endpoint)
 		} else {
@@ -315,8 +315,8 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 				endpointURL, err = url.Parse(h.env.S3Url + metric.Endpoint)
 			} else {
 				endpointURL, err = url.Parse(h.env.ReadUrl + metric.Endpoint)
-				username=h.env.Username
-				password=h.env.Password
+				username = h.env.Username
+				password = h.env.Password
 			}
 		}
 
@@ -338,7 +338,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		}
 
 		wg.Add(1)
-		go checkServiceReachable(healthcheckURL, username, password,h.client, hcErrs, &wg)
+		go checkServiceReachable(healthcheckURL, username, password, h.client, hcErrs, &wg)
 	}
 
 	wg.Wait()
