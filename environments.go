@@ -89,18 +89,27 @@ func monitorFilesForChanges(w *fsnotify.Watcher) (bool, error) {
 
 func updateEnvs(envsFileName string, envCredentialsFileName string) error {
 	infoLogger.Print("Updating envs")
-	removedEnvs, err := parseEnvsIntoMap(envsFileName, envCredentialsFileName)
 
+	envsFromFile, err := readEnvs(envsFileName)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cannot parse environments. Error was: %s", err)
 	}
 
+	validEnvs := filterInvalidEnvs(envsFromFile)
+
+	envCredentials, err := readEnvCredentials(envCredentialsFileName)
+	if err != nil {
+		return fmt.Errorf("Cannot parse environments. Error was: %s", err)
+	}
+
+	removedEnvs := parseEnvsIntoMap(validEnvs, envCredentials)
 	configureFeeds(removedEnvs)
+
 	return nil
 }
 
 func updateValidationCredentials(validationCredsFileName string) error {
-	infoLogger.Print("Updating credentials")
+	infoLogger.Print("Updating validation credentials")
 	data, err := os.Open(validationCredsFileName)
 	if err != nil {
 		return err
@@ -169,13 +178,13 @@ func filterInvalidEnvs(envsFromFile []Environment) []Environment {
 	for _, env := range envsFromFile {
 		//envs without name are invalid
 		if env.Name == "" {
-			errorLogger.Printf("Env %v has an empty name.", env)
+			errorLogger.Printf("Env %v has an empty name, skipping it", env)
 			continue
 		}
 
 		//envs without read-url are invalid
 		if env.ReadUrl == "" {
-			errorLogger.Printf("Env with name %s does not have readUrl.", env.Name)
+			errorLogger.Printf("Env with name %s does not have readUrl, skipping it", env.Name)
 			continue
 		}
 
@@ -190,30 +199,18 @@ func filterInvalidEnvs(envsFromFile []Environment) []Environment {
 	return validEnvs
 }
 
-func parseEnvsIntoMap(envsFileName string, envCredentialsFileName string) ([]string, error) {
-	envsFromFile, err := readEnvs(envsFileName)
-	if err != nil {
-		return []string{}, fmt.Errorf("Cannot parse environments. Error was: %s", err)
-	}
-
-	validEnvs := filterInvalidEnvs(envsFromFile)
-
-	envCredentials, err := readEnvCredentials(envCredentialsFileName)
-	if err != nil {
-		return []string{}, fmt.Errorf("Cannot parse environments. Error was: %s", err)
-	}
-
+func parseEnvsIntoMap(envs []Environment, envCredentials []Credentials) []string {
 	//enhance envs with credentials
-	for i, env := range validEnvs {
+	for i, env := range envs {
 		for _, envCredentials := range envCredentials {
 			if env.Name == envCredentials.EnvName {
-				validEnvs[i].Username = envCredentials.Username
-				validEnvs[i].Password = envCredentials.Password
+				envs[i].Username = envCredentials.Username
+				envs[i].Password = envCredentials.Password
 				break
 			}
 		}
 
-		if validEnvs[i].Username == "" || validEnvs[i].Password == "" {
+		if envs[i].Username == "" || envs[i].Password == "" {
 			infoLogger.Printf("No credentials provided for env with name %s", env.Name)
 		}
 	}
@@ -221,21 +218,21 @@ func parseEnvsIntoMap(envsFileName string, envCredentialsFileName string) ([]str
 	//remove envs that don't exist anymore
 	removedEnvs := make([]string, 0)
 	for envName := range environments {
-		if !isEnvInSlice(envName, validEnvs) {
-			fmt.Printf("removing environment from monitoring: %v", envName)
+		if !isEnvInSlice(envName, envs) {
+			infoLogger.Printf("removing environment from monitoring: %v", envName)
 			delete(environments, envName)
 			removedEnvs = append(removedEnvs, envName)
 		}
 	}
 
 	//update envs
-	for _, env := range validEnvs {
+	for _, env := range envs {
 		envName := env.Name
 		environments[envName] = env
 		infoLogger.Printf("Added environment to monitoring: %s", envName)
 	}
 
-	return removedEnvs, nil
+	return removedEnvs
 }
 
 func readEnvs(fileName string) ([]Environment, error) {
