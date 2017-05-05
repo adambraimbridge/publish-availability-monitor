@@ -100,8 +100,8 @@ var infoLogger *log.Logger
 var warnLogger *log.Logger
 var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
-var envsFileName = flag.String("envs-file-name", "/etc/pam/envs/read-environments.json", "Path to json file that contains environmnets configuration")
-var envCredentialsFileName = flag.String("envs-credentials-file-name", "/etc/pam/credentials/read-environments-credentials.json", "Path to json file that contains environmnets credentials")
+var envsFileName = flag.String("envs-file-name", "/etc/pam/envs/read-environments.json", "Path to json file that contains environments configuration")
+var envCredentialsFileName = flag.String("envs-credentials-file-name", "/etc/pam/credentials/read-environments-credentials.json", "Path to json file that contains environments credentials")
 var validatorCredentialsFileName = flag.String("validator-credentials-file-name", "/etc/pam/credentials/validator-credentials.json", "Path to json file that contains validation endpoints configuration")
 var appConfig *AppConfig
 var environments = make(map[string]Environment)
@@ -120,6 +120,12 @@ func main() {
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
 		errorLogger.Printf("Cannot load configuration: [%v]", err)
+		return
+	}
+
+	err = updateEnvsAndValidationCredentials(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName)
+	if err != nil {
+		errorLogger.Printf("Cannot load envs or validation credentials, error was: [%v]", err)
 		return
 	}
 

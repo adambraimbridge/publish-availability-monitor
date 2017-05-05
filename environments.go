@@ -12,17 +12,8 @@ import (
 func watchConfigFiles(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string) {
 	var watcher *fsnotify.Watcher
 	var receivedRemoveEvent bool
+	var err error
 	for {
-		err := updateEnvs(envsFileName, envCredentialsFileName)
-		if err != nil {
-			errorLogger.Printf("Cannot update envs. Error was: %s", err)
-		}
-
-		err = updateValidationCredentials(validationCredentialsFileName)
-		if err != nil {
-			errorLogger.Printf("Cannot update envs. Error was: %s", err)
-		}
-
 		if watcher == nil {
 			infoLogger.Print("Creating new watcher.")
 			// Intialize the watcher if it has not been initialized yet.
@@ -58,8 +49,26 @@ func watchConfigFiles(envsFileName string, envCredentialsFileName string, valida
 			continue
 		}
 
-		infoLogger.Print("File has been changed.")
+		infoLogger.Print("Config files have been changed.")
+		err := updateEnvsAndValidationCredentials(envsFileName, envCredentialsFileName, validationCredentialsFileName)
+		if err != nil {
+			errorLogger.Printf("Cannot update configuration, error was: %s",err)
+		}
 	}
+}
+
+func updateEnvsAndValidationCredentials(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string) error {
+	err := updateEnvs(envsFileName, envCredentialsFileName)
+	if err != nil {
+		return fmt.Errorf("Cannot update envs. Error was: %s", err)
+	}
+
+	err = updateValidationCredentials(validationCredentialsFileName)
+	if err != nil {
+		fmt.Errorf("Cannot update envs. Error was: %s", err)
+	}
+
+	return nil
 }
 
 func monitorFilesForChanges(w *fsnotify.Watcher) (bool, error) {
