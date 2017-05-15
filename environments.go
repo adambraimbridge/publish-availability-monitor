@@ -10,9 +10,10 @@ import (
 )
 
 func watchConfigFiles(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string, configRefreshPeriod int) {
-	ticker := time.NewTicker(time.Minute * configRefreshPeriod)
+	ticker := time.NewTicker(time.Minute * time.Duration(configRefreshPeriod))
 
 	for range ticker.C {
+		//TODO: instead of reloading config every time, check if the files were changed (with the hashing function)
 		err := updateEnvsAndValidationCredentials(envsFileName, envCredentialsFileName, validationCredentialsFileName)
 		if err != nil {
 			errorLogger.Printf("Cannot update configuration, error was: %s", err)
