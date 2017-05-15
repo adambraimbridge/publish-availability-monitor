@@ -103,6 +103,7 @@ var configFileName = flag.String("config", "", "Path to configuration file")
 var envsFileName = flag.String("envs-file-name", "/etc/pam/envs/read-environments.json", "Path to json file that contains environments configuration")
 var envCredentialsFileName = flag.String("envs-credentials-file-name", "/etc/pam/credentials/read-environments-credentials.json", "Path to json file that contains environments credentials")
 var validatorCredentialsFileName = flag.String("validator-credentials-file-name", "/etc/pam/credentials/validator-credentials.json", "Path to json file that contains validation endpoints configuration")
+var configRefreshPeriod = flag.Int("config-refresh-period", 1, "Refresh period for configuration in minutes. By default it is 1 minute.")
 var appConfig *AppConfig
 var environments = make(map[string]Environment)
 var subscribedFeeds = make(map[string][]feeds.Feed)
@@ -129,7 +130,7 @@ func main() {
 		return
 	}
 
-	go watchConfigFiles(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName)
+	go watchConfigFiles(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName,*configRefreshPeriod)
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
 	go startHttpListener()
