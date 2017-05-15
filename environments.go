@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
-	"github.com/fsnotify/fsnotify"
 	"net/url"
 	"os"
 	"time"
@@ -33,31 +32,6 @@ func updateEnvsAndValidationCredentials(envsFileName string, envCredentialsFileN
 	}
 
 	return nil
-}
-
-func monitorFilesForChanges(w *fsnotify.Watcher) (bool, error) {
-	infoLogger.Print("Waiting for changes on file")
-	errRetry := 5
-	for {
-		select {
-		case e := <-w.Events:
-			switch e.Op {
-			case fsnotify.Write:
-				return false, nil
-			case fsnotify.Remove:
-				errorLogger.Printf("Received remove event: %v", e)
-				return true, nil
-			default:
-				errorLogger.Printf("Unexpected fsnotify event: %v, retrying...", e)
-			}
-		case err := <-w.Errors:
-			errorLogger.Printf("Fsnotify watch error: %v, %d error retries remaining", err, errRetry)
-			if errRetry == 0 {
-				return false, err
-			}
-			errRetry--
-		}
-	}
 }
 
 func updateEnvs(envsFileName string, envCredentialsFileName string) error {
