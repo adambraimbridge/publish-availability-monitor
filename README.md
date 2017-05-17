@@ -84,9 +84,7 @@ __Note that deployment to FTP2 is no longer supported.__
 ```
 
 # Environment Configuration
-The monitor can check publication across several different environments, provided each environment can be accessed by a single host URL. 
-Environments configuration is stored in a Kubernetes ConfigMap, and credentials are stored in Kubernetes Secrets. These ConfigMaps and Secrets are mounted as volumes inside the container. 
-Publish availability monitor is watching for changes in these mounted volumes and automatically updates its configuration when the environment ConfigMap or credentials Secrets are updated.
+The app checks environments configuration as well as validation credentials every minute (configurable) and it reloads them if changes are detected.
 
 ## JSON example for environments configuration:
  <pre>
