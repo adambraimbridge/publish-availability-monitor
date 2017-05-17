@@ -7,24 +7,35 @@ import (
 	"net/url"
 	"os"
 	"time"
+	"crypto/md5"
+	"io"
 )
 
 func watchConfigFiles(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string, configRefreshPeriod int) {
 	ticker := time.NewTicker(time.Minute * time.Duration(configRefreshPeriod))
 
 	for range ticker.C {
-		//TODO: instead of reloading config every time, check if the files were changed (with the hashing function)
-		err := updateEnvsAndValidationCredentials(envsFileName, envCredentialsFileName, validationCredentialsFileName)
+		err := updateEnvsIfChanged(envsFileName, envCredentialsFileName)
 		if err != nil {
-			errorLogger.Printf("Cannot update configuration, error was: %s", err)
+			errorLogger.Printf("Cannot update envs config, error was: %s", err)
+		}
+
+		err = updateValidationCredentialsIfChanged(validationCredentialsFileName)
+		if err != nil {
+			errorLogger.Printf("Cannot update validation credentials config, error was: %s", err)
 		}
 	}
 }
 
-func updateEnvsAndValidationCredentials(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string) error {
-	err := updateEnvs(envsFileName, envCredentialsFileName)
-	if err != nil {
-		return fmt.Errorf("Cannot update envs. Error was: %s", err)
+func updateValidationCredentialsIfChanged(validationCredentialsFileName string) error {
+	var validationCredentialsChanged bool
+	var err error
+	if validationCredentialsChanged, err = isFileChanged(validationCredentialsFileName); err != nil {
+		return fmt.Errorf("Could not detect if envs file [%s] was changed. Problem was: %s", validationCredentialsFileName, err)
+	}
+
+	if !validationCredentialsChanged {
+		return nil
 	}
 
 	err = updateValidationCredentials(validationCredentialsFileName)
@@ -33,6 +44,83 @@ func updateEnvsAndValidationCredentials(envsFileName string, envCredentialsFileN
 	}
 
 	return nil
+}
+
+func updateEnvsIfChanged(envsFileName string, envCredentialsFileName string) error {
+	var envsFileChanged, envCredentialsChanged bool
+	var err error
+	if envsFileChanged, err = isFileChanged(envsFileName); err != nil {
+		return fmt.Errorf("Could not detect if envs file [%s] was changed. Problem was: %s", envsFileName, err)
+	}
+
+	if envCredentialsChanged, err = isFileChanged(envCredentialsFileName); err != nil {
+		return fmt.Errorf("Could not detect if credentials file [%s] was changed. Problem was: %s", envCredentialsFileName, err)
+	}
+
+	if !envsFileChanged && !envCredentialsChanged {
+		return nil
+	}
+
+	err = updateEnvs(envsFileName, envCredentialsFileName)
+	if err != nil {
+		return fmt.Errorf("Cannot update envs. Error was: %s", err)
+	}
+
+	return nil
+}
+
+func isFileChanged(fileName string) (bool, error) {
+	currentHashing, err := computeMD5Hash(fileName)
+	if err != nil {
+		return false, fmt.Errorf("Could not compute hashing for file %s. Problem was: %s", fileName, err)
+	}
+
+	var previousHashing []byte
+	var found bool
+	if previousHashing, found = configFilesHashingValues[fileName]; !found {
+		return true, nil
+	}
+
+	return !areEqual(previousHashing, currentHashing), nil
+}
+
+func areEqual(a, b []byte) bool {
+
+	if a == nil && b == nil {
+		return true;
+	}
+
+	if a == nil || b == nil {
+		return false;
+	}
+
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func computeMD5Hash(fileName string) ([]byte, error) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return []byte{}, fmt.Errorf("Could not open file with name %s. Problem was: %s", fileName, err)
+	}
+
+	defer file.Close()
+
+	hash := md5.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return []byte{}, fmt.Errorf("Could not copy file with name %s to compute hashing. Problem was: %s", fileName, err)
+	}
+
+	return hash.Sum(nil)[:16], nil
 }
 
 func updateEnvs(envsFileName string, envCredentialsFileName string) error {

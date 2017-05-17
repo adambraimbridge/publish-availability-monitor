@@ -37,7 +37,7 @@ type PublishMetric struct {
 	publishOK       bool      //did it meet the SLA?
 	publishDate     time.Time //the time WE get the message
 	platform        string
-	publishInterval Interval //the interval it was actually published in, ex. (10,20)
+	publishInterval Interval  //the interval it was actually published in, ex. (10,20)
 	config          MetricConfig
 	endpoint        url.URL
 	tid             string
@@ -46,7 +46,7 @@ type PublishMetric struct {
 
 // MetricConfig is the configuration of a PublishMetric
 type MetricConfig struct {
-	Granularity  int      `json:"granularity"` //how we split up the threshold, ex. 120/12
+	Granularity  int      `json:"granularity"`  //how we split up the threshold, ex. 120/12
 	Endpoint     string   `json:"endpoint"`
 	ContentTypes []string `json:"contentTypes"` //list of valid eom types for this metric
 	Alias        string   `json:"alias"`
@@ -60,7 +60,7 @@ type SplunkConfig struct {
 
 // AppConfig holds the application's configuration
 type AppConfig struct {
-	Threshold           int                  `json:"threshold"` //pub SLA in seconds, ex. 120
+	Threshold           int                  `json:"threshold"`           //pub SLA in seconds, ex. 120
 	QueueConf           consumer.QueueConfig `json:"queueConfig"`
 	MetricConf          []MetricConfig       `json:"metricConfig"`
 	SplunkConf          SplunkConfig         `json:"splunk-config"`
@@ -110,7 +110,7 @@ var subscribedFeeds = make(map[string][]feeds.Feed)
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 var validatorCredentials Credentials
-
+var configFilesHashingValues = make(map[string][]byte)
 var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[a-zA-Z0-9]+)_carousel_[\d]{10}.*$`)
 
 func main() {
@@ -124,13 +124,19 @@ func main() {
 		return
 	}
 
-	err = updateEnvsAndValidationCredentials(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName)
+	err = updateEnvsIfChanged(*envsFileName, *envCredentialsFileName)
 	if err != nil {
-		errorLogger.Printf("Cannot load envs or validation credentials, error was: [%v]", err)
+		errorLogger.Printf("Cannot load envs config, error was: [%v]", err)
 		return
 	}
 
-	go watchConfigFiles(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName,*configRefreshPeriod)
+	err = updateValidationCredentialsIfChanged(*validatorCredentialsFileName)
+	if err != nil {
+		errorLogger.Printf("Cannot load validation credentials, error was: [%v]", err)
+		return
+	}
+
+	go watchConfigFiles(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName, *configRefreshPeriod)
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
 	go startHttpListener()
@@ -203,7 +209,7 @@ func startAggregator() {
 func loadHistory(w http.ResponseWriter, r *http.Request) {
 	metricContainer.RLock()
 	for i := len(metricContainer.publishMetrics) - 1; i >= 0; i-- {
-		fmt.Fprintf(w, "%d. %v\n\n", len(metricContainer.publishMetrics)-i, metricContainer.publishMetrics[i])
+		fmt.Fprintf(w, "%d. %v\n\n", len(metricContainer.publishMetrics) - i, metricContainer.publishMetrics[i])
 	}
 	metricContainer.RUnlock()
 }
