@@ -6,6 +6,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/Financial-Times/uuid-utils-go"
 )
 
 func mainPreChecks() []func(publishedContent content.Content, tid string, publishDate time.Time) (bool, *schedulerParam) {
@@ -126,14 +127,15 @@ func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
 	imageSetEomFile := imageEomFile
 	imageSetEomFile.Type = "ImageSet"
 
-	imageUUID, err := content.NewUUIDFromString(imageEomFile.UUID)
+	imageUUID, err := uuidutils.NewUUIDFromString(imageEomFile.UUID)
 	if err != nil {
 		log.Warnf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
 			imageEomFile.UUID, err.Error())
 		return content.EomFile{}
 	}
 
-	imageSetUUID, err := content.GenerateImageSetUUID(*imageUUID)
+	uuidDeriver := uuidutils.NewUUIDDeriverWith(uuidutils.IMAGE_SET)
+	imageSetUUID, err := uuidDeriver.From(imageUUID)
 	if err != nil {
 		log.Warnf("Cannot generate image set UUID: [%v], skipping image set check",
 			err.Error())

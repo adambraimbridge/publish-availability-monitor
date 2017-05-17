@@ -39,6 +39,14 @@
 			"versionExact": "0.1.0"
 		},
 		{
+			"checksumSHA1": "OctXH9nxfVzFlVWD7h4K5e+x5/M=",
+			"path": "github.com/Financial-Times/uuid-utils-go",
+			"revision": "e22658edd0f130936e99079bf844bde7087c914c",
+			"revisionTime": "2017-05-16T11:04:27Z",
+			"version": "1.0.1",
+			"versionExact": "1.0.1"
+		},
+		{
 			"checksumSHA1": "YD7op+BalfdUK0lb28y6Yex6cBM=",
 			"path": "github.com/Sirupsen/logrus",
 			"revision": "c078b1e43f58d563c74cebe63c85789e76ddb627",

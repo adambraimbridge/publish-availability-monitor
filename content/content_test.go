@@ -5,6 +5,7 @@ import (
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/stretchr/testify/assert"
+	"github.com/Financial-Times/uuid-utils-go"
 )
 
 func TestUnmarshalContent_ValidMessageMethodeSystemHeader_NoError(t *testing.T) {
@@ -153,13 +154,13 @@ func TestUnmarshalContent_VideoBinaryContentSet(t *testing.T) {
 }
 
 func TestIsUUIDValid_UUIDValid(t *testing.T) {
-	if !isUUIDValid(validUUID) {
+	if uuidutils.ValidateUUID(validUUID) != nil {
 		t.Error("Valid UUID marked as invalid!")
 	}
 }
 
 func TestIsUUIDValid_UUIDInvalid(t *testing.T) {
-	if isUUIDValid(invalidUUID) {
+	if uuidutils.ValidateUUID(invalidUUID) == nil {
 		t.Error("Invalid UUID marked as valid!")
 	}
 }
