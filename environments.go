@@ -17,12 +17,12 @@ func watchConfigFiles(envsFileName string, envCredentialsFileName string, valida
 	for range ticker.C {
 		err := updateEnvsIfChanged(envsFileName, envCredentialsFileName)
 		if err != nil {
-			errorLogger.Printf("Cannot update envs config, error was: %s", err)
+			errorLogger.Printf("Could not update envs config, error was: %s", err)
 		}
 
 		err = updateValidationCredentialsIfChanged(validationCredentialsFileName)
 		if err != nil {
-			errorLogger.Printf("Cannot update validation credentials config, error was: %s", err)
+			errorLogger.Printf("Could not update validation credentials config, error was: %s", err)
 		}
 	}
 }
@@ -145,18 +145,22 @@ func updateEnvs(envsFileName string, envCredentialsFileName string) error {
 }
 
 func closeFileAndUpdateHashing(file *os.File) {
+	if file == nil {
+		return
+	}
+
 	fileName := file.Name()
 	file.Close()
 	hashing, err := computeMD5Hash(fileName)
 
 	if err != nil {
-		//todo: handle this case
+		warnLogger.Printf("Could not compute MD5 hashing for file %s. Problem was: %s", fileName, err)
 	}
 	configFilesHashingValues[fileName] = hashing
 }
 
 func updateValidationCredentials(validationCredsFileName string) error {
-	infoLogger.Print("Updating validation credentials")
+	infoLogger.Print("Credentials file changed. Updating validation credentials")
 	credsFile, err := os.Open(validationCredsFileName)
 	defer closeFileAndUpdateHashing(credsFile)
 	if err != nil {
