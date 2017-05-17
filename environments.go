@@ -124,8 +124,7 @@ func computeMD5Hash(fileName string) ([]byte, error) {
 }
 
 func updateEnvs(envsFileName string, envCredentialsFileName string) error {
-	//todo: remove this log
-	infoLogger.Print("Updating envs")
+	infoLogger.Print("Env config files changed. Updating envs")
 
 	envsFromFile, err := readEnvs(envsFileName)
 	if err != nil {
@@ -145,15 +144,26 @@ func updateEnvs(envsFileName string, envCredentialsFileName string) error {
 	return nil
 }
 
+func closeFileAndUpdateHashing(file *os.File) {
+	fileName := file.Name()
+	file.Close()
+	hashing, err := computeMD5Hash(fileName)
+
+	if err != nil {
+		//todo: handle this case
+	}
+	configFilesHashingValues[fileName] = hashing
+}
+
 func updateValidationCredentials(validationCredsFileName string) error {
-	//todo: remove this log
 	infoLogger.Print("Updating validation credentials")
-	data, err := os.Open(validationCredsFileName)
+	credsFile, err := os.Open(validationCredsFileName)
+	defer closeFileAndUpdateHashing(credsFile)
 	if err != nil {
 		return err
 	}
 
-	jsonParser := json.NewDecoder(data)
+	jsonParser := json.NewDecoder(credsFile)
 	credentials := Credentials{}
 	err = jsonParser.Decode(&credentials)
 	if err != nil {
@@ -274,24 +284,26 @@ func parseEnvsIntoMap(envs []Environment, envCredentials []Credentials) []string
 }
 
 func readEnvs(fileName string) ([]Environment, error) {
-	data, err := os.Open(fileName)
+	envsFile, err := os.Open(fileName)
+	defer closeFileAndUpdateHashing(envsFile)
 	if err != nil {
 		return []Environment{}, err
 	}
 
-	jsonParser := json.NewDecoder(data)
+	jsonParser := json.NewDecoder(envsFile)
 	envs := []Environment{}
 	err = jsonParser.Decode(&envs)
 	return envs, err
 }
 
 func readEnvCredentials(fileName string) ([]Credentials, error) {
-	data, err := os.Open(fileName)
+	envCredsFile, err := os.Open(fileName)
+	defer closeFileAndUpdateHashing(envCredsFile)
 	if err != nil {
 		return []Credentials{}, err
 	}
 
-	jsonParser := json.NewDecoder(data)
+	jsonParser := json.NewDecoder(envCredsFile)
 	credentials := []Credentials{}
 	err = jsonParser.Decode(&credentials)
 
