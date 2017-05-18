@@ -110,7 +110,7 @@ var subscribedFeeds = make(map[string][]feeds.Feed)
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 var validatorCredentials Credentials
-var configFilesHashingValues = make(map[string][]byte)
+var configFilesHashValues = make(map[string]string)
 var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[a-zA-Z0-9]+)_carousel_[\d]{10}.*$`)
 
 func main() {
@@ -120,20 +120,17 @@ func main() {
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
-		errorLogger.Printf("Cannot load configuration: [%v]", err)
-		return
+		panic(fmt.Sprintf("Cannot load configuration: [%v]", err))
 	}
 
 	err = updateEnvsIfChanged(*envsFileName, *envCredentialsFileName)
 	if err != nil {
-		errorLogger.Printf("Cannot load envs config, error was: [%v]", err)
-		return
+		panic(fmt.Sprintf("Cannot load envs config, error was: [%v]", err))
 	}
 
 	err = updateValidationCredentialsIfChanged(*validatorCredentialsFileName)
 	if err != nil {
-		errorLogger.Printf("Cannot load validation credentials, error was: [%v]", err)
-		return
+		panic(fmt.Sprintf("Cannot load validation credentials, error was: [%v]", err))
 	}
 
 	go watchConfigFiles(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName, *configRefreshPeriod)

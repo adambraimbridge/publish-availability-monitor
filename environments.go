@@ -1,14 +1,15 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	"io"
 	"net/url"
 	"os"
 	"time"
-	"crypto/md5"
-	"io"
 )
 
 func watchConfigFiles(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string, configRefreshPeriod int) {
@@ -70,57 +71,35 @@ func updateEnvsIfChanged(envsFileName string, envCredentialsFileName string) err
 }
 
 func isFileChanged(fileName string) (bool, error) {
-	currentHashing, err := computeMD5Hash(fileName)
+	currentHash, err := computeMD5Hash(fileName)
 	if err != nil {
-		return false, fmt.Errorf("Could not compute hashing for file %s. Problem was: %s", fileName, err)
+		return false, fmt.Errorf("Could not compute hash value for file %s. Problem was: %s", fileName, err)
 	}
 
-	var previousHashing []byte
+	var previousHash string
 	var found bool
-	if previousHashing, found = configFilesHashingValues[fileName]; !found {
+	if previousHash, found = configFilesHashValues[fileName]; !found {
 		return true, nil
 	}
 
-	return !areEqual(previousHashing, currentHashing), nil
+	return previousHash != currentHash, nil
 }
 
-func areEqual(a, b []byte) bool {
-
-	if a == nil && b == nil {
-		return true;
-	}
-
-	if a == nil || b == nil {
-		return false;
-	}
-
-	if len(a) != len(b) {
-		return false
-	}
-
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-
-	return true
-}
-
-func computeMD5Hash(fileName string) ([]byte, error) {
+func computeMD5Hash(fileName string) (string, error) {
 	file, err := os.Open(fileName)
 	if err != nil {
-		return []byte{}, fmt.Errorf("Could not open file with name %s. Problem was: %s", fileName, err)
+		return "", fmt.Errorf("Could not open file with name %s. Problem was: %s", fileName, err)
 	}
 
 	defer file.Close()
 
 	hash := md5.New()
 	if _, err := io.Copy(hash, file); err != nil {
-		return []byte{}, fmt.Errorf("Could not copy file with name %s to compute hashing. Problem was: %s", fileName, err)
+		return "", fmt.Errorf("Could not copy file with name %s to compute hash value. Problem was: %s", fileName, err)
 	}
 
-	return hash.Sum(nil)[:16], nil
+	hashValue := hash.Sum(nil)[:16]
+	return hex.EncodeToString(hashValue),nil
 }
 
 func updateEnvs(envsFileName string, envCredentialsFileName string) error {
@@ -144,25 +123,25 @@ func updateEnvs(envsFileName string, envCredentialsFileName string) error {
 	return nil
 }
 
-func closeFileAndUpdateHashing(file *os.File) {
+func closeFileAndUpdateHashValue(file *os.File) {
 	if file == nil {
 		return
 	}
 
 	fileName := file.Name()
 	file.Close()
-	hashing, err := computeMD5Hash(fileName)
+	hashValue, err := computeMD5Hash(fileName)
 
 	if err != nil {
-		warnLogger.Printf("Could not compute MD5 hashing for file %s. Problem was: %s", fileName, err)
+		warnLogger.Printf("Could not compute MD5 hash value for file %s. Problem was: %s", fileName, err)
 	}
-	configFilesHashingValues[fileName] = hashing
+	configFilesHashValues[fileName] = hashValue
 }
 
 func updateValidationCredentials(validationCredsFileName string) error {
 	infoLogger.Print("Credentials file changed. Updating validation credentials")
 	credsFile, err := os.Open(validationCredsFileName)
-	defer closeFileAndUpdateHashing(credsFile)
+	defer closeFileAndUpdateHashValue(credsFile)
 	if err != nil {
 		return err
 	}
@@ -289,7 +268,7 @@ func parseEnvsIntoMap(envs []Environment, envCredentials []Credentials) []string
 
 func readEnvs(fileName string) ([]Environment, error) {
 	envsFile, err := os.Open(fileName)
-	defer closeFileAndUpdateHashing(envsFile)
+	defer closeFileAndUpdateHashValue(envsFile)
 	if err != nil {
 		return []Environment{}, err
 	}
@@ -302,7 +281,7 @@ func readEnvs(fileName string) ([]Environment, error) {
 
 func readEnvCredentials(fileName string) ([]Credentials, error) {
 	envCredsFile, err := os.Open(fileName)
-	defer closeFileAndUpdateHashing(envCredsFile)
+	defer closeFileAndUpdateHashValue(envCredsFile)
 	if err != nil {
 		return []Credentials{}, err
 	}
