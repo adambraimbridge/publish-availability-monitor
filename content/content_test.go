@@ -55,14 +55,21 @@ func TestUnmarshalContent_ValidWordPressMessageWithTypeField_TypeIsCorrectlyUnma
 }
 
 func TestUnmarshalContent_ValidVideoMessage(t *testing.T) {
-	content, err := UnmarshalContent(validVideoMsg)
-	if err != nil {
-		t.Errorf("Expected success, but error occured [%v]", err)
-		return
+	testCases := []struct {
+		videoMessage consumer.Message
+	}{
+		{validVideoMsg},
+		{validVideoMsg2},
 	}
-	valRes := content.Validate("", "", "", "")
-	if valRes.IsMarkedDeleted {
-		t.Errorf("Expected published content.")
+
+	for _, testCase := range testCases {
+		content, err := UnmarshalContent(testCase.videoMessage)
+		if err != nil {
+			t.Errorf("Expected success, but error occured [%v]", err)
+			return
+		}
+		valRes := content.Validate("", "", "", "")
+		assert.False(t, valRes.IsMarkedDeleted, "Expected published content.")
 	}
 }
 
@@ -73,9 +80,7 @@ func TestUnmarshalContent_ValidDeletedVideoMessage(t *testing.T) {
 		return
 	}
 	valRes := content.Validate("", "", "", "")
-	if !valRes.IsMarkedDeleted {
-		t.Errorf("Expected deleted content.")
-	}
+	assert.True(t, valRes.IsMarkedDeleted, "Expected deleted content.")
 }
 
 func TestUnmarshalContent_InvalidVideoMessage(t *testing.T) {
@@ -85,9 +90,7 @@ func TestUnmarshalContent_InvalidVideoMessage(t *testing.T) {
 		return
 	}
 	valRes := content.Validate("", "", "", "")
-	if valRes.IsValid {
-		t.Errorf("Expected invalid content.")
-	}
+	assert.False(t, valRes.IsValid, "Expected invalid content.")
 }
 
 func TestUnmarshalContent_ContentIsMethodeList_LinkedObjectsFieldIsMarshalled(t *testing.T) {
@@ -226,33 +229,36 @@ var invalidMessageWrongSystemID = consumer.Message{
 
 var validVideoMsg = consumer.Message{
 	Headers: map[string]string{
-		"Origin-System-Id": "http://cmdb.ft.com/systems/brightcove",
+		"Origin-System-Id": "http://cmdb.ft.com/systems/next-video-editor",
 	},
 	Body: `{
-		"uuid": "e28b12f7-9796-3331-b030-05082f0b8157",
-		"id": "4966650664001",
-		"name": "the-dark-knight.mp4",
-		"published_at": "2016-06-01T21:40:19.120Z",
-		"updated_at": "2016-06-01T21:40:19.120Z",
-		"something_else": "something else"
+		"id": "e28b12f7-9796-3331-b030-05082f0b8157"
+	}`,
+}
+
+var validVideoMsg2 = consumer.Message{
+	Headers: map[string]string{
+		"Origin-System-Id": "http://cmdb.ft.com/systems/next-video-editor",
+	},
+	Body: `{
+		"id": "e28b12f7-9796-3331-b030-05082f0b8157",
+		"deleted": false
 	}`,
 }
 
 var validDeleteVideoMsg = consumer.Message{
 	Headers: map[string]string{
-		"Origin-System-Id": "http://cmdb.ft.com/systems/brightcove",
+		"Origin-System-Id": "http://cmdb.ft.com/systems/next-video-editor",
 	},
 	Body: `{
-		"uuid": "e28b12f7-9796-3331-b030-05082f0b8157",
-		"id": "4966650664001",
-		"name": "the-dark-knight.mp4",
-		"something_else": "something else"
+		"id": "e28b12f7-9796-3331-b030-05082f0b8157",
+		"deleted": true
 	}`,
 }
 
 var invalidVideoMsg = consumer.Message{
 	Headers: map[string]string{
-		"Origin-System-Id": "http://cmdb.ft.com/systems/brightcove",
+		"Origin-System-Id": "http://cmdb.ft.com/systems/next-video-editor",
 	},
 	Body: `{
 		"uuid": "e28b12f7-9796-3331-b030-05082f0b8157",
