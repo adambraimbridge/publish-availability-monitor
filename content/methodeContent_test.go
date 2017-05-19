@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const validUUID = "e28b12f7-9796-3331-b030-05082f0b8157"
+
 func TestInitTypeForContentPlaceholders(t *testing.T) {
 	var file = EomFile{
 		UUID:             validUUID,

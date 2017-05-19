@@ -9,6 +9,8 @@ import (
 	"github.com/Financial-Times/uuid-utils-go"
 )
 
+var uuidDeriver = uuidutils.NewUUIDDeriverWith(uuidutils.IMAGE_SET)
+
 func mainPreChecks() []func(publishedContent content.Content, tid string, publishDate time.Time) (bool, *schedulerParam) {
 	return []func(publishedContent content.Content, tid string, publishDate time.Time) (bool, *schedulerParam){
 		mainPreCheck,
@@ -134,7 +136,6 @@ func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
 		return content.EomFile{}
 	}
 
-	uuidDeriver := uuidutils.NewUUIDDeriverWith(uuidutils.IMAGE_SET)
 	imageSetUUID, err := uuidDeriver.From(imageUUID)
 	if err != nil {
 		log.Warnf("Cannot generate image set UUID: [%v], skipping image set check",
