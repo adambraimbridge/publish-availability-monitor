@@ -4,7 +4,7 @@ image:
   repository: coco/publish-availability-monitor
   version: v0.24.17-k8s-version-rc12
   pullPolicy: Always
-env:
+envs:
   kafka_topic: "PreNativeCmsPublicationEvents"
   content_url: "/__document-store-api/content/"
   internal_components_url: "/__document-store-api/internalcomponents/"
