@@ -37,33 +37,33 @@ spec:
               name: global-config
               key: kafka.proxy.url.with.protocol
         - name: CONTENT_URL
-          value: "{{ .Values.envs.content-url }}"
+          value: "{{ .Values.envs.content_url }}"
         - name: INTERNAL_COMPWONENTS_URL
-          value: "{{ .Values.envs.internal-components-url }}"
+          value: "{{ .Values.envs.internal_components_url }}"
         - name: LISTS_URL
-          value: "{{ .Values.envs.lists-url }}"
+          value: "{{ .Values.envs.lists_url }}"
         - name: NOTIFICATIONS_URL
-          value: "{{ .Values.envs.notifications-url }}"
+          value: "{{ .Values.envs.notifications_url }}"
         - name: NOTIFICATIONS_PUSH_URL
-          value: "{{ .Values.envs.notifications-push-url }}"
+          value: "{{ .Values.envs.notifications_push_url }}"
         - name: LISTS_NOTIFICATIONS_URL
-          value: "{{ .Values.envs.lists-notifications-url }}"
+          value: "{{ .Values.envs.lists_notifications_url }}"
         - name: LISTS_NOTIFICATIONS_PUSH_URL
-          value: "{{ .Values.envs.lists-notifications-push-url }}"
+          value: "{{ .Values.envs.lists_notifications_push_url }}"
         - name: METHODE_ARTICLE_VALIDATION_URL
-          value: "{{ .Values.envs.methode-article-validation-url }}"
+          value: "{{ .Values.envs.methode_article_validation_url }}"
         - name: METHODE_CONTENT_PLACEHOLDER_MAPPER_URL
-          value: "{{ .Values.envs.methode-content-placeholder-mapper-url }}"
+          value: "{{ .Values.envs.methode_content_placeholder_mapper_url }}"
         - name: METHODE_IMAGE_MODEL_MAPPER_URL
-          value: "{{ .Values.envs.methode-image-model-mapper-url }}"
+          value: "{{ .Values.envs.methode_image_model_mapper_url }}"
         - name: METHODE_LIST_VALIDATION_URL
-          value: "{{ .Values.envs.methode-list-validation-url }}"
+          value: "{{ .Values.envs.methode_list_validation_url }}"
         - name: METHODE_ARTICLE_INTERNAL_COMPONENTS_MAPPER_URL
-          value: "{{ .Values.envs.methode-article-internal-components-mapper-url }}"
+          value: "{{ .Values.envs.methode_article_internal_components_mapper_url }}"
         - name: VIDEO_MAPPER_URL
-          value: "{{ .Values.envs.video-mapper-url }}"
+          value: "{{ .Values.envs.video_mapper_url }}"
         - name: WORDPRESS_MAPPER_URL
-          value: "{{ .Values.envs.wordpress-mapper-url }}"
+          value: "{{ .Values.envs.wordpress_mapper_url }}"
         ports:
         - containerPort: 8080
         livenessProbe:
@@ -78,21 +78,21 @@ spec:
           periodSeconds: 30
         volumeMounts:
         - name: read-envs-config
-          mountPath: {{ .Values.volumes.read-envs-config-mount-path }}
+          mountPath: {{ .Values.volumes.read_envs_config_mount_path }}
         - name: pam-secrets
-          mountPath: {{ .Values.volumes.secrets-mount-path }}
+          mountPath: {{ .Values.volumes.secrets_mount_path }}
       volumes:
       - name: pam-secrets
         secret:
           secretName: publish-availability-monitor-secrets
           items:
           - key: read-credentials
-            path: {{ .Values.volumes.read-env-creentials-file-name }}
+            path: {{ .Values.volumes.read_env_credentials_file_name }}
           - key: validator-credentials
-            path: {{ .Values.volumes.validation-credentials-file-name }}
+            path: {{ .Values.volumes.validation_credentials_file_name }}
       - name: read-envs-config
         configMap:
           name: monitoring-configs
           items:
           - key: environments
-            path: {{ .Values.volumes.read-envs-config-file-name }}
+            path: {{ .Values.volumes.read_envs_config_file_name }}
