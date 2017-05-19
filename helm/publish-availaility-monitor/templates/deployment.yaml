@@ -1,0 +1,98 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+  name: {{ .Values.service.name }}
+  labels:
+    app: {{ .Values.service.name }}
+    visualize: "true"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.service.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.service.name }}
+        visualize: "true"
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.version }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+        env:
+        - name: KAFKA_TOPIC
+          value: "{{ .Values.envs.kafka-topic }}"
+        - name: KAFKA_PROXY_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: global-config
+              key: kafka.proxy.url
+        - name: QUEUE_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: global-config
+              key: kafka.proxy.url.with.protocol
+        - name: CONTENT_URL
+          value: "{{ .Values.envs.content-url }}"
+        - name: INTERNAL_COMPWONENTS_URL
+          value: "{{ .Values.envs.internal-components-url }}"
+        - name: LISTS_URL
+          value: "{{ .Values.envs.lists-url }}"
+        - name: NOTIFICATIONS_URL
+          value: "{{ .Values.envs.notifications-url }}"
+        - name: NOTIFICATIONS_PUSH_URL
+          value: "{{ .Values.envs.notifications-push-url }}"
+        - name: LISTS_NOTIFICATIONS_URL
+          value: "{{ .Values.envs.lists-notifications-url }}"
+        - name: LISTS_NOTIFICATIONS_PUSH_URL
+          value: "{{ .Values.envs.lists-notifications-push-url }}"
+        - name: METHODE_ARTICLE_VALIDATION_URL
+          value: "{{ .Values.envs.methode-article-validation-url }}"
+        - name: METHODE_CONTENT_PLACEHOLDER_MAPPER_URL
+          value: "{{ .Values.envs.methode-content-placeholder-mapper-url }}"
+        - name: METHODE_IMAGE_MODEL_MAPPER_URL
+          value: "{{ .Values.envs.methode-image-model-mapper-url }}"
+        - name: METHODE_LIST_VALIDATION_URL
+          value: "{{ .Values.envs.methode-list-validation-url }}"
+        - name: METHODE_ARTICLE_INTERNAL_COMPONENTS_MAPPER_URL
+          value: "{{ .Values.envs.methode-article-internal-components-mapper-url }}"
+        - name: VIDEO_MAPPER_URL
+          value: "{{ .Values.envs.video-mapper-url }}"
+        - name: WORDPRESS_MAPPER_URL
+          value: "{{ .Values.envs.wordpress-mapper-url }}"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /__gtg
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        volumeMounts:
+        - name: read-envs-config
+          mountPath: {{ .Values.volumes.read-envs-config-mount-path }}
+        - name: pam-secrets
+          mountPath: {{ .Values.volumes.secrets-mount-path }}
+      volumes:
+      - name: pam-secrets
+        secret:
+          secretName: publish-availability-monitor-secrets
+          items:
+          - key: read-credentials
+            path: {{ .Values.volumes.read-env-creentials-file-name }}
+          - key: validator-credentials
+            path: {{ .Values.volumes.validation-credentials-file-name }}
+      - name: read-envs-config
+        configMap:
+          name: monitoring-configs
+          items:
+          - key: environments
+            path: {{ .Values.volumes.read-envs-config-file-name }}
