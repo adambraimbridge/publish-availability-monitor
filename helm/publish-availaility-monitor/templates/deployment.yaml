@@ -25,7 +25,7 @@ spec:
 {{ toYaml .Values.resources | indent 12 }}
         env:
         - name: KAFKA_TOPIC
-          value: "{{ .Values.envs.kafka-topic }}"
+          value: "{{ .Values.envs.kafka_topic }}"
         - name: KAFKA_PROXY_HOST
           valueFrom:
             configMapKeyRef:
