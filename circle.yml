@@ -14,8 +14,6 @@ checkout:
 
 dependencies:
   pre:
-    - sudo apt-get update; sudo apt-get install bzr
-    - go get github.com/axw/gocov/gocov; go get github.com/matm/gocov-html
     - go get -u github.com/kardianos/govendor
   override:
     - cd $PROJECT_PATH && govendor sync
