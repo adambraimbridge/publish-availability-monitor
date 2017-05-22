@@ -29,6 +29,6 @@ volumes:
 service:
   name: publish-availability-monitor
   hasHealthcheck: "true"
-resources:
-  limits:
-    memory: 512Mi
+#resources:
+#  limits:
+#    memory: 512Mi
