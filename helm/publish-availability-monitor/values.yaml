@@ -1,0 +1,34 @@
+# Default values for Publish Availability Monitor.
+service:
+  name: "" # The name of the service, should be defined in the specific app-configs folder.
+  hasHealthcheck: "true"
+replicaCount: 1
+image:
+  repository: coco/publish-availability-monitor
+  version: "" # should be set explicitly at installation
+  pullPolicy: Always
+envs:
+  kafka_topic: ""
+  content_url: ""
+  internal_components_url: ""
+  lists_url: ""
+  notifications_url: ""
+  notifications_push_url: ""
+  lists_notifications_url: ""
+  lists_notifications_push_url: ""
+  methode_article_validation_url: ""
+  methode_content_placeholder_mapper_url: ""
+  methode_image_model_mapper_url: ""
+  methode_list_validation_url: ""
+  methode_article_internal_components_mapper_url: ""
+  video_mapper_url: ""
+  wordpress_mapper_url: ""
+volumes:
+  read_envs_config_mount_path: "/etc/pam/envs"
+  secrets_mount_path: "/etc/pam/credentials"
+  read_env_credentials_file_name: "read-environments-credentials.json"
+  validation_credentials_file_name: "validator-credentials.json"
+  read_envs_config_file_name: "read-environments.json"
+resources:
+  limits:
+    memory: 512Mi

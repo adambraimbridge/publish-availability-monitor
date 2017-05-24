@@ -3,7 +3,7 @@
 *.log
 *.html
 *coverage.*
-publish-availability-monitor
+/publish-availability-monitor
 .idea/
 /.project
 /config.json
