@@ -3,7 +3,6 @@
 import com.ft.up.BuildConfig
 
 BuildConfig config = new BuildConfig()
-config.appDockerImageId = "coco/publish-availability-monitor"
-config.useInternalDockerReg = false
+config.deployToClusters = ['publishing']
 
 entryPointForReleaseAndDev(config)

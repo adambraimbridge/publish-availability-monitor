@@ -1,4 +1,0 @@
-apiVersion: v1
-Description: Publish Availability Monitor chart for Kubernetes
-Name: publish-availability-monitor
-Version: 0.1.0

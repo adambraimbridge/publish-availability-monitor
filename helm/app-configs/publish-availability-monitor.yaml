@@ -1,9 +1,7 @@
-# Default values for Publish Availability Monitor.
+# Values used for the deployed application.
 replicaCount: 1
-image:
-  repository: coco/publish-availability-monitor
-  version: v0.24.17-k8s-version-rc12
-  pullPolicy: Always
+service:
+  name: publish-availability-monitor
 envs:
   kafka_topic: "PreNativeCmsPublicationEvents"
   content_url: "/__document-store-api/content/"
@@ -20,15 +18,3 @@ envs:
   methode_article_internal_components_mapper_url: "https://k8s-delivery-upp-eu.ft.com/__methode-article-internal-components-mapper/map"
   video_mapper_url: "https://k8s-delivery-upp-eu.ft.com/__video-mapper/map"
   wordpress_mapper_url: "https://k8s-delivery-upp-eu.ft.com/__wordpress-article-mapper/map"
-volumes:
-  read_envs_config_mount_path: "/etc/pam/envs"
-  secrets_mount_path: "/etc/pam/credentials"
-  read_env_credentials_file_name: "read-environments-credentials.json"
-  validation_credentials_file_name: "validator-credentials.json"
-  read_envs_config_file_name: "read-environments.json"
-service:
-  name: publish-availability-monitor
-  hasHealthcheck: "true"
-resources:
-  limits:
-    memory: 512Mi
