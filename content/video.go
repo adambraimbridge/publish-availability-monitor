@@ -58,10 +58,7 @@ func (video Video) isValid(status int) bool {
 }
 
 func (video Video) isMarkedDeleted(status ...int) bool {
-	if video.PublishedAt != "" || video.UpdatedAt != "" {
-		return false
-	}
-	return true
+	return video.PublishedAt == "" && video.UpdatedAt == ""
 }
 
 func (video Video) GetType() string {

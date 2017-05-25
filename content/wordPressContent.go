@@ -2,8 +2,6 @@ package content
 
 import (
 	"net/http"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 const wordpressType = "wordpress"
@@ -31,12 +29,6 @@ func (wordPressMessage WordPressMessage) Initialize(binaryContent []byte) Conten
 }
 
 func (wordPressMessage WordPressMessage) Validate(extValEndpoint string, txId string, username string, password string) ValidationResponse {
-	contentUUID := wordPressMessage.Post.UUID
-	if !isUUIDValid(contentUUID) {
-		log.Warnf("WordPress message invalid: invalid UUID: [%s]", contentUUID)
-		return ValidationResponse{IsValid: false, IsMarkedDeleted: wordPressMessage.isMarkedDeleted(0)}
-	}
-
 	validationParam := validationParam{
 		wordPressMessage.BinaryContent,
 		extValEndpoint,
@@ -55,7 +47,7 @@ func (wordPressMessage WordPressMessage) Validate(extValEndpoint string, txId st
 }
 
 func (wordPressMessage WordPressMessage) isValid(status int) bool {
-	return status != http.StatusUnprocessableEntity
+	return status == http.StatusOK || status == http.StatusNotFound
 }
 
 func (wordPressMessage WordPressMessage) isMarkedDeleted(status ...int) bool {
