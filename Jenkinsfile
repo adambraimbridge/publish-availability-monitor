@@ -1,8 +1,9 @@
-@Library('k8s-pipeline-lib@first-version') _
+@Library('k8s-pipeline-lib') _
 
-import com.ft.up.BuildConfig
+import com.ft.jenkins.BuildConfig
+import com.ft.jenkins.Cluster
 
 BuildConfig config = new BuildConfig()
-config.deployToClusters = ['publishing']
+config.deployToClusters = [Cluster.DELIVERY]
 
 entryPointForReleaseAndDev(config)
