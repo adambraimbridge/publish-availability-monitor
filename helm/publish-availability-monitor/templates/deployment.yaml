@@ -50,20 +50,25 @@ spec:
           value: "{{ .Values.envs.lists_notifications_url }}"
         - name: LISTS_NOTIFICATIONS_PUSH_URL
           value: "{{ .Values.envs.lists_notifications_push_url }}"
-        - name: METHODE_ARTICLE_VALIDATION_URL
-          value: "{{ .Values.envs.methode_article_validation_url }}"
-        - name: METHODE_CONTENT_PLACEHOLDER_MAPPER_URL
-          value: "{{ .Values.envs.methode_content_placeholder_mapper_url }}"
-        - name: METHODE_IMAGE_MODEL_MAPPER_URL
-          value: "{{ .Values.envs.methode_image_model_mapper_url }}"
-        - name: METHODE_LIST_VALIDATION_URL
-          value: "{{ .Values.envs.methode_list_validation_url }}"
-        - name: METHODE_ARTICLE_INTERNAL_COMPONENTS_MAPPER_URL
-          value: "{{ .Values.envs.methode_article_internal_components_mapper_url }}"
-        - name: VIDEO_MAPPER_URL
-          value: "{{ .Values.envs.video_mapper_url }}"
-        - name: WORDPRESS_MAPPER_URL
-          value: "{{ .Values.envs.wordpress_mapper_url }}"
+        - name: METHODE_ARTICLE_VALIDATION_ENDPOINT
+          value: "{{ .Values.envs.methode_article_validation_endpoint }}"
+        - name: METHODE_CONTENT_PLACEHOLDER_MAPPER_ENDPOINT
+          value: "{{ .Values.envs.methode_content_placeholder_mapper_endpoint }}"
+        - name: METHODE_IMAGE_MODEL_MAPPER_ENDPOINT
+          value: "{{ .Values.envs.methode_image_model_mapper_endpoint }}"
+        - name: METHODE_LIST_VALIDATION_ENDPOINT
+          value: "{{ .Values.envs.methode_list_validation_endpoint }}"
+        - name: METHODE_ARTICLE_INTERNAL_COMPONENTS_MAPPER_ENDPOINT
+          value: "{{ .Values.envs.methode_article_internal_components_mapper_endpoint }}"
+        - name: VIDEO_MAPPER_ENDPOINT
+          value: "{{ .Values.envs.video_mapper_endpoint }}"
+        - name: WORDPRESS_MAPPER_ENDPOINT
+          value: "{{ .Values.envs.wordpress_mapper_endpoint }}"
+        - name: VALIDATION_SERVICES_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: global-config
+              key: monitoring.validation-services.base-url
         ports:
         - containerPort: 8080
         livenessProbe:
