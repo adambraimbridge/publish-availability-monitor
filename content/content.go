@@ -67,7 +67,7 @@ func UnmarshalContent(msg consumer.Message) (Content, error) {
 		var wordPressMsg WordPressMessage
 		err := json.Unmarshal(binaryContent, &wordPressMsg)
 		return wordPressMsg.Initialize(binaryContent), err
-	case "http://cmdb.ft.com/systems/brightcove":
+	case "http://cmdb.ft.com/systems/next-video-editor":
 		var video Video
 		err := json.Unmarshal(binaryContent, &video)
 		return video.Initialize(binaryContent), err

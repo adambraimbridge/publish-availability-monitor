@@ -2,21 +2,15 @@ package content
 
 import (
 	"net/http"
-	"regexp"
 
 	log "github.com/Sirupsen/logrus"
 )
 
 const videoType = "video"
 
-var idRegexp, _ = regexp.Compile("^\\d+$")
-
 type Video struct {
-	UUID          string `json:"uuid"`
-	Id            string `json:"id"`
-	Name          string `json:"name"`
-	UpdatedAt     string `json:"updated_at"`
-	PublishedAt   string `json:"published_at"`
+	ID            string `json:"id"`
+	Deleted       bool   `json:"deleted,omitempty"`
 	BinaryContent []byte `json:"-"` //This field is for internal application usage
 }
 
@@ -28,11 +22,6 @@ func (video Video) Initialize(binaryContent []byte) Content {
 func (video Video) Validate(externalValidationEndpoint string, txId string, username string, password string) ValidationResponse {
 	if !isUUIDValid(video.GetUUID()) {
 		log.Warnf("Video invalid: invalid UUID: [%s]", video.GetUUID())
-		return ValidationResponse{IsValid: false, IsMarkedDeleted: video.isMarkedDeleted()}
-	}
-
-	if !idRegexp.MatchString(video.Id) {
-		log.Warnf("Video invalid: invalid ID: [%s]", video.Id)
 		return ValidationResponse{IsValid: false, IsMarkedDeleted: video.isMarkedDeleted()}
 	}
 
@@ -58,7 +47,7 @@ func (video Video) isValid(status int) bool {
 }
 
 func (video Video) isMarkedDeleted(status ...int) bool {
-	return video.PublishedAt == "" && video.UpdatedAt == ""
+	return video.Deleted
 }
 
 func (video Video) GetType() string {
@@ -66,5 +55,5 @@ func (video Video) GetType() string {
 }
 
 func (video Video) GetUUID() string {
-	return video.UUID
+	return video.ID
 }
