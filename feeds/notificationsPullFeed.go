@@ -69,7 +69,7 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password, txId)
 
 	if err != nil {
-		log.WithField("transaction_id", txId).Errorf("error calling notifications %s", notificationsUrl)
+		log.WithField("transaction_id", txId).WithError(err).Errorf("error calling notifications %s", notificationsUrl)
 		return
 	}
 	defer cleanupResp(resp)
@@ -89,7 +89,8 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	f.notificationsLock.Lock()
 	defer f.notificationsLock.Unlock()
 
-	for _, n := range notifications.Notifications {
+	for _, v := range notifications.Notifications {
+		n := v
 		uuid := parseUuidFromUrl(n.ID)
 		var history []*Notification
 		var found bool

@@ -41,10 +41,17 @@ func (f *SLF4JFormatter) Format(entry *log.Entry) ([]byte, error) {
 	timestamp := strings.Replace(entry.Time.UTC().Format(timeFmt), ".", ",", 1)
 	codeLocation := f.findCodeLocation()
 	tx := f.findTransactionId(entry.Data)
+	msg := entry.Message
+	for k, v := range entry.Data {
+		if k == txIdKey {
+			continue
+		}
 
-	msg := fmt.Sprintf("%-5s [%s] %s %s %s\n", level, timestamp, codeLocation, tx, entry.Message)
+		msg = fmt.Sprintf("%s %s=%v", msg, k, v)
+	}
+	full := fmt.Sprintf("%-5s [%s] %s %s %s\n", level, timestamp, codeLocation, tx, msg)
 
-	return []byte(msg), nil
+	return []byte(full), nil
 }
 
 func (f *SLF4JFormatter) findCodeLocation() string {
