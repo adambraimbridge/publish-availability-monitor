@@ -11,11 +11,7 @@ import (
 
 func TestIsVideoValid_Valid(t *testing.T) {
 	var videoValid = Video{
-		UUID:          "e28b12f7-9796-3331-b030-05082f0b8157",
-		Id:            "4966650664001",
-		Name:          "the-dark-knight.mp4",
-		UpdatedAt:     "2016-06-01T21:40:19.120Z",
-		PublishedAt:   "2016-06-01T21:40:19.120Z",
+		ID:            "e28b12f7-9796-3331-b030-05082f0b8157",
 		BinaryContent: []byte("valid-json"),
 	}
 
@@ -33,46 +29,19 @@ func TestIsVideoValid_Valid(t *testing.T) {
 	}))
 
 	validationResponse := videoValid.Validate(testServer.URL+"/map", txId, "", "")
-	if !validationResponse.IsValid {
-		t.Error("Video should be valid.")
-	}
+	assert.True(t, validationResponse.IsValid, "Video should be valid.")
 }
 
 func TestIsVideoValid_NoId(t *testing.T) {
-	var videoNoId = Video{
-		UUID:        "e28b12f7-9796-3331-b030-05082f0b8157",
-		Name:        "the-dark-knight.mp4",
-		UpdatedAt:   "2016-06-01T21:40:19.120Z",
-		PublishedAt: "2016-06-01T21:40:19.120Z",
-	}
+	var videoNoId = Video{}
 
 	validationResponse := videoNoId.Validate("", "", "", "")
-	if validationResponse.IsValid {
-		t.Error("Video should be invalid as it has no Id.")
-	}
-}
-
-func TestIsVideoValid_NoUUID(t *testing.T) {
-	var videoNoUUID = Video{
-		Id:          "4966650664001",
-		Name:        "the-dark-knight.mp4",
-		UpdatedAt:   "2016-06-01T21:40:19.120Z",
-		PublishedAt: "2016-06-01T21:40:19.120Z",
-	}
-
-	validationResponse := videoNoUUID.Validate("", "", "", "")
-	if validationResponse.IsValid {
-		t.Error("Video should be invalid as it has no uuid.")
-	}
+	assert.False(t, validationResponse.IsValid, "Video should be invalid as it has no Id.")
 }
 
 func TestIsVideoValid_failedExternalValidation(t *testing.T) {
 	var videoInvalid = Video{
-		UUID:          "e28b12f7-9796-3331-b030-05082f0b8157",
-		Id:            "4966650664001",
-		Name:          "the-dark-knight.mp4",
-		UpdatedAt:     "2016-06-01T21:40:19.120Z",
-		PublishedAt:   "2016-06-01T21:40:19.120Z",
+		ID:            "e28b12f7-9796-3331-b030-05082f0b8157",
 		BinaryContent: []byte("invalid-json"),
 	}
 
@@ -92,34 +61,15 @@ func TestIsVideoValid_failedExternalValidation(t *testing.T) {
 	}))
 
 	validationResponse := videoInvalid.Validate(testServer.URL+"/map", txId, "", "")
-	if validationResponse.IsMarkedDeleted {
-		t.Error("Video should fail external validation.")
-	}
+	assert.False(t, validationResponse.IsMarkedDeleted, "Video should fail external validation.")
 }
 
-func TestIsDeleted_NoDates(t *testing.T) {
+func TestIsDeleted(t *testing.T) {
 	var videoNoDates = Video{
-		UUID: "e28b12f7-9796-3331-b030-05082f0b8157",
-		Id:   "4966650664001",
-		Name: "the-dark-knight.mp4",
+		ID:      "e28b12f7-9796-3331-b030-05082f0b8157",
+		Deleted: true,
 	}
 
 	validationResponse := videoNoDates.Validate("", "", "", "")
-	if !validationResponse.IsMarkedDeleted {
-		t.Error("Video should be evaluated as deleted as it has no dates in it.")
-	}
-}
-
-func TestIsDeleted_OneDateOnly(t *testing.T) {
-	var videoOneDateOnly = Video{
-		UUID:      "e28b12f7-9796-3331-b030-05082f0b8157",
-		Id:        "4966650664001",
-		Name:      "the-dark-knight.mp4",
-		UpdatedAt: "2016-06-01T21:40:19.120Z",
-	}
-
-	validationResponse := videoOneDateOnly.Validate("", "", "", "")
-	if validationResponse.IsMarkedDeleted {
-		t.Error("Video should be evaluated as published as it has one date in it.")
-	}
+	assert.True(t, validationResponse.IsMarkedDeleted, "Video should be evaluated as deleted.")
 }
