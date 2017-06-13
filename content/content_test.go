@@ -155,18 +155,6 @@ func TestUnmarshalContent_VideoBinaryContentSet(t *testing.T) {
 	assert.Equal(t, []byte(validVideoMsg.Body), video.BinaryContent)
 }
 
-func TestIsUUIDValid_UUIDValid(t *testing.T) {
-	if !isUUIDValid(validUUID) {
-		t.Error("Valid UUID marked as invalid!")
-	}
-}
-
-func TestIsUUIDValid_UUIDInvalid(t *testing.T) {
-	if isUUIDValid(invalidUUID) {
-		t.Error("Invalid UUID marked as valid!")
-	}
-}
-
 func TestIsValidContentPlaceholder(t *testing.T) {
 	content, err := UnmarshalContent(validContentPlaceholder)
 	if err != nil {
@@ -174,11 +162,7 @@ func TestIsValidContentPlaceholder(t *testing.T) {
 		return
 	}
 	assert.Equal(t, "EOM::CompoundStory_ContentPlaceholder", content.GetType())
-
 }
-
-const validUUID = "e28b12f7-9796-3331-b030-05082f0b8157"
-const invalidUUID = "foobar"
 
 var invalidMethodeMessageWrongJSONFormat = consumer.Message{
 	Headers: map[string]string{
