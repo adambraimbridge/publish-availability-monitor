@@ -39,6 +39,14 @@
 			"versionExact": "0.1.0"
 		},
 		{
+			"checksumSHA1": "YD7op+BalfdUK0lb28y6Yex6cBM=",
+			"path": "github.com/Sirupsen/logrus",
+			"revision": "c078b1e43f58d563c74cebe63c85789e76ddb627",
+			"revisionTime": "2017-02-07T11:49:02Z",
+			"version": "v0.11.2",
+			"versionExact": "v0.11.2"
+		},
+		{
 			"checksumSHA1": "dvabztWVQX8f6oMLRyv4dLH+TGY=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
@@ -113,6 +121,12 @@
 			"path": "github.com/willf/bitset",
 			"revision": "5c3c0fce48842b2c0bbaa99b4e61b0175d84b47c",
 			"revisionTime": "2016-12-02T17:00:36Z"
+		},
+		{
+			"checksumSHA1": "Tkb1hBdBWeO7SGjixS2Hm48F6+s=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "fb4cac33e3196ff7f507ab9b2d2a44b0142f5b5a",
+			"revisionTime": "2017-06-14T06:48:48Z"
 		}
 	],
 	"rootPath": "github.com/Financial-Times/publish-availability-monitor"
