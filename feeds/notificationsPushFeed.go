@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/checks"
+	log "github.com/Sirupsen/logrus"
 )
 
 const NotificationsPush = "Notifications-Push"
@@ -20,7 +21,7 @@ type NotificationsPushFeed struct {
 }
 
 func (f *NotificationsPushFeed) Start() {
-	infoLogger.Printf("starting notifications-push feed from %v", f.baseUrl)
+	log.Infof("starting notifications-push feed from %v", f.baseUrl)
 	f.stopFeedLock.Lock()
 	defer f.stopFeedLock.Unlock()
 
@@ -32,13 +33,13 @@ func (f *NotificationsPushFeed) Start() {
 
 		for f.consumeFeed() {
 			time.Sleep(500 * time.Millisecond)
-			infoLogger.Println("Disconnected from Push feed! Attempting to reconnect.")
+			log.Info("Disconnected from Push feed! Attempting to reconnect.")
 		}
 	}()
 }
 
 func (f *NotificationsPushFeed) Stop() {
-	infoLogger.Printf("shutting down notifications push feed for %s", f.baseUrl)
+	log.Infof("shutting down notifications push feed for %s", f.baseUrl)
 	f.stopFeedLock.Lock()
 	defer f.stopFeedLock.Unlock()
 
@@ -65,31 +66,31 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 	resp, err := f.httpCaller.DoCall(f.baseUrl, f.username, f.password, txId)
 
 	if err != nil {
-		errorLogger.Printf("Sending request: [%v]", err)
+		log.WithField("transaction_id", txId).Errorf("Sending request: [%v]", err)
 		return f.isConsuming()
 	}
 
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		errorLogger.Printf("Received invalid statusCode: [%v]", resp.StatusCode)
+		log.WithField("transaction_id", txId).Errorf("Received invalid statusCode: [%v]", resp.StatusCode)
 		return f.isConsuming()
 	}
 
-	infoLogger.Println("Reconnected to push feed!")
+	log.WithField("transaction_id", txId).Info("Reconnected to push feed!")
 	f.connected = true
 	defer func() { f.connected = false }()
 
 	br := bufio.NewReader(resp.Body)
 	for {
 		if !f.isConsuming() {
-			infoLogger.Printf("stop consuming feed")
+			log.WithField("transaction_id", txId).Info("stop consuming feed")
 			break
 		}
 		f.purgeObsoleteNotifications()
 
 		event, err := br.ReadString('\n')
 		if err != nil {
-			infoLogger.Printf("Disconnected from push feed: [%v]", err)
+			log.WithField("transaction_id", txId).Infof("Disconnected from push feed: [%v]", err)
 			return f.isConsuming()
 		}
 
@@ -102,7 +103,7 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 		var notifications []Notification
 		err = json.Unmarshal([]byte(data), &notifications)
 		if err != nil {
-			errorLogger.Printf("Error: [%v]. \n", err)
+			log.WithField("transaction_id", txId).Errorf("Error: [%v].", err)
 			continue
 		}
 

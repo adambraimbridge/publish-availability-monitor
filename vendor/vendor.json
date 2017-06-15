@@ -11,12 +11,12 @@
 			"versionExact": "0.1.0"
 		},
 		{
-			"checksumSHA1": "/kMYtkcxWV4dZNvJaEGkDUwt3TA=",
+			"checksumSHA1": "J+4afTatHVLwU1wboY/SvxigwbA=",
 			"path": "github.com/Financial-Times/message-queue-gonsumer/consumer",
-			"revision": "4e173298922ba4c10721b1b5b3e0d35be7f162e9",
-			"revisionTime": "2017-03-20T10:34:32Z",
-			"version": "0.3.0",
-			"versionExact": "0.3.0"
+			"revision": "ebabf884866eecf81fe38f10893570d959fae01e",
+			"revisionTime": "2017-05-26T12:24:38Z",
+			"version": "0.4.0-k8s-remove-kafka-topic-check-rc1",
+			"versionExact": "0.4.0-k8s-remove-kafka-topic-check-rc1"
 		},
 		{
 			"checksumSHA1": "fqpohN7Qp2qj7TLMbUxh/cK4oH0=",
@@ -109,28 +109,10 @@
 			"versionExact": "v1.1.4"
 		},
 		{
-			"checksumSHA1": "CoxdaTYdPZNJXr8mJfLxye428N0=",
-			"path": "github.com/ugorji/go/codec",
-			"revision": "c88ee250d0221a57af388746f5cf03768c21d6e2",
-			"revisionTime": "2017-02-15T20:11:44Z"
-		},
-		{
 			"checksumSHA1": "YPUzwYX7ji8jMLe7QAPjFwG9lTU=",
 			"path": "github.com/willf/bitset",
 			"revision": "5c3c0fce48842b2c0bbaa99b4e61b0175d84b47c",
 			"revisionTime": "2016-12-02T17:00:36Z"
-		},
-		{
-			"checksumSHA1": "Y+HGqEkYM15ir+J93MEaHdyFy0c=",
-			"path": "golang.org/x/net/context",
-			"revision": "906cda9512f77671ab44f8c8563b13a8e707b230",
-			"revisionTime": "2017-02-18T20:36:51Z"
-		},
-		{
-			"checksumSHA1": "oS0UZOGWVVsVciOQ8nZJ582mFF8=",
-			"path": "golang.org/x/sys/unix",
-			"revision": "9ccfe848b9db8435a24c424abbc07a921adf1df5",
-			"revisionTime": "2017-04-27T03:54:25Z"
 		}
 	],
 	"rootPath": "github.com/Financial-Times/publish-availability-monitor"

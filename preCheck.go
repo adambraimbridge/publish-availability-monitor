@@ -4,6 +4,8 @@ import (
 	"github.com/Financial-Times/publish-availability-monitor/content"
 	"strings"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 func mainPreChecks() []func(publishedContent content.Content, tid string, publishDate time.Time) (bool, *schedulerParam) {
@@ -33,14 +35,14 @@ func mainPreCheck(publishedContent content.Content, tid string, publishDate time
 
 	valRes := publishedContent.Validate(validationEndpoint, tid, username, password)
 	if !valRes.IsValid {
-		infoLogger.Printf("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
+		log.Infof("Message [%v] with UUID [%v] is INVALID, skipping...", tid, uuid)
 		return false, nil
 	}
 
-	infoLogger.Printf("Message [%v] with UUID [%v] is VALID.", tid, uuid)
+	log.Infof("Message [%v] with UUID [%v] is VALID.", tid, uuid)
 
 	if isMessagePastPublishSLA(publishDate, appConfig.Threshold) {
-		infoLogger.Printf("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
+		log.Infof("Message [%v] with UUID [%v] is past publish SLA, skipping.", tid, uuid)
 		return false, nil
 	}
 
@@ -56,7 +58,7 @@ func imagePreCheck(publishedContent content.Content, tid string, publishDate tim
 
 	eomFile, ok := publishedContent.(content.EomFile)
 	if !ok {
-		errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, publishedContent.GetUUID())
+		log.Errorf("Cannot assert that message [%v] with UUID [%v] and type 'Image' is an EomFile.", tid, publishedContent.GetUUID())
 		return false, nil
 	}
 
@@ -76,7 +78,7 @@ func internalComponentsPreCheck(publishedContent content.Content, tid string, pu
 
 	eomFileForInternalComponentsCheck, ok := publishedContent.(content.EomFile)
 	if !ok {
-		errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, publishedContent.GetUUID())
+		log.Errorf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, publishedContent.GetUUID())
 		return false, nil
 	}
 	eomFileForInternalComponentsCheck.Type = "InternalComponents"
@@ -86,7 +88,7 @@ func internalComponentsPreCheck(publishedContent content.Content, tid string, pu
 
 	icValRes := publishedContent.Validate(internalComponentsValidationEndpoint, tid, usr, pass)
 	if !icValRes.IsValid {
-		infoLogger.Printf("Message [%v] with UUID [%v] has INVALID internal components, skipping internal components schedule check.", tid, publishedContent.GetUUID())
+		log.Infof("Message [%v] with UUID [%v] has INVALID internal components, skipping internal components schedule check.", tid, publishedContent.GetUUID())
 		return false, nil
 	}
 
@@ -106,7 +108,7 @@ func getValidationEndpointKey(publishedContent content.Content, tid string, uuid
 	if strings.Contains(publishedContent.GetType(), "EOM::CompoundStory") {
 		_, ok := publishedContent.(content.EomFile)
 		if !ok {
-			errorLogger.Printf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
+			log.Errorf("Cannot assert that message [%v] with UUID [%v] and type 'EOM::CompoundStory' is an EomFile.", tid, uuid)
 			return ""
 		}
 
@@ -125,14 +127,14 @@ func spawnImageSet(imageEomFile content.EomFile) content.EomFile {
 
 	imageUUID, err := content.NewUUIDFromString(imageEomFile.UUID)
 	if err != nil {
-		warnLogger.Printf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
+		log.Warnf("Cannot generate UUID from image UUID string [%v]: [%v], skipping image set check.",
 			imageEomFile.UUID, err.Error())
 		return content.EomFile{}
 	}
 
 	imageSetUUID, err := content.GenerateImageSetUUID(*imageUUID)
 	if err != nil {
-		warnLogger.Printf("Cannot generate image set UUID: [%v], skipping image set check",
+		log.Warnf("Cannot generate image set UUID: [%v], skipping image set check",
 			err.Error())
 		return content.EomFile{}
 	}

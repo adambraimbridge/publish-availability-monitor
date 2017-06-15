@@ -1,13 +1,13 @@
 package main
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
-	"os"
-	"io/ioutil"
 	"bufio"
 	"fmt"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"os"
+	"testing"
 )
 
 const (
@@ -104,11 +104,11 @@ func TestFilterInvalidEnvs(t *testing.T) {
 func TestFilterInvalidEnvsWithEmptyName(t *testing.T) {
 	envsToBeFiltered := []Environment{
 		{
-			Name:"",
-			ReadUrl: "test",
-			S3Url: "test",
+			Name:     "",
+			ReadUrl:  "test",
+			S3Url:    "test",
 			Username: "dummy",
-			Password:"dummy",
+			Password: "dummy",
 		},
 	}
 
@@ -120,11 +120,11 @@ func TestFilterInvalidEnvsWithEmptyName(t *testing.T) {
 func TestFilterInvalidEnvsWithEmptyReadUrl(t *testing.T) {
 	envsToBeFiltered := []Environment{
 		{
-			Name:"test",
-			ReadUrl: "",
-			S3Url: "test",
+			Name:     "test",
+			ReadUrl:  "",
+			S3Url:    "test",
 			Username: "dummy",
-			Password:"dummy",
+			Password: "dummy",
 		},
 	}
 
@@ -136,11 +136,11 @@ func TestFilterInvalidEnvsWithEmptyReadUrl(t *testing.T) {
 func TestFilterInvalidEnvsWithEmptyS3Url(t *testing.T) {
 	envsToBeFiltered := []Environment{
 		{
-			Name:"test",
-			ReadUrl: "test",
-			S3Url: "",
+			Name:     "test",
+			ReadUrl:  "test",
+			S3Url:    "",
 			Username: "dummy",
-			Password:"dummy",
+			Password: "dummy",
 		},
 	}
 
@@ -152,11 +152,11 @@ func TestFilterInvalidEnvsWithEmptyS3Url(t *testing.T) {
 func TestFilterInvalidEnvsWithEmptyUsernameUrl(t *testing.T) {
 	envsToBeFiltered := []Environment{
 		{
-			Name:"test",
-			ReadUrl: "test",
-			S3Url: "test",
+			Name:     "test",
+			ReadUrl:  "test",
+			S3Url:    "test",
 			Username: "",
-			Password:"dummy",
+			Password: "dummy",
 		},
 	}
 
@@ -168,11 +168,11 @@ func TestFilterInvalidEnvsWithEmptyUsernameUrl(t *testing.T) {
 func TestFilterInvalidEnvsWithEmptyPwd(t *testing.T) {
 	envsToBeFiltered := []Environment{
 		{
-			Name:"test",
-			ReadUrl: "test",
-			S3Url: "test",
+			Name:     "test",
+			ReadUrl:  "test",
+			S3Url:    "test",
 			Username: "test",
-			Password:"",
+			Password: "",
 		},
 	}
 
@@ -334,14 +334,14 @@ func prepareFile(fileContent string) string {
 func getValidEnvs() []Environment {
 	return []Environment{
 		{
-			Name:"test",
-			ReadUrl:"test-url",
-			S3Url:"test-s3-url",
+			Name:    "test",
+			ReadUrl: "test-url",
+			S3Url:   "test-s3-url",
 		},
 		{
-			Name:"test2",
-			ReadUrl:"test-url2",
-			S3Url:"test-s3-url2",
+			Name:    "test2",
+			ReadUrl: "test-url2",
+			S3Url:   "test-s3-url2",
 		},
 	}
 }
@@ -349,12 +349,12 @@ func getValidEnvs() []Environment {
 func getValidCredentials() []Credentials {
 	return []Credentials{
 		{
-			EnvName: "test",
+			EnvName:  "test",
 			Username: "dummy-user",
 			Password: "dummy-pwd",
 		},
 		{
-			EnvName: "test2",
+			EnvName:  "test2",
 			Username: "dummy-user2",
 			Password: "dummy-pwd2",
 		},
@@ -364,7 +364,7 @@ func getValidCredentials() []Credentials {
 type MockFeed struct{}
 
 func (f MockFeed) Start() {}
-func (f MockFeed) Stop() {}
+func (f MockFeed) Stop()  {}
 func (f MockFeed) FeedName() string {
 	return ""
 }

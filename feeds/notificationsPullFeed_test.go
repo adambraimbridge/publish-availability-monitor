@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/checks"
-	"github.com/satori/go.uuid"
+	uuidgen "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -111,7 +111,7 @@ func mockNotificationsResponseFor(requestQueryString string, notifications strin
 }
 
 func TestNotificationsArePolled(t *testing.T) {
-	uuid := "1cb14245-5185-4ed5-9188-4d2a86085599"
+	uuid := uuidgen.NewV4().String()
 	publishRef := "tid_0123wxyz"
 	lastModified := time.Now()
 	notifications := mockNotificationsResponseFor("2016-10-28T15:00:00.000Z",
@@ -134,16 +134,46 @@ func TestNotificationsArePolled(t *testing.T) {
 	assert.Equal(t, publishRef, response[0].PublishReference, "publish ref")
 }
 
+func TestMultipleNotificationsAreMapped(t *testing.T) {
+	uuids := []string{uuidgen.NewV4().String(), uuidgen.NewV4().String()}
+	publishRefs := []string{"tid_1", "tid_2"}
+	lastModified := time.Now()
+
+	notifications := mockNotificationFor(uuids[0], publishRefs[0], lastModified) + "," + mockNotificationFor(uuids[1], publishRefs[1], lastModified)
+
+	response := mockNotificationsResponseFor("2016-10-28T15:00:00.000Z",
+		notifications,
+		"2016-10-28T16:00:00.000Z")
+
+	httpCaller := mockHTTPCaller(t, "tid_pam_notifications_pull_", buildResponse(200, response, nil))
+
+	baseUrl, _ := url.Parse("http://www.example.org?type=all")
+	f := NewNotificationsFeed("notifications", *baseUrl, 10, 1, "", "")
+
+	f.(*NotificationsPullFeed).SetHttpCaller(httpCaller)
+	f.Start()
+	defer f.Stop()
+
+	time.Sleep(time.Duration(1200) * time.Millisecond)
+
+	for i, _ := range uuids {
+		actual := f.NotificationsFor(uuids[i])
+		assert.Len(t, actual, 1, "notifications for item")
+		assert.Equal(t, "http://www.ft.com/thing/"+uuids[i], actual[0].ID, "ID")
+		assert.Equal(t, publishRefs[i], actual[0].PublishReference, "publish ref")
+	}
+}
+
 func TestNotificationsForReturnsEmptyIfNotFound(t *testing.T) {
 	baseUrl, _ := url.Parse("http://www.example.org")
 	f := NewNotificationsFeed("notifications", *baseUrl, 10, 1, "", "")
 
-	response := f.NotificationsFor("1cb14245-5185-4ed5-9188-4d2a86085599")
+	response := f.NotificationsFor(uuidgen.NewV4().String())
 	assert.Len(t, response, 0, "notifications for item")
 }
 
 func TestNotificationsForReturnsAllMatches(t *testing.T) {
-	uuid := "1cb14245-5185-4ed5-9188-4d2a86085599"
+	uuid := uuidgen.NewV4().String()
 	publishRef1 := "tid_0123wxyz"
 	lastModified1 := time.Now().Add(time.Duration(-1) * time.Second)
 	notifications1 := mockNotificationsResponseFor("2016-10-28T15:00:00.000Z",
@@ -172,7 +202,7 @@ func TestNotificationsForReturnsAllMatches(t *testing.T) {
 }
 
 func TestNotificationsPollingContinuesAfterErrorResponse(t *testing.T) {
-	uuid := "1cb14245-5185-4ed5-9188-4d2a86085599"
+	uuid := uuidgen.NewV4().String()
 	publishRef := "tid_0123wxyz"
 	lastModified := time.Now()
 	notifications := mockNotificationsResponseFor("2016-10-28T15:00:00.000Z",
@@ -194,7 +224,7 @@ func TestNotificationsPollingContinuesAfterErrorResponse(t *testing.T) {
 }
 
 func TestNotificationsArePurged(t *testing.T) {
-	uuid := "1cb14245-5185-4ed5-9188-4d2a86085599"
+	uuid := uuidgen.NewV4().String()
 	publishRef := "tid_0123wxyz"
 	lastModified := time.Now().Add(time.Duration(-2) * time.Second)
 	notifications := mockNotificationsResponseFor("2016-10-28T15:00:00.000Z",
@@ -221,7 +251,7 @@ func TestNotificationsArePurged(t *testing.T) {
 }
 
 func TestNotificationsPollingFollowsOpaqueLink(t *testing.T) {
-	uuid1 := "1cb14245-5185-4ed5-9188-4d2a86085599"
+	uuid1 := uuidgen.NewV4().String()
 	publishRef1 := "tid_0123wxyz"
 	lastModified1 := time.Now().Add(time.Duration(-1) * time.Second)
 	bootstrapQuery := url.Values{"since": []string{"any"}}
@@ -231,7 +261,7 @@ func TestNotificationsPollingFollowsOpaqueLink(t *testing.T) {
 		mockNotificationFor(uuid1, publishRef1, lastModified1),
 		nextPageQuery.Encode())
 
-	uuid2 := uuid.NewV4().String()
+	uuid2 := uuidgen.NewV4().String()
 	publishRef2 := "tid_0123abcd"
 	lastModified2 := time.Now()
 	notifications2 := mockNotificationsResponseFor(nextPageQuery.Encode(),

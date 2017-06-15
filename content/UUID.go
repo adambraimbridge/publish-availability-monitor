@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/satori/go.uuid"
 )
 
@@ -103,7 +104,7 @@ func hexToInt(hexStrings []string) ([]uint64, error) {
 func isUUIDValid(contentUUID string) bool {
 	parsedUUID, err := uuid.FromString(contentUUID)
 	if err != nil {
-		warnLogger.Printf("Cannot parse UUID [%v], error: [%v]", contentUUID, err.Error())
+		log.Warnf("Cannot parse UUID [%v], error: [%v]", contentUUID, err.Error())
 		return false
 	}
 	return contentUUID == parsedUUID.String()

@@ -1,33 +1,49 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
-	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/service-status-go/gtg"
+	log "github.com/Sirupsen/logrus"
+
+	"github.com/Financial-Times/publish-availability-monitor/feeds"
 )
+
+const requestTimeout = 4500
 
 // Healthcheck offers methods to measure application health.
 type Healthcheck struct {
-	client          http.Client
-	config          AppConfig
+	client          *http.Client
+	config          *AppConfig
+	consumer        consumer.MessageConsumer
 	metricContainer *publishHistory
+}
+
+func newHealthcheck(config *AppConfig, metricContainer *publishHistory) *Healthcheck {
+	httpClient := &http.Client{Timeout: requestTimeout * time.Millisecond}
+	c := consumer.NewConsumer(config.QueueConf, func(m consumer.Message) {}, httpClient)
+	return &Healthcheck{
+		client:          httpClient,
+		config:          config,
+		consumer:        c,
+		metricContainer: metricContainer,
+	}
 }
 
 type readEnvironmentHealthcheck struct {
 	env    Environment
-	client http.Client
+	client *http.Client
 }
 
-const pam_run_book_url = "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/publish-availability-monitor"
+const pam_run_book_url = "https://dewey.ft.com/publish-availability-monitor.html"
 
 var readCheckEndpoints = map[string]func(string) (string, error){
 	"S3": buildAwsHealthcheckUrl,
@@ -67,15 +83,25 @@ func (h *Healthcheck) checkHealth(writer http.ResponseWriter, req *http.Request)
 	)(writer, req)
 }
 
-func (h *Healthcheck) gtg() gtg.Status {
-	healthChecks := []func() (string, error){h.checkAggregateMessageQueueProxiesReachable, h.checkValidationServicesReachable}
-
-	for _, hCheck := range healthChecks {
-		if _, err := hCheck(); err != nil {
-			return gtg.Status{GoodToGo: false, Message: err.Error()}
-		}
+func (h *Healthcheck) GTG() gtg.Status {
+	consumerCheck := func() gtg.Status {
+		return gtgCheck(h.consumer.ConnectivityCheck)
 	}
 
+	validationServiceCheck := func() gtg.Status {
+		return gtgCheck(h.checkValidationServicesReachable)
+	}
+
+	return gtg.FailFastParallelCheck([]gtg.StatusChecker{
+		consumerCheck,
+		validationServiceCheck,
+	})()
+}
+
+func gtgCheck(handler func() (string, error)) gtg.Status {
+	if _, err := handler(); err != nil {
+		return gtg.Status{GoodToGo: false, Message: err.Error()}
+	}
 	return gtg.Status{GoodToGo: true}
 }
 
@@ -93,7 +119,7 @@ func isConsumingFromPushFeeds() fthealth.Check {
 				for _, feed := range val {
 					push, ok := feed.(*feeds.NotificationsPushFeed)
 					if ok && !push.IsConnected() {
-						warnLogger.Println("Feed \"" + feed.FeedName() + "\" with URL \"" + feed.FeedURL() + "\" is not connected!")
+						log.Warnf("Feed \"%s\" with URL \"%s\" is not connected!", feed.FeedName(), feed.FeedURL())
 						failing = append(failing, feed.FeedURL())
 						result = false
 					}
@@ -115,73 +141,8 @@ func (h *Healthcheck) messageQueueProxyReachable() fthealth.Check {
 		PanicGuide:       pam_run_book_url,
 		Severity:         1,
 		TechnicalSummary: "Message queue proxy is not reachable/healthy",
-		Checker:          h.checkAggregateMessageQueueProxiesReachable,
+		Checker:          h.consumer.ConnectivityCheck,
 	}
-}
-
-func (h *Healthcheck) checkAggregateMessageQueueProxiesReachable() (string, error) {
-
-	addresses := h.config.QueueConf.Addrs
-	errMsg := ""
-	for i := 0; i < len(addresses); i++ {
-		msg, error := h.checkMessageQueueProxyReachable(addresses[i])
-		if error == nil {
-			return msg, nil
-		}
-		errMsg = errMsg + fmt.Sprintf("For %s there is an error %v \n", addresses[i], error.Error())
-	}
-
-	return "", errors.New(errMsg)
-
-}
-
-func (h *Healthcheck) checkMessageQueueProxyReachable(address string) (string, error) {
-	req, err := http.NewRequest("GET", address+"/topics", nil)
-	if err != nil {
-		warnLogger.Printf("Could not connect to proxy: %v", err.Error())
-		return "", err
-	}
-
-	if len(h.config.QueueConf.AuthorizationKey) > 0 {
-		req.Header.Add("Authorization", h.config.QueueConf.AuthorizationKey)
-	}
-
-	if len(h.config.QueueConf.Queue) > 0 {
-		req.Host = h.config.QueueConf.Queue
-	}
-
-	resp, err := h.client.Do(req)
-	if err != nil {
-		warnLogger.Printf("Could not connect to proxy: %v", err.Error())
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		errMsg := fmt.Sprintf("Proxy returned status: %d", resp.StatusCode)
-		return "", errors.New(errMsg)
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	return checkIfTopicIsPresent(body, h.config.QueueConf.Topic)
-
-}
-
-func checkIfTopicIsPresent(body []byte, searchedTopic string) (string, error) {
-	var topics []string
-
-	err := json.Unmarshal(body, &topics)
-	if err != nil {
-		return "", fmt.Errorf("Error occured and topic could not be found. %v", err.Error())
-	}
-
-	for _, topic := range topics {
-		if topic == searchedTopic {
-			return "", nil
-		}
-	}
-
-	return "", errors.New("Topic was not found")
 }
 
 func (h *Healthcheck) reflectPublishFailures() fthealth.Check {
@@ -238,7 +199,7 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 		wg.Add(1)
 		healthcheckURL, err := inferHealthCheckUrl(url)
 		if err != nil {
-			errorLogger.Printf("Validation Service URL: [%s]. Err: [%v]", url, err.Error())
+			log.Errorf("Validation Service URL: [%s]. Err: [%v]", url, err.Error())
 			continue
 		}
 		username, password := getValidationCredentials()
@@ -255,9 +216,9 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 	return "", nil
 }
 
-func checkServiceReachable(healthcheckURL string, username string, password string, client http.Client, hcRes chan<- error, wg *sync.WaitGroup) {
+func checkServiceReachable(healthcheckURL string, username string, password string, client *http.Client, hcRes chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
-	infoLogger.Println("Checking: " + healthcheckURL)
+	log.Infof("Checking: %s", healthcheckURL)
 
 	req, err := http.NewRequest("GET", healthcheckURL, nil)
 	if err != nil {
@@ -321,7 +282,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		}
 
 		if err != nil {
-			errorLogger.Printf("Cannot parse url [%v], Err: [%v]", metric.Endpoint, err.Error())
+			log.Errorf("Cannot parse url [%v], Err: [%v]", metric.Endpoint, err.Error())
 			continue
 		}
 
@@ -333,7 +294,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		}
 
 		if err != nil {
-			errorLogger.Printf("Service URL: [%s]. Err: [%v]", endpointURL.String(), err.Error())
+			log.Errorf("Service URL: [%s]. Err: [%v]", endpointURL.String(), err.Error())
 			continue
 		}
 

@@ -2,8 +2,7 @@ package main
 
 import (
 	"flag"
-	"io"
-	"log"
+	"fmt"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
@@ -15,13 +14,14 @@ import (
 	"syscall"
 	"time"
 
-	"fmt"
-
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	status "github.com/Financial-Times/service-status-go/httphandlers"
+	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
+
 	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
-	status "github.com/Financial-Times/service-status-go/httphandlers"
-	"github.com/gorilla/mux"
+	"github.com/Financial-Times/publish-availability-monitor/logformat"
 )
 
 // Interval is a simple representation of an interval of time, with a lower and
@@ -37,7 +37,7 @@ type PublishMetric struct {
 	publishOK       bool      //did it meet the SLA?
 	publishDate     time.Time //the time WE get the message
 	platform        string
-	publishInterval Interval  //the interval it was actually published in, ex. (10,20)
+	publishInterval Interval //the interval it was actually published in, ex. (10,20)
 	config          MetricConfig
 	endpoint        url.URL
 	tid             string
@@ -46,7 +46,7 @@ type PublishMetric struct {
 
 // MetricConfig is the configuration of a PublishMetric
 type MetricConfig struct {
-	Granularity  int      `json:"granularity"`  //how we split up the threshold, ex. 120/12
+	Granularity  int      `json:"granularity"` //how we split up the threshold, ex. 120/12
 	Endpoint     string   `json:"endpoint"`
 	ContentTypes []string `json:"contentTypes"` //list of valid eom types for this metric
 	Alias        string   `json:"alias"`
@@ -60,7 +60,7 @@ type SplunkConfig struct {
 
 // AppConfig holds the application's configuration
 type AppConfig struct {
-	Threshold           int                  `json:"threshold"`           //pub SLA in seconds, ex. 120
+	Threshold           int                  `json:"threshold"` //pub SLA in seconds, ex. 120
 	QueueConf           consumer.QueueConfig `json:"queueConfig"`
 	MetricConf          []MetricConfig       `json:"metricConfig"`
 	SplunkConf          SplunkConfig         `json:"splunk-config"`
@@ -94,11 +94,7 @@ type publishHistory struct {
 }
 
 const dateLayout = time.RFC3339Nano
-const logPattern = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile | log.LUTC
 
-var infoLogger *log.Logger
-var warnLogger *log.Logger
-var errorLogger *log.Logger
 var configFileName = flag.String("config", "", "Path to configuration file")
 var envsFileName = flag.String("envs-file-name", "/etc/pam/envs/read-environments.json", "Path to json file that contains environments configuration")
 var envCredentialsFileName = flag.String("envs-credentials-file-name", "/etc/pam/credentials/read-environments-credentials.json", "Path to json file that contains environments credentials")
@@ -111,10 +107,14 @@ var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 var validatorCredentials Credentials
 var configFilesHashValues = make(map[string]string)
-var carouselTransactionIDRegExp = regexp.MustCompile(`^(tid_[a-zA-Z0-9]+)_carousel_[\d]{10}.*$`)
+var carouselTransactionIDRegExp = regexp.MustCompile(`^.+_carousel_[\d]{10}.*$`)
+
+func init() {
+	f := logformat.NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
+	log.SetFormatter(f)
+}
 
 func main() {
-	initLogs(os.Stdout, os.Stdout, os.Stderr)
 	flag.Parse()
 
 	var err error
@@ -158,15 +158,14 @@ func startHttpListener() {
 	http.Handle("/", router)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		errorLogger.Panicf("Couldn't set up HTTP listener: %+v\n", err)
+		log.Panicf("Couldn't set up HTTP listener: %+v\n", err)
 	}
 }
 
 func setupHealthchecks(router *mux.Router) {
-	healthcheck := &Healthcheck{http.Client{}, *appConfig, &metricContainer}
-	router.HandleFunc("/__health", healthcheck.checkHealth)
-	gtgHandler := status.NewGoodToGoHandler(healthcheck.gtg)
-	router.HandleFunc(status.GTGPath, gtgHandler)
+	hc := newHealthcheck(appConfig, &metricContainer)
+	router.HandleFunc("/__health", hc.checkHealth)
+	router.HandleFunc("/__gtg", status.NewGoodToGoHandler(hc.GTG))
 }
 
 func attachProfiler(router *mux.Router) {
@@ -206,31 +205,31 @@ func startAggregator() {
 func loadHistory(w http.ResponseWriter, r *http.Request) {
 	metricContainer.RLock()
 	for i := len(metricContainer.publishMetrics) - 1; i >= 0; i-- {
-		fmt.Fprintf(w, "%d. %v\n\n", len(metricContainer.publishMetrics) - i, metricContainer.publishMetrics[i])
+		fmt.Fprintf(w, "%d. %v\n\n", len(metricContainer.publishMetrics)-i, metricContainer.publishMetrics[i])
 	}
 	metricContainer.RUnlock()
 }
 
 func handleMessage(msg consumer.Message) {
 	tid := msg.Headers["X-Request-Id"]
-	infoLogger.Printf("Received message with TID [%v]", tid)
+	log.Infof("Received message with TID [%v]", tid)
 
 	if isIgnorableMessage(tid) {
-		infoLogger.Printf("Message [%v] is ignorable. Skipping...", tid)
+		log.Infof("Message [%v] is ignorable. Skipping...", tid)
 		return
 	}
 
 	publishDateString := msg.Headers["Message-Timestamp"]
 	publishDate, err := time.Parse(dateLayout, publishDateString)
 	if err != nil {
-		errorLogger.Printf("Cannot parse publish date [%v] from message [%v], error: [%v]",
+		log.Errorf("Cannot parse publish date [%v] from message [%v], error: [%v]",
 			publishDateString, tid, err.Error())
 		return
 	}
 
 	publishedContent, err := content.UnmarshalContent(msg)
 	if err != nil {
-		warnLogger.Printf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
+		log.Warnf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return
 	}
 
@@ -268,15 +267,6 @@ func isSyntheticTransactionID(tid string) bool {
 
 func isContentCarouselTransactionID(tid string) bool {
 	return carouselTransactionIDRegExp.MatchString(tid)
-}
-
-func initLogs(infoHandle io.Writer, warnHandle io.Writer, errorHandle io.Writer) {
-	//to be used for INFO-level logging: info.Println("foo is now bar")
-	infoLogger = log.New(infoHandle, "INFO  - ", logPattern)
-	//to be used for WARN-level logging: warn.Println("foo is now bar")
-	warnLogger = log.New(warnHandle, "WARN  - ", logPattern)
-	//to be used for ERROR-level logging: errorL.Println("foo is now bar")
-	errorLogger = log.New(errorHandle, "ERROR - ", logPattern)
 }
 
 func (pm PublishMetric) String() string {

@@ -1,12 +1,13 @@
 package content
 
 import (
-	"github.com/Financial-Times/publish-availability-monitor/checks"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/Financial-Times/publish-availability-monitor/checks"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIsValid_ExternalValidationInvalidArticle422(t *testing.T) {

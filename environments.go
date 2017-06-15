@@ -5,11 +5,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	"io"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	log "github.com/Sirupsen/logrus"
 )
 
 func watchConfigFiles(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string, configRefreshPeriod int) {
@@ -18,12 +20,12 @@ func watchConfigFiles(envsFileName string, envCredentialsFileName string, valida
 	for range ticker.C {
 		err := updateEnvsIfChanged(envsFileName, envCredentialsFileName)
 		if err != nil {
-			errorLogger.Printf("Could not update envs config, error was: %s", err)
+			log.Errorf("Could not update envs config, error was: %s", err)
 		}
 
 		err = updateValidationCredentialsIfChanged(validationCredentialsFileName)
 		if err != nil {
-			errorLogger.Printf("Could not update validation credentials config, error was: %s", err)
+			log.Errorf("Could not update validation credentials config, error was: %s", err)
 		}
 	}
 }
@@ -99,11 +101,11 @@ func computeMD5Hash(fileName string) (string, error) {
 	}
 
 	hashValue := hash.Sum(nil)[:16]
-	return hex.EncodeToString(hashValue),nil
+	return hex.EncodeToString(hashValue), nil
 }
 
 func updateEnvs(envsFileName string, envCredentialsFileName string) error {
-	infoLogger.Print("Env config files changed. Updating envs")
+	log.Infof("Env config files changed. Updating envs")
 
 	envsFromFile, err := readEnvs(envsFileName)
 	if err != nil {
@@ -133,13 +135,13 @@ func closeFileAndUpdateHashValue(file *os.File) {
 	hashValue, err := computeMD5Hash(fileName)
 
 	if err != nil {
-		warnLogger.Printf("Could not compute MD5 hash value for file %s. Problem was: %s", fileName, err)
+		log.Warn("Could not compute MD5 hash value for file %s. Problem was: %s", fileName, err)
 	}
 	configFilesHashValues[fileName] = hashValue
 }
 
 func updateValidationCredentials(validationCredsFileName string) error {
-	infoLogger.Print("Credentials file changed. Updating validation credentials")
+	log.Info("Credentials file changed. Updating validation credentials")
 	credsFile, err := os.Open(validationCredsFileName)
 	defer closeFileAndUpdateHashValue(credsFile)
 	if err != nil {
@@ -189,7 +191,7 @@ func configureFeeds(removedEnvs []string) {
 			if !found {
 				endpointUrl, err := url.Parse(env.ReadUrl + metric.Endpoint)
 				if err != nil {
-					errorLogger.Printf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
+					log.Errorf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
 					continue
 				}
 
@@ -209,19 +211,19 @@ func filterInvalidEnvs(envsFromFile []Environment) []Environment {
 	for _, env := range envsFromFile {
 		//envs without name are invalid
 		if env.Name == "" {
-			errorLogger.Printf("Env %v has an empty name, skipping it", env)
+			log.Errorf("Env %v has an empty name, skipping it", env)
 			continue
 		}
 
 		//envs without read-url are invalid
 		if env.ReadUrl == "" {
-			errorLogger.Printf("Env with name %s does not have readUrl, skipping it", env.Name)
+			log.Errorf("Env with name %s does not have readUrl, skipping it", env.Name)
 			continue
 		}
 
 		//envs without s3 are still valid, but still a heads up is given.
 		if env.S3Url == "" {
-			infoLogger.Printf("Env with name %s does not have s3 url.", env.S3Url)
+			log.Errorf("Env with name %s does not have s3 url.", env.S3Url)
 		}
 
 		validEnvs = append(validEnvs, env)
@@ -242,7 +244,7 @@ func parseEnvsIntoMap(envs []Environment, envCredentials []Credentials) []string
 		}
 
 		if envs[i].Username == "" || envs[i].Password == "" {
-			infoLogger.Printf("No credentials provided for env with name %s", env.Name)
+			log.Infof("No credentials provided for env with name %s", env.Name)
 		}
 	}
 
@@ -250,7 +252,7 @@ func parseEnvsIntoMap(envs []Environment, envCredentials []Credentials) []string
 	removedEnvs := make([]string, 0)
 	for envName := range environments {
 		if !isEnvInSlice(envName, envs) {
-			infoLogger.Printf("removing environment from monitoring: %v", envName)
+			log.Infof("removing environment from monitoring: %v", envName)
 			delete(environments, envName)
 			removedEnvs = append(removedEnvs, envName)
 		}
@@ -260,7 +262,7 @@ func parseEnvsIntoMap(envs []Environment, envCredentials []Credentials) []string
 	for _, env := range envs {
 		envName := env.Name
 		environments[envName] = env
-		infoLogger.Printf("Added environment to monitoring: %s", envName)
+		log.Infof("Added environment to monitoring: %s", envName)
 	}
 
 	return removedEnvs
