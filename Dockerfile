@@ -2,6 +2,8 @@ FROM golang:1.8-alpine
 
 ENV PROJECT=publish-availability-monitor
 COPY . /${PROJECT}-sources/
+ADD config.json.template /config.json
+ADD startup.sh /
 
 RUN apk --no-cache --virtual .build-dependencies add git \
   && ORG_PATH="github.com/Financial-Times" \
