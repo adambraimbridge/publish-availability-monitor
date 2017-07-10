@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/Financial-Times/uuid-utils-go"
 )
 
 const videoType = "video"
@@ -20,7 +21,7 @@ func (video Video) Initialize(binaryContent []byte) Content {
 }
 
 func (video Video) Validate(externalValidationEndpoint string, txId string, username string, password string) ValidationResponse {
-	if !isUUIDValid(video.GetUUID()) {
+	if uuidutils.ValidateUUID(video.GetUUID()) != nil {
 		log.Warnf("Video invalid: invalid UUID: [%s]", video.GetUUID())
 		return ValidationResponse{IsValid: false, IsMarkedDeleted: video.isMarkedDeleted()}
 	}
