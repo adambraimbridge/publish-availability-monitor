@@ -11,5 +11,4 @@ publish-availability-monitor
 *.iml
 /projectFilesBackup
 
-/vendor/*
-!/vendor/vendor.json
+vendor/*/

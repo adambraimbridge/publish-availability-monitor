@@ -151,9 +151,9 @@ func startHttpListener() {
 }
 
 func setupHealthchecks(router *mux.Router) {
-	healthcheck := &Healthcheck{http.Client{}, *appConfig, &metricContainer}
-	router.HandleFunc("/__health", healthcheck.checkHealth)
-	router.HandleFunc("/__gtg", healthcheck.gtg)
+	hc := newHealthcheck(appConfig, &metricContainer)
+	router.HandleFunc("/__health", hc.checkHealth)
+	router.HandleFunc("/__gtg", status.NewGoodToGoHandler(hc.GTG))
 }
 
 func attachProfiler(router *mux.Router) {
