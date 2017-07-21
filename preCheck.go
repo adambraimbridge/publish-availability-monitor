@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/Financial-Times/uuid-utils-go"
+	log "github.com/Sirupsen/logrus"
 )
 
 var uuidDeriver = uuidutils.NewUUIDDeriverWith(uuidutils.IMAGE_SET)

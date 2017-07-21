@@ -12,8 +12,8 @@ import (
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
-	log "github.com/Sirupsen/logrus"
 	"github.com/Financial-Times/service-status-go/gtg"
+	log "github.com/Sirupsen/logrus"
 )
 
 const requestTimeout = 4500

@@ -49,7 +49,7 @@ func TestUnauthenticated(t *testing.T) {
 	defer server.Close()
 
 	httpCaller := NewHttpCaller(10)
-	resp, err := httpCaller.DoCall(server.URL, "", "", "")
+	resp, err := httpCaller.DoCall(Config{Url: server.URL})
 	assert.Nil(t, err, "unexpected error")
 
 	assertExpectedResponse(t, resp)
@@ -58,15 +58,17 @@ func TestUnauthenticated(t *testing.T) {
 func TestAuthenticated(t *testing.T) {
 	username := "scott"
 	password := "tiger"
+	apiKey := "someApiKey"
 
 	server := stubServer(t, "GET", map[string]string{
 		"User-Agent":    "UPP Publish Availability Monitor",
 		"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password)),
+		"X-Api-Key":     apiKey,
 	}, nil)
 	defer server.Close()
 
 	httpCaller := NewHttpCaller(10)
-	resp, err := httpCaller.DoCall(server.URL, username, password, "")
+	resp, err := httpCaller.DoCall(Config{Url: server.URL, Username: username, Password: password, ApiKey: apiKey})
 	assert.Nil(t, err, "unexpected error")
 
 	assertExpectedResponse(t, resp)
@@ -82,7 +84,7 @@ func TestTransactionId(t *testing.T) {
 	defer server.Close()
 
 	httpCaller := NewHttpCaller(10)
-	resp, err := httpCaller.DoCall(server.URL, "", "", txId)
+	resp, err := httpCaller.DoCall(Config{Url: server.URL, TxId: txId})
 	assert.Nil(t, err, "unexpected error")
 
 	assertExpectedResponse(t, resp)
@@ -102,7 +104,7 @@ func TestRequestWithEntity(t *testing.T) {
 	defer server.Close()
 
 	httpCaller := NewHttpCaller(10)
-	resp, err := httpCaller.DoCallWithEntity("POST", server.URL, "", "", "", contentType, strings.NewReader(body))
+	resp, err := httpCaller.DoCall(Config{HttpMethod: "POST", Url: server.URL, ContentType: contentType, Entity: strings.NewReader(body)})
 	assert.Nil(t, err, "unexpected error")
 
 	assertExpectedResponse(t, resp)

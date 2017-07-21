@@ -3,8 +3,8 @@ package content
 import (
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/Financial-Times/uuid-utils-go"
+	log "github.com/Sirupsen/logrus"
 )
 
 const videoType = "video"

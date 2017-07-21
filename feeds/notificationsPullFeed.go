@@ -66,7 +66,7 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 
 	txId := f.buildNotificationsTxId()
 	notificationsUrl := f.notificationsUrl + "?" + f.notificationsQueryString
-	resp, err := f.httpCaller.DoCall(notificationsUrl, f.username, f.password, txId)
+	resp, err := f.httpCaller.DoCall(checks.Config{Url: notificationsUrl, Username: f.username, Password: f.password, TxId: txId})
 
 	if err != nil {
 		log.WithField("transaction_id", txId).WithError(err).Errorf("error calling notifications %s", notificationsUrl)
