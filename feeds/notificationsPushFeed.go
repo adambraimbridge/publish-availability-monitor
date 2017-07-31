@@ -18,6 +18,7 @@ type NotificationsPushFeed struct {
 	stopFeed     bool
 	stopFeedLock *sync.RWMutex
 	connected    bool
+	apiKey       string
 }
 
 func (f *NotificationsPushFeed) Start() {
@@ -63,7 +64,7 @@ func (f *NotificationsPushFeed) isConsuming() bool {
 
 func (f *NotificationsPushFeed) consumeFeed() bool {
 	txId := f.buildNotificationsTxId()
-	resp, err := f.httpCaller.DoCall(f.baseUrl, f.username, f.password, txId)
+	resp, err := f.httpCaller.DoCall(checks.Config{Url: f.baseUrl, Username: f.username, Password: f.password, ApiKey: f.apiKey, TxId: txId})
 
 	if err != nil {
 		log.WithField("transaction_id", txId).Errorf("Sending request: [%v]", err)

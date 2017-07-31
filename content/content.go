@@ -82,10 +82,10 @@ func doExternalValidation(p validationParam, validCheck func(int) bool, deletedC
 		return ValidationResponse{false, deletedCheck()}
 	}
 
-	resp, err := httpCaller.DoCallWithEntity(
-		"POST", p.validationURL, p.username, p.password,
-		checks.ConstructPamTxId(p.txID),
-		"application/json", bytes.NewReader(p.binaryContent))
+	resp, err := httpCaller.DoCall(checks.Config{
+		HttpMethod: "POST", Url: p.validationURL, Username: p.username, Password: p.password,
+		TxId:        checks.ConstructPamTxId(p.txID),
+		ContentType: "application/json", Entity: bytes.NewReader(p.binaryContent)})
 
 	if err != nil {
 		log.Warnf("External validation for content uuid=[%s] transaction_id=[%s] validationURL=[%s], creating validation request error: [%v]. Skipping external validation.", p.uuid, p.txID, p.validationURL, err)

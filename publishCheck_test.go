@@ -317,13 +317,13 @@ type testHTTPCaller struct {
 }
 
 // returns the mock responses of testHTTPCaller in order
-func (t *testHTTPCaller) DoCall(url string, username string, password string, txId string) (*http.Response, error) {
-	if t.authUser != username || t.authPass != password {
+func (t *testHTTPCaller) DoCall(config checks.Config) (*http.Response, error) {
+	if t.authUser != config.Username || t.authPass != config.Password {
 		return buildResponse(401, `{message: "Not authenticated"}`), nil
 	}
 
 	if t.txId != "" {
-		assert.Equal(t.t, t.txId, txId, "transaction id")
+		assert.Equal(t.t, t.txId, config.TxId, "transaction id")
 	}
 
 	response := t.mockResponses[t.current]

@@ -8,13 +8,17 @@ import (
 
 // httpCaller abstracts http calls
 type HttpCaller interface {
-	DoCall(url string, username string, password string, txId string) (*http.Response, error)
-	DoCallWithEntity(httpMethod string, url string, username string, password string, txId string, contentType string, entity io.Reader) (*http.Response, error)
+	DoCall(config Config) (*http.Response, error)
 }
 
 // Default implementation of httpCaller
 type defaultHttpCaller struct {
 	client *http.Client
+}
+
+type Config struct {
+	HttpMethod, Url, Username, Password, ApiKey, TxId, ContentType string
+	Entity                                                         io.Reader
 }
 
 func NewHttpCaller(timeoutSeconds int) HttpCaller {
@@ -29,22 +33,25 @@ func NewHttpCaller(timeoutSeconds int) HttpCaller {
 }
 
 // Performs http GET calls using the default http client
-func (c defaultHttpCaller) DoCall(url string, username string, password string, txId string) (resp *http.Response, err error) {
-	return c.DoCallWithEntity("GET", url, username, password, txId, "", nil)
-}
-
-func (c defaultHttpCaller) DoCallWithEntity(httpMethod string, url string, username string, password string, txId string, contentType string, entity io.Reader) (resp *http.Response, err error) {
-	req, err := http.NewRequest(httpMethod, url, entity)
-	if username != "" && password != "" {
-		req.SetBasicAuth(username, password)
+func (c defaultHttpCaller) DoCall(config Config) (resp *http.Response, err error) {
+	if config.HttpMethod == "" {
+		config.HttpMethod = "GET"
+	}
+	req, err := http.NewRequest(config.HttpMethod, config.Url, config.Entity)
+	if config.Username != "" && config.Password != "" {
+		req.SetBasicAuth(config.Username, config.Password)
 	}
 
-	if txId != "" {
-		req.Header.Add("X-Request-Id", txId)
+	if config.ApiKey != "" {
+		req.Header.Add("X-Api-Key", config.ApiKey)
 	}
 
-	if contentType != "" {
-		req.Header.Add("Content-Type", contentType)
+	if config.TxId != "" {
+		req.Header.Add("X-Request-Id", config.TxId)
+	}
+
+	if config.ContentType != "" {
+		req.Header.Add("Content-Type", config.ContentType)
 	}
 
 	req.Header.Add("User-Agent", "UPP Publish Availability Monitor")
