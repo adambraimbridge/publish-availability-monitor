@@ -49,6 +49,14 @@ func TestIsCurrentOperationFinished_S3Check_NotFinished(t *testing.T) {
 	assert.False(t, finished, "operation should not have finished")
 }
 
+func TestIsCurrentOperationFinished_S3Check_NotFinished_On_403(t *testing.T) {
+	s3Check := &S3Check{
+		mockHTTPCaller(t, "", buildResponse(403, "")),
+	}
+	finished, _ := s3Check.isCurrentOperationFinished(NewPublishCheck(PublishMetric{}, "", "", 0, 0, nil))
+	assert.False(t, finished, "operation should not have finished")
+}
+
 func TestIsCurrentOperationFinished_ContentCheck_InvalidContent(t *testing.T) {
 	currentTid := "tid_1234"
 	testResponse := `{ "uuid" : "1234-1234"`
