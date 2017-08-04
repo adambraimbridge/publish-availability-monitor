@@ -185,7 +185,10 @@ func (s S3Check) isCurrentOperationFinished(pc *PublishCheck) (operationFinished
 	defer cleanupResp(resp)
 
 	if resp.StatusCode != 200 {
-		log.Warnf("Checking %s. Error calling URL: [%v] : Response status: [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, resp.Status)
+		/*	for S3 files, we're getting a 403 if the files are not yet in, so we're not warning on that */
+		if resp.StatusCode != 403 {
+			log.Warnf("Checking %s. Error calling URL: [%v] : Response status: [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, resp.Status)
+		}
 		return false, false
 	}
 
