@@ -107,6 +107,12 @@
 			"revisionTime": "2017-02-02T08:07:59Z"
 		},
 		{
+			"checksumSHA1": "8S4DTF5nyldGBZ3FIJ9I0SrU9JM=",
+			"path": "github.com/juju/errgo",
+			"revision": "08cceb5d0b5331634b9826762a8fd53b29b86ad8",
+			"revisionTime": "2014-09-25T10:02:37Z"
+		},
+		{
 			"checksumSHA1": "eOXF2PEvYLMeD8DSzLZJWbjYzco=",
 			"path": "github.com/kr/pretty",
 			"revision": "cfb55aafdaf3ec08f0db22699ab822c50091b1c4",
