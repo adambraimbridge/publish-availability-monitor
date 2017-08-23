@@ -49,6 +49,14 @@ func TestIsCurrentOperationFinished_S3Check_NotFinished(t *testing.T) {
 	assert.False(t, finished, "operation should not have finished")
 }
 
+func TestIsCurrentOperationFinished_S3Check_NotFinished_On_403(t *testing.T) {
+	s3Check := &S3Check{
+		mockHTTPCaller(t, "", buildResponse(403, "")),
+	}
+	finished, _ := s3Check.isCurrentOperationFinished(NewPublishCheck(PublishMetric{}, "", "", 0, 0, nil))
+	assert.False(t, finished, "operation should not have finished")
+}
+
 func TestIsCurrentOperationFinished_ContentCheck_InvalidContent(t *testing.T) {
 	currentTid := "tid_1234"
 	testResponse := `{ "uuid" : "1234-1234"`
@@ -317,13 +325,13 @@ type testHTTPCaller struct {
 }
 
 // returns the mock responses of testHTTPCaller in order
-func (t *testHTTPCaller) DoCall(url string, username string, password string, txId string) (*http.Response, error) {
-	if t.authUser != username || t.authPass != password {
+func (t *testHTTPCaller) DoCall(config checks.Config) (*http.Response, error) {
+	if t.authUser != config.Username || t.authPass != config.Password {
 		return buildResponse(401, `{message: "Not authenticated"}`), nil
 	}
 
 	if t.txId != "" {
-		assert.Equal(t.t, t.txId, txId, "transaction id")
+		assert.Equal(t.t, t.txId, config.TxId, "transaction id")
 	}
 
 	response := t.mockResponses[t.current]

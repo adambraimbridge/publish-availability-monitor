@@ -11,12 +11,12 @@
 			"versionExact": "0.1.0"
 		},
 		{
-			"checksumSHA1": "J+4afTatHVLwU1wboY/SvxigwbA=",
+			"checksumSHA1": "mirNgwWRdRte0ku/g4u4fNbzQP0=",
 			"path": "github.com/Financial-Times/message-queue-gonsumer/consumer",
-			"revision": "ebabf884866eecf81fe38f10893570d959fae01e",
-			"revisionTime": "2017-05-26T12:24:38Z",
-			"version": "0.4.0-k8s-remove-kafka-topic-check-rc1",
-			"versionExact": "0.4.0-k8s-remove-kafka-topic-check-rc1"
+			"revision": "6f96a5cb1e34c4baa8bc64f56524a7f2e0092ed3",
+			"revisionTime": "2017-06-22T11:17:49Z",
+			"version": "0.4.0",
+			"versionExact": "0.4.0"
 		},
 		{
 			"checksumSHA1": "fqpohN7Qp2qj7TLMbUxh/cK4oH0=",
@@ -37,6 +37,14 @@
 			"revisionTime": "2016-03-23T11:15:42Z",
 			"version": "0.1.0",
 			"versionExact": "0.1.0"
+		},
+		{
+			"checksumSHA1": "OctXH9nxfVzFlVWD7h4K5e+x5/M=",
+			"path": "github.com/Financial-Times/uuid-utils-go",
+			"revision": "e22658edd0f130936e99079bf844bde7087c914c",
+			"revisionTime": "2017-05-16T11:04:27Z",
+			"version": "1.0.1",
+			"versionExact": "1.0.1"
 		},
 		{
 			"checksumSHA1": "YD7op+BalfdUK0lb28y6Yex6cBM=",

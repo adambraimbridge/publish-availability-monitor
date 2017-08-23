@@ -51,6 +51,7 @@ type MetricConfig struct {
 	ContentTypes []string `json:"contentTypes"` //list of valid eom types for this metric
 	Alias        string   `json:"alias"`
 	Health       string   `json:"health,omitempty"`
+	ApiKey       string   `json:"apiKey,omitempty"`
 }
 
 // SplunkConfig holds the SplunkFeeder-specific configuration
