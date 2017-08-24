@@ -4,7 +4,7 @@ metadata:
   name: pam-environments
   namespace: default
 data:
-  environments: {{ .Values.environments }}
+{{ toYaml .Values.environments | indent 2 }}
 
 # corresponding secret template
 # kind: Secret

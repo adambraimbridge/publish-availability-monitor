@@ -18,11 +18,5 @@ envs:
   methode_article_internal_components_mapper_endpoint: "https://k8s-delivery-upp-eu.ft.com/__methode-article-internal-components-mapper/map"
   video_mapper_endpoint: "https://k8s-delivery-upp-eu.ft.com/__video-mapper/map"
   wordpress_mapper_endpoint: "https://k8s-delivery-upp-eu.ft.com/__wordpress-article-mapper/map"
-environments: |
-    [
-      {
-        "name":"k8s",
-        "read-url": "https://k8s-delivery-upp-eu.ft.com",
-        "s3-url": "http://com.ft.imagepublish.k8s.test.s3.amazonaws.com"
-      }
-    ]
+environments:
+  environments: '[{"name":"k8s","read-url": "https://k8s-delivery-upp-eu.ft.com","s3-url": "http://com.ft.imagepublish.k8s.test.s3.amazonaws.com"}]'
