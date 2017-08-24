@@ -1,0 +1,29 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: pam-environments
+  namespace: default
+data:
+  environments: {{ .Values.environments }}
+
+# corresponding secret template
+# kind: Secret
+# apiVersion: v1
+# metadata:
+#   name: publish-availability-monitor-secrets
+#   namespace: default
+# data:
+#   read-credentials:
+# [
+#   {
+#     "env-name": "k8s",
+#     "username": "foo",
+#     "password": "bar"
+#   }
+# ]
+#
+#   validator-credentials:
+# {
+#   "username": "oof",
+#   "password": "baz"
+# }
