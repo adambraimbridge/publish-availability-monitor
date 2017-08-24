@@ -51,16 +51,34 @@
 			"path": "github.com/Sirupsen/logrus",
 			"revision": "c078b1e43f58d563c74cebe63c85789e76ddb627",
 			"revisionTime": "2017-02-07T11:49:02Z",
-			"version": "v0.11.2",
+			"version": "=v0.11.2",
 			"versionExact": "v0.11.2"
+		},
+		{
+			"checksumSHA1": "7UA5xypGCK2rsrcAf3udKkwOkJM=",
+			"path": "github.com/coreos/etcd/client",
+			"revision": "714e7ec8db7f8398880197be10771fe89c480ee5",
+			"revisionTime": "2017-02-22T18:45:48Z",
+			"version": "v3.1.2",
+			"versionExact": "v3.1.2"
+		},
+		{
+			"checksumSHA1": "mKIXx1kDwmVmdIpZ3pJtRBuUKso=",
+			"path": "github.com/coreos/etcd/pkg/pathutil",
+			"revision": "17ae440991da3bdb2df4309936dd2074f66ec394",
+			"revisionTime": "2017-02-28T18:57:49Z"
+		},
+		{
+			"checksumSHA1": "gx1gJIMU6T0UNQ0bPZ/drQ8cpCI=",
+			"path": "github.com/coreos/etcd/pkg/types",
+			"revision": "17ae440991da3bdb2df4309936dd2074f66ec394",
+			"revisionTime": "2017-02-28T18:57:49Z"
 		},
 		{
 			"checksumSHA1": "dvabztWVQX8f6oMLRyv4dLH+TGY=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
-			"revisionTime": "2016-10-29T20:57:26Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
 			"checksumSHA1": "g/V4qrXjUGG9B+e3hB+4NAYJ5Gs=",
@@ -109,10 +127,10 @@
 			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "JXUVA1jky8ZX8w09p2t5KLs97Nc=",
+			"checksumSHA1": "q1qqfgDOGwfEuMlbHWNjYf09ACM=",
 			"path": "github.com/stretchr/testify/assert",
-			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
-			"revisionTime": "2017-01-30T11:31:45Z",
+			"revision": "69483b4bd14f5845b5a1e55bca19e954e827f1d0",
+			"revisionTime": "2016-09-25T01:54:16Z",
 			"version": "v1.1.4",
 			"versionExact": "v1.1.4"
 		},
@@ -125,16 +143,34 @@
 			"versionExact": "v1.1.4"
 		},
 		{
+			"checksumSHA1": "CoxdaTYdPZNJXr8mJfLxye428N0=",
+			"path": "github.com/ugorji/go/codec",
+			"revision": "c88ee250d0221a57af388746f5cf03768c21d6e2",
+			"revisionTime": "2017-02-15T20:11:44Z"
+		},
+		{
 			"checksumSHA1": "YPUzwYX7ji8jMLe7QAPjFwG9lTU=",
 			"path": "github.com/willf/bitset",
 			"revision": "5c3c0fce48842b2c0bbaa99b4e61b0175d84b47c",
 			"revisionTime": "2016-12-02T17:00:36Z"
 		},
 		{
-			"checksumSHA1": "Tkb1hBdBWeO7SGjixS2Hm48F6+s=",
+			"checksumSHA1": "Y+HGqEkYM15ir+J93MEaHdyFy0c=",
+			"path": "golang.org/x/net/context",
+			"revision": "906cda9512f77671ab44f8c8563b13a8e707b230",
+			"revisionTime": "2017-02-18T20:36:51Z"
+		},
+		{
+			"checksumSHA1": "fjMK2G5arnjllpoeBYeyf9Y2Iok=",
+			"path": "golang.org/x/net/proxy",
+			"revision": "906cda9512f77671ab44f8c8563b13a8e707b230",
+			"revisionTime": "2017-02-18T20:36:51Z"
+		},
+		{
+			"checksumSHA1": "mIZhS4hXW3qVQxsJ6tqztjJoJ8A=",
 			"path": "golang.org/x/sys/unix",
-			"revision": "fb4cac33e3196ff7f507ab9b2d2a44b0142f5b5a",
-			"revisionTime": "2017-06-14T06:48:48Z"
+			"revision": "9a7256cb28ed514b4e1e5f68959914c4c28a92e0",
+			"revisionTime": "2017-03-29T05:31:33Z"
 		}
 	],
 	"rootPath": "github.com/Financial-Times/publish-availability-monitor"

@@ -1,10 +1,11 @@
 package content
 
 import (
-	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+
+	"bytes"
 	"io"
 	"io/ioutil"
 	"net/http"
