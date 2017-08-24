@@ -58,8 +58,8 @@ func (c defaultHttpCaller) DoCall(config Config) (resp *http.Response, err error
 
 	req.Header.Add("User-Agent", "UPP Publish Availability Monitor")
 
-	var httpError error
 	op := func() error {
+		var httpError error
 		resp, httpError = c.client.Do(req)
 		if httpError != nil {
 			err = httpError
