@@ -38,6 +38,8 @@ spec:
               key: kafka.proxy.url.with.protocol
         - name: CONTENT_URL
           value: "{{ .Values.envs.content_url }}"
+        - name: ETCD_PEERS
+          value: "NOT_AVAILABLE"
         - name: INTERNAL_COMPWONENTS_URL
           value: "{{ .Values.envs.internal_components_url }}"
         - name: LISTS_URL

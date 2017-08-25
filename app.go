@@ -134,10 +134,7 @@ func main() {
 	}
 
 	log.Info("EtcdPeers value: [%s]", *etcdPeers)
-	if len(*etcdPeers) > 0{
-		log.Info("Sourcing dynamic configs from ETCD")
-		go DiscoverEnvironmentsAndValidators(etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey, environments)
-	} else{
+	if *etcdPeers == "NOT_AVAILABLE" {
 		log.Info("Sourcing dynamic configs from file")
 		err = updateEnvsIfChanged(*envsFileName, *envCredentialsFileName)
 		if err != nil {
@@ -150,6 +147,9 @@ func main() {
 		}
 
 		go watchConfigFiles(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName, *configRefreshPeriod)
+	} else {
+		log.Info("Sourcing dynamic configs from ETCD")
+		go DiscoverEnvironmentsAndValidators(etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey, environments)
 	}
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
