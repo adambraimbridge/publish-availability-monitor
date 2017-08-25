@@ -27,3 +27,6 @@ data:
 #   "username": "oof",
 #   "password": "baz"
 # }
+#
+#  list_notifications_push.api_key: fooBar
+#  notifications_push.api_key: foobaz
