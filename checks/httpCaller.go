@@ -70,6 +70,6 @@ func (c defaultHttpCaller) DoCall(config Config) (resp *http.Response, err error
 		return nil
 	}
 
-	retry.Do(op, retry.RetryChecker(func(err error) bool { return err != nil }), retry.MaxTries(2), retry.Sleep(1*time.Second))
+	retry.Do(op, retry.RetryChecker(func(err error) bool { return err != nil }), retry.MaxTries(2))
 	return resp, err
 }
