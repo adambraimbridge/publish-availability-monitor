@@ -241,8 +241,7 @@ func TestUpdateValidationCredentialsHappyFlow(t *testing.T) {
 	err := updateValidationCredentials(fileName)
 
 	assert.Nil(t, err)
-	assert.Equal(t, "test-user", validatorCredentials.Username)
-	assert.Equal(t, "test-pwd", validatorCredentials.Password)
+	assert.Equal(t, "test-user:test-pwd", validatorCredentials)
 	os.Remove(fileName)
 }
 
@@ -280,7 +279,7 @@ func TestConfigureFeedsWithEmptyListOfMetrics(t *testing.T) {
 	}
 	appConfig = &AppConfig{}
 
-	configureFeeds([]string{"test-feed"})
+	configureFileFeeds([]string{"test-feed"})
 
 	assert.Equal(t, 0, len(subscribedFeeds))
 }

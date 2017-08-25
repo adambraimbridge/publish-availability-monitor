@@ -120,7 +120,7 @@ func updateEnvs(envsFileName string, envCredentialsFileName string) error {
 	}
 
 	removedEnvs := parseEnvsIntoMap(validEnvs, envCredentials)
-	configureFeeds(removedEnvs)
+	configureFileFeeds(removedEnvs)
 
 	return nil
 }
@@ -155,11 +155,11 @@ func updateValidationCredentials(validationCredsFileName string) error {
 		return err
 	}
 
-	validatorCredentials = credentials
+	validatorCredentials = credentials.Username + ":" + credentials.Password
 	return nil
 }
 
-func configureFeeds(removedEnvs []string) {
+func configureFileFeeds(removedEnvs []string) {
 	for _, envName := range removedEnvs {
 		feeds, found := subscribedFeeds[envName]
 		if found {
