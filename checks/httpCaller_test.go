@@ -109,3 +109,49 @@ func TestRequestWithEntity(t *testing.T) {
 
 	assertExpectedResponse(t, resp)
 }
+
+func TestClientDoesRetry(t *testing.T) {
+	var retryCount int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		retryCount++
+		if retryCount%2 != 0 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	httpCaller := NewHttpCaller(10)
+	_, err := httpCaller.DoCall(Config{HttpMethod: "GET", Url: server.URL})
+	assert.NoError(t, err)
+	assert.Equal(t, 2, retryCount)
+}
+
+func TestClientDoesOnlyTwoRetries(t *testing.T) {
+	var retryCount int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		retryCount++
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	httpCaller := NewHttpCaller(10)
+	_, err := httpCaller.DoCall(Config{HttpMethod: "GET", Url: server.URL})
+	assert.NoError(t, err)
+	assert.Equal(t, 2, retryCount)
+}
+
+func TestClientDoesNoRetryAfterSuccessfullResponse(t *testing.T) {
+	var retryCount int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		retryCount++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	httpCaller := NewHttpCaller(10)
+	_, err := httpCaller.DoCall(Config{HttpMethod: "GET", Url: server.URL})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, retryCount)
+}

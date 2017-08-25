@@ -1,6 +1,8 @@
 package checks
 
 import (
+	"fmt"
+	"github.com/giantswarm/retry-go"
 	"io"
 	"net/http"
 	"time"
@@ -56,5 +58,19 @@ func (c defaultHttpCaller) DoCall(config Config) (resp *http.Response, err error
 
 	req.Header.Add("User-Agent", "UPP Publish Availability Monitor")
 
-	return c.client.Do(req)
+	op := func() error {
+		var httpError error
+		resp, httpError = c.client.Do(req)
+		if httpError != nil {
+			err = httpError
+		}
+		if resp.StatusCode >= 500 && resp.StatusCode < 600 {
+			//Error status code: create an err in order to trigger a retry
+			httpError = fmt.Errorf("Error status code received: %d", resp.StatusCode)
+		}
+		return httpError
+	}
+
+	retry.Do(op, retry.RetryChecker(func(err error) bool { return err != nil }), retry.MaxTries(2), retry.Sleep(1*time.Second))
+	return resp, err
 }
