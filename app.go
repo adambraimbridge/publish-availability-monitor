@@ -133,7 +133,6 @@ func main() {
 		return
 	}
 
-	log.Info("EtcdPeers value: [%s]", *etcdPeers)
 	if *etcdPeers == "NOT_AVAILABLE" {
 		log.Info("Sourcing dynamic configs from file")
 		err = updateEnvsIfChanged(*envsFileName, *envCredentialsFileName)
