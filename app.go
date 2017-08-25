@@ -129,10 +129,9 @@ func main() {
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
-		log.Fatal("Cannot load configuration: [%v]", err)
+		log.Fatal("Cannot load configuration: ", err)
 		return
 	}
-
 
 	log.Info("EtcdPeers value: [%s]", *etcdPeers)
 	if len(*etcdPeers) > 0{
