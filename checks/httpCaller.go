@@ -59,16 +59,15 @@ func (c defaultHttpCaller) DoCall(config Config) (resp *http.Response, err error
 	req.Header.Add("User-Agent", "UPP Publish Availability Monitor")
 
 	op := func() error {
-		var httpError error
-		resp, httpError = c.client.Do(req)
-		if httpError != nil {
-			err = httpError
+		resp, err = c.client.Do(req)
+		if err != nil {
+			return err
 		}
 		if resp.StatusCode >= 500 && resp.StatusCode < 600 {
 			//Error status code: create an err in order to trigger a retry
-			httpError = fmt.Errorf("Error status code received: %d", resp.StatusCode)
+			return fmt.Errorf("Error status code received: %d", resp.StatusCode)
 		}
-		return httpError
+		return nil
 	}
 
 	retry.Do(op, retry.RetryChecker(func(err error) bool { return err != nil }), retry.MaxTries(2), retry.Sleep(1*time.Second))
