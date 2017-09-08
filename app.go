@@ -129,7 +129,7 @@ func main() {
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
-		log.Fatal("Cannot load configuration: ", err)
+		log.Errorf("Cannot load configuration: ", err)
 		return
 	}
 
@@ -137,12 +137,14 @@ func main() {
 		log.Info("Sourcing dynamic configs from file")
 		err = updateEnvsIfChanged(*envsFileName, *envCredentialsFileName)
 		if err != nil {
-			panic(fmt.Sprintf("Cannot load envs config, error was: [%v]", err))
+			log.Errorf("Cannot load envs config.", err)
+			return
 		}
 
 		err = updateValidationCredentialsIfChanged(*validatorCredentialsFileName)
 		if err != nil {
-			panic(fmt.Sprintf("Cannot load validation credentials, error was: [%v]", err))
+			log.Errorf("Cannot load validation credentials.", err)
+			return
 		}
 
 		go watchConfigFiles(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName, *configRefreshPeriod)
