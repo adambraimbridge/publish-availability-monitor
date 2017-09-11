@@ -183,9 +183,8 @@ func TestFilterInvalidEnvsWithEmptyPwd(t *testing.T) {
 
 func TestUpdateValidationCredentialsHappyFlow(t *testing.T) {
 	fileName := prepareFile(validValidationCredentialsConfig)
-	credsFile, _ := os.Open(fileName)
-	defer credsFile.Close()
-	err := updateValidationCredentials(credsFile)
+	fileContents, _ := ioutil.ReadFile(fileName)
+	err := updateValidationCredentials(fileContents)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "test-user:test-pwd", validatorCredentials)
@@ -211,9 +210,8 @@ func TestUpdateValidationCredentialsInvalidConfig(t *testing.T) {
 		Username: "test-username",
 		Password: "test-password",
 	}
-	credsFile, _ := os.Open(fileName)
-	defer credsFile.Close()
-	err := updateValidationCredentials(credsFile)
+	fileContents, _ := ioutil.ReadFile(fileName)
+	err := updateValidationCredentials(fileContents)
 	assert.NotNil(t, err)
 	//make sure validationCredentials didn't change after failing call to updateValidationCredentials().
 	assert.Equal(t, "test-username", validatorCredentials.Username)
@@ -238,12 +236,12 @@ func TestUpdateEnvsHappyFlow(t *testing.T) {
 	}
 	appConfig = &AppConfig{}
 	envsFileName := prepareFile(validEnvConfig)
-	envsFile, _ := os.Open(envsFileName)
-	defer envsFile.Close()
+	envsFileContents, _ := ioutil.ReadFile(envsFileName)
+
 	envCredsFileName := prepareFile(validEnvCredentialsConfig)
-	credsFile, _ := os.Open(envCredsFileName)
-	defer credsFile.Close()
-	err := updateEnvs(envsFile, credsFile)
+	credsFileContents, _ := ioutil.ReadFile(envCredsFileName)
+
+	err := updateEnvs(envsFileContents, credsFileContents)
 
 	assert.Nil(t, err)
 	os.Remove(envsFileName)
@@ -252,9 +250,8 @@ func TestUpdateEnvsHappyFlow(t *testing.T) {
 
 func TestUpdateEnvsHappyNilEnvsFile(t *testing.T) {
 	envCredsFileName := prepareFile(validEnvCredentialsConfig)
-	credsFile, _ := os.Open(envCredsFileName)
-	defer credsFile.Close()
-	err := updateEnvs(nil, credsFile)
+	credsFileContents, _ := ioutil.ReadFile(envCredsFileName)
+	err := updateEnvs(nil, credsFileContents)
 
 	assert.NotNil(t, err)
 	os.Remove(envCredsFileName)
@@ -262,9 +259,9 @@ func TestUpdateEnvsHappyNilEnvsFile(t *testing.T) {
 
 func TestUpdateEnvsNilEnvCredentialsFile(t *testing.T) {
 	envsFileName := prepareFile(validEnvConfig)
-	envsFile, _ := os.Open(envsFileName)
-	defer envsFile.Close()
-	err := updateEnvs(envsFile, nil)
+	envsFileContents, _ := ioutil.ReadFile(envsFileName)
+
+	err := updateEnvs(envsFileContents, nil)
 
 	assert.NotNil(t, err)
 	os.Remove(envsFileName)
