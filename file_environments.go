@@ -12,6 +12,7 @@ import (
 
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	log "github.com/Sirupsen/logrus"
+	"errors"
 )
 
 func watchConfigFiles(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string, configRefreshPeriod int) {
@@ -31,92 +32,115 @@ func watchConfigFiles(envsFileName string, envCredentialsFileName string, valida
 }
 
 func updateValidationCredentialsIfChanged(validationCredentialsFileName string) error {
+	credsFile, err := os.Open(validationCredentialsFileName)
+	if err != nil {
+		return fmt.Errorf("could not open creds file [%s] because [%s]", envsFileName, err)
+	}
+	defer credsFile.Close()
+
 	var validationCredentialsChanged bool
-	var err error
-	if validationCredentialsChanged, err = isFileChanged(validationCredentialsFileName); err != nil {
-		return fmt.Errorf("Could not detect if envs file [%s] was changed. Problem was: %s", validationCredentialsFileName, err)
+	var credsNewHash string
+	if validationCredentialsChanged, credsNewHash, err = isFileChanged(credsFile); err != nil {
+		return fmt.Errorf("could not detect if creds file [%s] was changed because: [%s]", validationCredentialsFileName, err)
 	}
 
 	if !validationCredentialsChanged {
 		return nil
 	}
 
-	err = updateValidationCredentials(validationCredentialsFileName)
+	err = updateValidationCredentials(credsFile)
 	if err != nil {
-		return fmt.Errorf("Cannot update envs. Error was: %s", err)
+		return fmt.Errorf("cannot update validation credentials because [%s]", err)
 	}
 
+	configFilesHashValues[credsFile.Name()] = credsNewHash
 	return nil
 }
 
 func updateEnvsIfChanged(envsFileName string, envCredentialsFileName string) error {
 	var envsFileChanged, envCredentialsChanged bool
-	var err error
-	if envsFileChanged, err = isFileChanged(envsFileName); err != nil {
-		return fmt.Errorf("Could not detect if envs file [%s] was changed. Problem was: %s", envsFileName, err)
+	var envsNewHash, credsNewHash string
+
+	envsFile, err := os.Open(envsFileName)
+	if err != nil {
+		return fmt.Errorf("could not open envs file [%s] because [%s]", envsFileName, err)
+	}
+	defer envsFile.Close()
+
+	if envsFileChanged, envsNewHash, err = isFileChanged(envsFile); err != nil {
+		return fmt.Errorf("could not detect if envs file [%s] was changed because [%s]", envsFileName, err)
 	}
 
-	if envCredentialsChanged, err = isFileChanged(envCredentialsFileName); err != nil {
-		return fmt.Errorf("Could not detect if credentials file [%s] was changed. Problem was: %s", envCredentialsFileName, err)
+	credsFile, err := os.Open(envCredentialsFileName)
+	if err != nil {
+		return fmt.Errorf("could not open creds file [%s] because [%s]", envCredentialsFileName, err)
+	}
+	defer credsFile.Close()
+
+	if envCredentialsChanged, credsNewHash, err = isFileChanged(credsFile); err != nil {
+		return fmt.Errorf("could not detect if credentials file [%s] was changed because [%s]", envCredentialsFileName, err)
 	}
 
 	if !envsFileChanged && !envCredentialsChanged {
 		return nil
 	}
 
-	err = updateEnvs(envsFileName, envCredentialsFileName)
+	err = updateEnvs(envsFile, credsFile)
 	if err != nil {
-		return fmt.Errorf("Cannot update envs. Error was: %s", err)
+		return fmt.Errorf("cannot update environments and credentials because [%s]", err)
 	}
-
+	configFilesHashValues[envsFile.Name()] = envsNewHash
+	configFilesHashValues[credsFile.Name()] = credsNewHash
 	return nil
 }
 
-func isFileChanged(fileName string) (bool, error) {
-	currentHash, err := computeMD5Hash(fileName)
+func isFileChanged(file *os.File) (bool, string, error) {
+	currentHash, err := computeMD5Hash(file)
 	if err != nil {
-		return false, fmt.Errorf("Could not compute hash value for file %s. Problem was: %s", fileName, err)
+		return false, "", fmt.Errorf("could not compute hash value for file [%s] because [%s]", file.Name(), err)
 	}
 
-	var previousHash string
-	var found bool
-	if previousHash, found = configFilesHashValues[fileName]; !found {
-		return true, nil
+	previousHash, found := configFilesHashValues[file.Name()]
+	if found && previousHash == currentHash {
+		return false, previousHash, nil
 	}
 
-	return previousHash != currentHash, nil
+	return true, currentHash, nil
 }
 
-func computeMD5Hash(fileName string) (string, error) {
-	file, err := os.Open(fileName)
-	if err != nil {
-		return "", fmt.Errorf("Could not open file with name %s. Problem was: %s", fileName, err)
-	}
-
-	defer file.Close()
-
+func computeMD5Hash(file *os.File) (string, error) {
 	hash := md5.New()
 	if _, err := io.Copy(hash, file); err != nil {
-		return "", fmt.Errorf("Could not copy file with name %s to compute hash value. Problem was: %s", fileName, err)
+		return "", fmt.Errorf("could not copy file [%s] to compute hash value because [%s]", file.Name(), err)
 	}
-
 	hashValue := hash.Sum(nil)[:16]
 	return hex.EncodeToString(hashValue), nil
 }
 
-func updateEnvs(envsFileName string, envCredentialsFileName string) error {
+func updateEnvs(envsFile *os.File, credsFile *os.File) error {
+	if envsFile == nil {
+		return errors.New("cannot update envs because envs file is nil")
+	}
+	if credsFile == nil{
+		return errors.New("cannot update env credentials because credentials file is nil")
+	}
 	log.Infof("Env config files changed. Updating envs")
 
-	envsFromFile, err := readEnvs(envsFileName)
+	jsonParser := json.NewDecoder(envsFile)
+	envsFromFile := []Environment{}
+	err := jsonParser.Decode(&envsFromFile)
 	if err != nil {
-		return fmt.Errorf("Cannot parse environments. Error was: %s", err)
+		return fmt.Errorf("cannot parse environmente because [%s]", err)
 	}
 
 	validEnvs := filterInvalidEnvs(envsFromFile)
 
-	envCredentials, err := readEnvCredentials(envCredentialsFileName)
+	jsonParser = json.NewDecoder(credsFile)
+	envCredentials := []Credentials{}
+	err = jsonParser.Decode(&envCredentials)
+
 	if err != nil {
-		return fmt.Errorf("Cannot parse environments. Error was: %s", err)
+		return fmt.Errorf("cannot parse credentials because [%s]", err)
 	}
 
 	removedEnvs := parseEnvsIntoMap(validEnvs, envCredentials)
@@ -125,36 +149,18 @@ func updateEnvs(envsFileName string, envCredentialsFileName string) error {
 	return nil
 }
 
-func closeFileAndUpdateHashValue(file *os.File) {
-	if file == nil {
-		return
+func updateValidationCredentials(credsFile *os.File) error {
+	if credsFile == nil{
+		return errors.New("cannot update validation credentials from nil file")
 	}
-
-	fileName := file.Name()
-	file.Close()
-	hashValue, err := computeMD5Hash(fileName)
-
-	if err != nil {
-		log.Warn("Could not compute MD5 hash value for file %s. Problem was: %s", fileName, err)
-	}
-	configFilesHashValues[fileName] = hashValue
-}
-
-func updateValidationCredentials(validationCredsFileName string) error {
 	log.Info("Credentials file changed. Updating validation credentials")
-	credsFile, err := os.Open(validationCredsFileName)
-	defer closeFileAndUpdateHashValue(credsFile)
-	if err != nil {
-		return err
-	}
 
 	jsonParser := json.NewDecoder(credsFile)
 	credentials := Credentials{}
-	err = jsonParser.Decode(&credentials)
+	err := jsonParser.Decode(&credentials)
 	if err != nil {
 		return err
 	}
-
 	validatorCredentials = credentials.Username + ":" + credentials.Password
 	return nil
 }
@@ -266,33 +272,6 @@ func parseEnvsIntoMap(envs []Environment, envCredentials []Credentials) []string
 	}
 
 	return removedEnvs
-}
-
-func readEnvs(fileName string) ([]Environment, error) {
-	envsFile, err := os.Open(fileName)
-	defer closeFileAndUpdateHashValue(envsFile)
-	if err != nil {
-		return []Environment{}, err
-	}
-
-	jsonParser := json.NewDecoder(envsFile)
-	envs := []Environment{}
-	err = jsonParser.Decode(&envs)
-	return envs, err
-}
-
-func readEnvCredentials(fileName string) ([]Credentials, error) {
-	envCredsFile, err := os.Open(fileName)
-	defer closeFileAndUpdateHashValue(envCredsFile)
-	if err != nil {
-		return []Credentials{}, err
-	}
-
-	jsonParser := json.NewDecoder(envCredsFile)
-	credentials := []Credentials{}
-	err = jsonParser.Decode(&credentials)
-
-	return credentials, err
 }
 
 func isEnvInSlice(envName string, envs []Environment) bool {

@@ -181,76 +181,23 @@ func TestFilterInvalidEnvsWithEmptyPwd(t *testing.T) {
 	assert.Equal(t, 1, len(filteredEnvs))
 }
 
-func TestReadEnvsHappyFlow(t *testing.T) {
-	fileName := prepareFile(validEnvConfig)
-
-	envs, err := readEnvs(fileName)
-
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(envs))
-	os.Remove(fileName)
-}
-
-func TestReadEnvsNonExistingFile(t *testing.T) {
-	envs, err := readEnvs("non-existing-file-name")
-
-	assert.NotNil(t, err)
-	assert.Equal(t, 0, len(envs))
-}
-
-func TestReadEnvsInvalidJson(t *testing.T) {
-	fileName := prepareFile(invalidJsonConfig)
-
-	credentials, err := readEnvs(fileName)
-
-	assert.NotNil(t, err)
-	assert.Equal(t, 0, len(credentials))
-	os.Remove(fileName)
-}
-
-func TestReadEnvsCredentialsHappyFlow(t *testing.T) {
-	fileName := prepareFile(validEnvCredentialsConfig)
-
-	credentials, err := readEnvCredentials(fileName)
-
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(credentials))
-	os.Remove(fileName)
-}
-
-func TestReadEnvsCredentialsNonExistingFile(t *testing.T) {
-	credentials, err := readEnvCredentials("non-existing-file-name")
-
-	assert.NotNil(t, err)
-	assert.Equal(t, 0, len(credentials))
-}
-
-func TestReadEnvsCredentialsInvalidJson(t *testing.T) {
-	fileName := prepareFile(invalidJsonConfig)
-
-	credentials, err := readEnvCredentials(fileName)
-
-	assert.NotNil(t, err)
-	assert.Equal(t, 0, len(credentials))
-	os.Remove(fileName)
-}
-
 func TestUpdateValidationCredentialsHappyFlow(t *testing.T) {
 	fileName := prepareFile(validValidationCredentialsConfig)
-
-	err := updateValidationCredentials(fileName)
+	credsFile, _ := os.Open(fileName)
+	defer credsFile.Close()
+	err := updateValidationCredentials(credsFile)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "test-user:test-pwd", validatorCredentials)
 	os.Remove(fileName)
 }
 
-func TestUpdateValidationCredentialsNonExistingFile(t *testing.T) {
+func TestUpdateValidationCredentialNilFile(t *testing.T) {
 	validatorCredentials := Credentials{
 		Username: "test-username",
 		Password: "test-password",
 	}
-	err := updateValidationCredentials("non-existing-file-name")
+	err := updateValidationCredentials(nil)
 
 	assert.NotNil(t, err)
 	//make sure validationCredentials didn't change after failing call to updateValidationCredentials().
@@ -264,8 +211,9 @@ func TestUpdateValidationCredentialsInvalidConfig(t *testing.T) {
 		Username: "test-username",
 		Password: "test-password",
 	}
-	err := updateValidationCredentials(fileName)
-
+	credsFile, _ := os.Open(fileName)
+	defer credsFile.Close()
+	err := updateValidationCredentials(credsFile)
 	assert.NotNil(t, err)
 	//make sure validationCredentials didn't change after failing call to updateValidationCredentials().
 	assert.Equal(t, "test-username", validatorCredentials.Username)
@@ -290,28 +238,33 @@ func TestUpdateEnvsHappyFlow(t *testing.T) {
 	}
 	appConfig = &AppConfig{}
 	envsFileName := prepareFile(validEnvConfig)
+	envsFile, _ := os.Open(envsFileName)
+	defer envsFile.Close()
 	envCredsFileName := prepareFile(validEnvCredentialsConfig)
-
-	err := updateEnvs(envsFileName, envCredsFileName)
+	credsFile, _ := os.Open(envCredsFileName)
+	defer credsFile.Close()
+	err := updateEnvs(envsFile, credsFile)
 
 	assert.Nil(t, err)
 	os.Remove(envsFileName)
 	os.Remove(envCredsFileName)
 }
 
-func TestUpdateEnvsHappyNonExistingEnvsFile(t *testing.T) {
+func TestUpdateEnvsHappyNilEnvsFile(t *testing.T) {
 	envCredsFileName := prepareFile(validEnvCredentialsConfig)
-
-	err := updateEnvs("non-existing-file-name", envCredsFileName)
+	credsFile, _ := os.Open(envCredsFileName)
+	defer credsFile.Close()
+	err := updateEnvs(nil, credsFile)
 
 	assert.NotNil(t, err)
 	os.Remove(envCredsFileName)
 }
 
-func TestUpdateEnvsNonExistingEnvCredentialsFile(t *testing.T) {
+func TestUpdateEnvsNilEnvCredentialsFile(t *testing.T) {
 	envsFileName := prepareFile(validEnvConfig)
-
-	err := updateEnvs(envsFileName, "non-existing-file-name")
+	envsFile, _ := os.Open(envsFileName)
+	defer envsFile.Close()
+	err := updateEnvs(envsFile, nil)
 
 	assert.NotNil(t, err)
 	os.Remove(envsFileName)
