@@ -267,6 +267,284 @@ func TestUpdateEnvsNilEnvCredentialsFile(t *testing.T) {
 	os.Remove(envsFileName)
 }
 
+func TestComputeMD5Hash(t *testing.T) {
+	var testCases = []struct {
+		caseDescription string
+		toHash          []byte
+		expectedHash    string
+	}{
+		{
+			caseDescription: "one-line valid input",
+			toHash:          []byte("foobar"),
+			expectedHash:    "3858f62230ac3c915f300c664312c63f",
+		},
+		{
+			caseDescription: "multi-line valid input",
+			toHash: []byte(`foo
+					      bar`),
+			expectedHash: "1be7783a9859a16a010d466d39342543",
+		},
+		{
+			caseDescription: "empty input",
+			toHash:          []byte(""),
+			expectedHash:    "d41d8cd98f00b204e9800998ecf8427e",
+		},
+		{
+			caseDescription: "nil input",
+			toHash:          nil,
+			expectedHash:    "d41d8cd98f00b204e9800998ecf8427e",
+		},
+	}
+
+	for _, tc := range testCases {
+		actualHash, err := computeMD5Hash(tc.toHash)
+		assert.Nil(t, err)
+		assert.Equal(t, tc.expectedHash, actualHash,
+			fmt.Sprintf("%s: Computed has doesn't match expected hash", tc.caseDescription))
+	}
+}
+
+func TestIsFileChanged(t *testing.T) {
+	var testCases = []struct {
+		caseDescription       string
+		fileContents          []byte
+		fileName              string
+		configFilesHashValues map[string]string
+		expectedResult        bool
+		expectedHash          string
+	}{
+		{
+			caseDescription: "file not changed",
+			fileContents:    []byte("foobar"),
+			fileName:        "file1",
+			configFilesHashValues: map[string]string{
+				"file1": "3858f62230ac3c915f300c664312c63f",
+				"file2": "1be7783a9859a16a010d466d39342543",
+			},
+			expectedResult: false,
+			expectedHash:   "3858f62230ac3c915f300c664312c63f",
+		},
+		{
+			caseDescription: "new file",
+			fileContents:    []byte("foobar"),
+			fileName:        "file1",
+			configFilesHashValues: map[string]string{
+				"file2": "1be7783a9859a16a010d466d39342543",
+			},
+			expectedResult: true,
+			expectedHash:   "3858f62230ac3c915f300c664312c63f",
+		},
+		{
+			caseDescription: "file contents changed",
+			fileContents:    []byte("foobarNew"),
+			fileName:        "file1",
+			configFilesHashValues: map[string]string{
+				"file1": "3858f62230ac3c915f300c664312c63f",
+				"file2": "1be7783a9859a16a010d466d39342543",
+			},
+			expectedResult: true,
+			expectedHash:   "bdcf75c01270b40ebb33c1d24457ed81",
+		},
+	}
+
+	for _, tc := range testCases {
+		configFilesHashValues = tc.configFilesHashValues
+		actualResult, actualHash, _ := isFileChanged(tc.fileContents, tc.fileName)
+		assert.Equal(t, tc.expectedResult, actualResult,
+			fmt.Sprintf("%s: File change was not detected correctly.", tc.caseDescription))
+		assert.Equal(t, tc.expectedHash, actualHash,
+			fmt.Sprintf("%s: The expected file hash was not returned.", tc.caseDescription))
+	}
+}
+
+func TestUpdateEnvsIfChangedEnvFileDoesntExist(t *testing.T) {
+	credsFile := prepareFile(validEnvCredentialsConfig)
+	defer os.Remove(credsFile)
+
+	environments = make(map[string]Environment)
+	configFilesHashValues = make(map[string]string)
+
+	err := updateEnvsIfChanged("thisFileDoesntexist", credsFile)
+
+	assert.NotNil(t, err, "Didn't get an error after supplying file which doesn't exist")
+	assert.Equal(t, 0, len(environments), "No new environments should've been added")
+	assert.Equal(t, 0, len(configFilesHashValues), "No hashes should've been updated")
+}
+
+func TestUpdateEnvsIfChangedCredsFileDoesntExist(t *testing.T) {
+	envsFile := prepareFile(validEnvConfig)
+	defer os.Remove(envsFile)
+
+	environments = make(map[string]Environment)
+	configFilesHashValues = make(map[string]string)
+
+	err := updateEnvsIfChanged(envsFile, "thisFileDoesntexist")
+
+	assert.NotNil(t, err, "Didn't get an error after supplying file which doesn't exist")
+	assert.Equal(t, 0, len(environments), "No new environments should've been added")
+	assert.Equal(t, 0, len(configFilesHashValues), "No hashes should've been updated")
+}
+
+func TestUpdateEnvsIfChangedFilesDontExist(t *testing.T) {
+	environments = make(map[string]Environment)
+	configFilesHashValues = make(map[string]string)
+
+	err := updateEnvsIfChanged("thisFileDoesntExist", "thisDoesntExistEither")
+
+	assert.NotNil(t, err, "Didn't get an error after supplying files which don't exist")
+	assert.Equal(t, 0, len(environments), "No new environments should've been added")
+	assert.Equal(t, 0, len(configFilesHashValues), "No hashes should've been updated")
+}
+
+func TestUpdateEnvsIfChangedValidFiles(t *testing.T) {
+	envsFile := prepareFile(validEnvConfig)
+	defer os.Remove(envsFile)
+	credsFile := prepareFile(validEnvCredentialsConfig)
+	defer os.Remove(credsFile)
+
+	environments = make(map[string]Environment)
+	configFilesHashValues = make(map[string]string)
+
+	//appConfig has to be non-nil for the actual update to work
+	appConfig = &AppConfig{}
+	err := updateEnvsIfChanged(envsFile, credsFile)
+
+	assert.Nil(t, err, "Got an error after supplying valid files")
+	assert.Equal(t, 1, len(environments), "New environment should've been added")
+	assert.Equal(t, 2, len(configFilesHashValues), "New hashes should've been added")
+}
+
+func TestUpdateEnvsIfChangedNoChanges(t *testing.T) {
+	envsFile := prepareFile(validEnvConfig)
+	defer os.Remove(envsFile)
+	credsFile := prepareFile(validEnvCredentialsConfig)
+	defer os.Remove(credsFile)
+
+	environments = map[string]Environment{
+		"test-env": {
+			Name:     "test-env",
+			Password: "test-pwd",
+			ReadUrl:  "https://test-env.ft.com",
+			S3Url:    "http://test.s3.amazonaws.com",
+			Username: "test-user",
+		},
+	}
+	configFilesHashValues = map[string]string{
+		envsFile:  "792c5a9eebad1a967faab8defd9e646b",
+		credsFile: "dfd8aecc21b7017c5e4f171e3279fc68",
+	}
+
+	//if the update works (which it shouldn't) we will have a failure
+	appConfig = nil
+	err := updateEnvsIfChanged(envsFile, credsFile)
+
+	assert.Nil(t, err, "Got an error after supplying valid files")
+	assert.Equal(t, 1, len(environments), "Environments shouldn't have changed")
+	assert.Equal(t, 2, len(configFilesHashValues), "Hashes shouldn't have changed")
+}
+
+func TestUpdateEnvsIfChangedInvalidEnvsFile(t *testing.T) {
+	envsFile := prepareFile(invalidJsonConfig)
+	defer os.Remove(envsFile)
+	credsFile := prepareFile(validEnvCredentialsConfig)
+	defer os.Remove(credsFile)
+
+	environments = make(map[string]Environment)
+	configFilesHashValues = make(map[string]string)
+
+	err := updateEnvsIfChanged(envsFile, credsFile)
+
+	assert.NotNil(t, err, "Didn't get an error after supplying invalid file")
+	assert.Equal(t, 0, len(environments), "No new environment should've been added")
+	assert.Equal(t, 0, len(configFilesHashValues), "No new hashes should've been added")
+}
+
+func TestUpdateEnvsIfChangedInvalidCredsFile(t *testing.T) {
+	envsFile := prepareFile(validEnvConfig)
+	defer os.Remove(envsFile)
+	credsFile := prepareFile(invalidJsonConfig)
+	defer os.Remove(credsFile)
+
+	environments = make(map[string]Environment)
+	configFilesHashValues = make(map[string]string)
+
+	err := updateEnvsIfChanged(envsFile, credsFile)
+
+	assert.NotNil(t, err, "Didn't get an error after supplying invalid file")
+	assert.Equal(t, 0, len(environments), "No new environment should've been added")
+	assert.Equal(t, 0, len(configFilesHashValues), "No new hashes should've been added")
+}
+
+func TestUpdateEnvsIfChangedInvalidFiles(t *testing.T) {
+	envsFile := prepareFile(invalidJsonConfig)
+	defer os.Remove(envsFile)
+	credsFile := prepareFile(invalidJsonConfig)
+	defer os.Remove(credsFile)
+
+	environments = make(map[string]Environment)
+	configFilesHashValues = make(map[string]string)
+
+	err := updateEnvsIfChanged(envsFile, credsFile)
+
+	assert.NotNil(t, err, "Didn't get an error after supplying invalid file")
+	assert.Equal(t, 0, len(environments), "No new environment should've been added")
+	assert.Equal(t, 0, len(configFilesHashValues), "No new hashes should've been added")
+}
+
+func TestUpdateValidationCredentialsIfChangedFileDoesntExist(t *testing.T) {
+	validatorCredentials = ""
+	configFilesHashValues = make(map[string]string)
+
+	err := updateValidationCredentialsIfChanged("thisFileDoesntExist")
+
+	assert.NotNil(t, err, "Didn't get an error after supplying file which doesn't exist")
+	assert.Equal(t, 0, len(validatorCredentials), "No validator credentials should've been added")
+	assert.Equal(t, 0, len(configFilesHashValues), "No hashes should've been updated")
+}
+
+func TestUpdateValidationCredentialsIfChangedInvalidFile(t *testing.T) {
+	validationCredsFile := prepareFile(invalidJsonConfig)
+	defer os.Remove(validationCredsFile)
+
+	validatorCredentials = ""
+	configFilesHashValues = make(map[string]string)
+
+	err := updateValidationCredentialsIfChanged(validationCredsFile)
+
+	assert.NotNil(t, err, "Didn't get an error after supplying file which doesn't exist")
+	assert.Equal(t, 0, len(validatorCredentials), "No validator credentials should've been added")
+	assert.Equal(t, 0, len(configFilesHashValues), "No hashes should've been updated")
+}
+
+func TestUpdateValidationCredentialsIfChangedNewFile(t *testing.T) {
+	validationCredsFile := prepareFile(validValidationCredentialsConfig)
+	defer os.Remove(validationCredsFile)
+
+	validatorCredentials = ""
+	configFilesHashValues = make(map[string]string)
+
+	err := updateValidationCredentialsIfChanged(validationCredsFile)
+
+	assert.Nil(t, err, "Shouldn't get an error for valid file")
+	assert.Equal(t, "test-user:test-pwd", validatorCredentials, "New validator credentials should've been added")
+	assert.Equal(t, 1, len(configFilesHashValues), "New hashes should've been added")
+}
+
+func TestUpdateValidationCredentialsIfChangedFileUnchanged(t *testing.T) {
+	validationCredsFile := prepareFile(validValidationCredentialsConfig)
+	defer os.Remove(validationCredsFile)
+
+	validatorCredentials = "test-user:test-pwd"
+	configFilesHashValues = map[string]string{
+		validationCredsFile: "cc4d51dfe137ec8cbba8fd3ff24474be",
+	}
+
+	err := updateValidationCredentialsIfChanged(validationCredsFile)
+	assert.Nil(t, err, "Shouldn't get an error for valid file")
+	assert.Equal(t, "test-user:test-pwd", validatorCredentials, "Validator credentials shouldn't have changed")
+	assert.Equal(t, "cc4d51dfe137ec8cbba8fd3ff24474be", configFilesHashValues[validationCredsFile], "Hashes shouldn't have changed")
+}
+
 func prepareFile(fileContent string) string {
 	file, err := ioutil.TempFile(os.TempDir(), "")
 	if err != nil {
