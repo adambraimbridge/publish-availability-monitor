@@ -84,8 +84,7 @@ spec:
             port: 8080
           initialDelaySeconds: 30
         readinessProbe:
-          httpGet:
-            path: /__gtg
+          tcpSocket:
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 30
