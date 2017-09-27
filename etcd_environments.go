@@ -88,7 +88,7 @@ func redefineEnvironments(environments map[string]Environment) error {
 	}
 	removedEnvs := parseEnvironmentsIntoMap(etcdReadEnvResp.Node.Value, etcdCredResp.Node.Value, etcdS3EnvResp.Node.Value, environments)
 
-	configureFeeds(removedEnvs)
+	configureEtcdFeeds(removedEnvs)
 
 	return nil
 }
@@ -179,7 +179,7 @@ func watch(etcdKey *string, fn func()) {
 	}
 }
 
-func configureFeeds(removedEnvs []string) {
+func configureEtcdFeeds(removedEnvs []string) {
 	for _, envName := range removedEnvs {
 		feeds, found := subscribedFeeds[envName]
 		if found {

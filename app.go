@@ -76,11 +76,17 @@ type HealthConfig struct {
 
 // Environment defines an environment in which the publish metrics should be checked
 type Environment struct {
-	Name     string
-	ReadUrl  string
-	S3Url    string
-	Username string
-	Password string
+	Name     string `json:"name"`
+	ReadUrl  string `json:"read-url"`
+	S3Url    string `json:"s3-url"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type Credentials struct {
+	EnvName  string `json:"env-name"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type publishHistory struct {
@@ -91,11 +97,17 @@ type publishHistory struct {
 const dateLayout = time.RFC3339Nano
 
 var configFileName = flag.String("config", "", "Path to configuration file")
+
 var etcdPeers = flag.String("etcd-peers", "http://localhost:2379", "Comma-separated list of addresses of etcd endpoints to connect to")
 var etcdReadEnvKey = flag.String("etcd-read-env-key", "/ft/config/monitoring/read-urls", "etcd key that lists the read environment URLs")
 var etcdS3EnvKey = flag.String("etcd-s3-env-key", "/ft/config/monitoring/s3-image-bucket-urls", "etcd key that lists the S3 image bucket URLs")
 var etcdCredKey = flag.String("etcd-cred-key", "/ft/_credentials/publish-read/read-credentials", "etcd key that lists the read environment credentials")
 var etcdValidatorCredKey = flag.String("etcd-validator-cred-key", "/ft/_credentials/publish-read/validator-credentials", "etcd key that specifies the validator credentials")
+
+var envsFileName = flag.String("envs-file-name", "/etc/pam/envs/read-environments.json", "Path to json file that contains environments configuration")
+var envCredentialsFileName = flag.String("envs-credentials-file-name", "/etc/pam/credentials/read-environments-credentials.json", "Path to json file that contains environments credentials")
+var validatorCredentialsFileName = flag.String("validator-credentials-file-name", "/etc/pam/credentials/validator-credentials.json", "Path to json file that contains validation endpoints configuration")
+var configRefreshPeriod = flag.Int("config-refresh-period", 1, "Refresh period for configuration in minutes. By default it is 1 minute.")
 
 var appConfig *AppConfig
 var environments = make(map[string]Environment)
@@ -103,7 +115,7 @@ var subscribedFeeds = make(map[string][]feeds.Feed)
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
 var validatorCredentials string
-
+var configFilesHashValues = make(map[string]string)
 var carouselTransactionIDRegExp = regexp.MustCompile(`^.+_carousel_[\d]{10}.*$`)
 
 func init() {
@@ -117,11 +129,29 @@ func main() {
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
-		log.Errorf("Cannot load configuration: [%v]", err)
+		log.Errorf("Cannot load configuration: ", err)
 		return
 	}
 
-	go DiscoverEnvironmentsAndValidators(etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey, environments)
+	if *etcdPeers == "NOT_AVAILABLE" {
+		log.Info("Sourcing dynamic configs from file")
+		err = updateEnvsIfChanged(*envsFileName, *envCredentialsFileName)
+		if err != nil {
+			log.Errorf("Cannot load envs config.", err)
+			return
+		}
+
+		err = updateValidationCredentialsIfChanged(*validatorCredentialsFileName)
+		if err != nil {
+			log.Errorf("Cannot load validation credentials.", err)
+			return
+		}
+
+		go watchConfigFiles(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName, *configRefreshPeriod)
+	} else {
+		log.Info("Sourcing dynamic configs from ETCD")
+		go DiscoverEnvironmentsAndValidators(etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey, environments)
+	}
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 

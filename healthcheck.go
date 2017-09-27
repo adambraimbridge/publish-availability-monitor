@@ -11,9 +11,11 @@ import (
 
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	"github.com/Financial-Times/service-status-go/gtg"
 	log "github.com/Sirupsen/logrus"
+
 )
 
 const requestTimeout = 4500
@@ -54,7 +56,7 @@ var noReadEnvironments = fthealth.Check{
 	Name:             "ReadEnvironments",
 	PanicGuide:       pam_run_book_url,
 	Severity:         1,
-	TechnicalSummary: "There are no read environments to monitor. This could be because none have been configured, or that etcd is not reachable/healthy",
+	TechnicalSummary: "There are no read environments to monitor. This could be because none have been configured",
 	Checker: func() (string, error) {
 		return "", errors.New("There are no read environments to monitor.")
 	},
@@ -201,8 +203,8 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 			log.Errorf("Validation Service URL: [%s]. Err: [%v]", url, err.Error())
 			continue
 		}
-
-		go checkServiceReachable(healthcheckURL, h.client, hcErrs, &wg)
+		username, password := getValidationCredentials()
+		go checkServiceReachable(healthcheckURL, username, password, h.client, hcErrs, &wg)
 	}
 
 	wg.Wait()
@@ -215,11 +217,21 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 	return "", nil
 }
 
-func checkServiceReachable(healthcheckURL string, client *http.Client, hcRes chan<- error, wg *sync.WaitGroup) {
+func checkServiceReachable(healthcheckURL string, username string, password string, client *http.Client, hcRes chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
 	log.Infof("Checking: %s", healthcheckURL)
 
-	resp, err := client.Get(healthcheckURL)
+	req, err := http.NewRequest("GET", healthcheckURL, nil)
+	if err != nil {
+		hcRes <- fmt.Errorf("Cannot create HTTP request with URL: [%s]. Error: [%v]", healthcheckURL, err)
+		return
+	}
+
+	if username != "" && password != "" {
+		req.SetBasicAuth(username, password)
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		hcRes <- fmt.Errorf("Healthcheck URL: [%s]. Error: [%v]", healthcheckURL, err)
 		return
@@ -257,7 +269,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 	for _, metric := range appConfig.MetricConf {
 		var endpointURL *url.URL
 		var err error
-
+		var username, password string
 		if absoluteUrlRegex.MatchString(metric.Endpoint) {
 			endpointURL, err = url.Parse(metric.Endpoint)
 		} else {
@@ -265,6 +277,8 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 				endpointURL, err = url.Parse(h.env.S3Url + metric.Endpoint)
 			} else {
 				endpointURL, err = url.Parse(h.env.ReadUrl + metric.Endpoint)
+				username = h.env.Username
+				password = h.env.Password
 			}
 		}
 
@@ -286,7 +300,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		}
 
 		wg.Add(1)
-		go checkServiceReachable(healthcheckURL, h.client, hcErrs, &wg)
+		go checkServiceReachable(healthcheckURL, username, password, h.client, hcErrs, &wg)
 	}
 
 	wg.Wait()
