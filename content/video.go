@@ -15,9 +15,9 @@ type Video struct {
 	BinaryContent []byte `json:"-"` //This field is for internal application usage
 }
 
-func (video Video) Initialize(binaryContent []byte) Content {
+func (video Video) Initialize(binaryContent []byte, uuidResolverUrl string, txID string) (Content, error) {
 	video.BinaryContent = binaryContent
-	return video
+	return video, nil
 }
 
 func (video Video) Validate(externalValidationEndpoint string, txId string, username string, password string) ValidationResponse {

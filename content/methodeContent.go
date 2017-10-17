@@ -5,7 +5,16 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
+	"fmt"
+	"time"
+	"net"
+	"github.com/Financial-Times/publish-availability-monitor/checks"
+	"io/ioutil"
+	"os"
+	"encoding/json"
 )
+
+var blogCategories = []string{"blog", "webchat-live-blogs", "webchat-live-qa", "webchat-markets-live", "fastft"}
 
 // EomFile models Methode content
 type EomFile struct {
@@ -27,22 +36,112 @@ type Source struct {
 	SourceCode string   `xml:"EditorialNotes>Sources>Source>SourceCode"`
 }
 
-func (eomfile EomFile) initType() EomFile {
+// Attributes is the data structure that models methode content placeholders attributes
+type Attributes struct {
+	XMLName             xml.Name `xml:"ObjectMetadata"`
+	SourceCode          string   `xml:"EditorialNotes>Sources>Source>SourceCode"`
+	LastPublicationDate string   `xml:"OutputChannels>DIFTcom>DIFTcomLastPublication"`
+	RefField            string   `xml:"WiresIndexing>ref_field"`
+	ServiceId           string   `xml:"WiresIndexing>serviceid"`
+	Category            string   `xml:"WiresIndexing>category"`
+	IsDeleted           bool     `xml:"OutputChannels>DIFTcom>DIFTcomMarkDeleted"`
+}
+
+func (eomfile EomFile) initType(uuidResolverUrl string, txID string) (EomFile, error) {
 	contentType := eomfile.ContentType
 	contentSrc := eomfile.Source.SourceCode
 
 	if contentSrc == "ContentPlaceholder" && contentType == "EOM::CompoundStory" {
-		eomfile.Type = "EOM::CompoundStory_ContentPlaceholder"
+		uuid, err := eomfile.resolveUUID(uuidResolverUrl, txID)
+		if err != nil {
+			return EomFile{}, err
+		}
+
+		if uuid != "" {
+			eomfile.Type = "EOM::CompoundStory_Internal_CPH"
+			eomfile.UUID = uuid
+		} else {
+			eomfile.Type = "EOM::CompoundStory_External_CPH"
+		}
+
 		log.Infof("results [%v] ....", eomfile.Type)
-		return eomfile
+		return eomfile, nil
 	}
 	eomfile.Type = eomfile.ContentType
-	return eomfile
+	return eomfile, nil
 }
 
-func (eomfile EomFile) Initialize(binaryContent []byte) Content {
+func (eomfile EomFile) resolveUUID(uuidResolverUrl string, txID string) (string, error) {
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+			MaxIdleConnsPerHost:   20,
+			TLSHandshakeTimeout:   3 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	docStoreClient := checks.NewHttpDocStoreClient(httpClient, uuidResolverUrl)
+	iResolver := checks.NewHttpIResolver(docStoreClient, readBrandMappings())
+	attributes, err := buildAttributes(eomfile.Attributes)
+	if err != nil {
+		return "", err
+	}
+
+	uuid := ""
+	if isBlogCategory(attributes) {
+		resolvedUuid, err := iResolver.ResolveIdentifier(attributes.ServiceId, attributes.RefField, txID)
+		if err != nil {
+			return "", fmt.Errorf("Couldn't resolve blog uuid %v", err)
+		}
+		uuid = resolvedUuid
+	}
+	return uuid, nil
+}
+
+func buildAttributes(attributesXML string) (Attributes, error) {
+	var attrs Attributes
+	if err := xml.Unmarshal([]byte(attributesXML), &attrs); err != nil {
+		return Attributes{}, err
+	}
+	return attrs, nil
+}
+
+func readBrandMappings() map[string]string {
+	brandMappingsFile, err := ioutil.ReadFile("./brandMappings.json")
+	if err != nil {
+		log.Errorf("Couldn't read brand mapping configuration: %v\n", err)
+		os.Exit(1)
+	}
+	var brandMappings map[string]string
+	err = json.Unmarshal(brandMappingsFile, &brandMappings)
+	if err != nil {
+		log.Errorf("Couldn't unmarshal brand mapping configuration: %v\n", err)
+		os.Exit(1)
+	}
+	return brandMappings
+}
+
+func isBlogCategory(attributes Attributes) bool {
+	for _, c := range blogCategories {
+		if c == attributes.Category {
+			return true
+		}
+	}
+	return false
+}
+
+func (eomfile EomFile) Initialize(binaryContent []byte, uuidResolverUrl string, txID string) (Content, error) {
 	eomfile.BinaryContent = binaryContent
-	return eomfile.initType()
+	eomfileInitilized, err := eomfile.initType(uuidResolverUrl, txID)
+	return Content(eomfileInitilized), err
 }
 
 func (eomfile EomFile) Validate(externalValidationEndpoint string, txID string, username string, password string) ValidationResponse {

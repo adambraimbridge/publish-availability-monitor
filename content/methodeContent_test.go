@@ -21,7 +21,7 @@ func TestInitTypeForContentPlaceholders(t *testing.T) {
 		SystemAttributes: "systemAttributes",
 	}
 	xml.Unmarshal([]byte(supportedSourceCodeAttributesContentPlaceholder), &file.Source)
-	file = file.initType()
+	file, _ = file.initType("", "")
 	assert.Equal(t, "EOM::CompoundStory_ContentPlaceholder", file.Type)
 }
 
@@ -33,7 +33,7 @@ func TestInitTypeForNonContentPlaceholders(t *testing.T) {
 		SystemAttributes: "systemAttributes",
 	}
 	xml.Unmarshal([]byte(supportedSourceCodeAttributes), &file.Source)
-	file = file.initType()
+	file, _ = file.initType("", "")
 	assert.Equal(t, "EOM::CompoundStory", file.Type)
 }
 

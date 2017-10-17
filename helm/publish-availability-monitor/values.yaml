@@ -9,6 +9,7 @@ image:
 envs:
   kafka_topic: ""
   content_url: ""
+  complementary_content_url: ""
   internal_components_url: ""
   lists_url: ""
   notifications_url: ""
@@ -22,6 +23,7 @@ envs:
   methode_article_internal_components_mapper_endpoint: ""
   video_mapper_endpoint: ""
   wordpress_mapper_endpoint: ""
+  uuid_resolver_url: ""
 volumes:
   read_envs_config_mount_path: "/etc/pam/envs"
   secrets_mount_path: "/etc/pam/credentials"

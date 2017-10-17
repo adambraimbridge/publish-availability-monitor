@@ -17,7 +17,7 @@ import (
 
 // Content is the interface for different type of contents from different CMSs.
 type Content interface {
-	Initialize(binaryContent []byte) Content
+	Initialize(binaryContent []byte, uuidResolverUrl string, txID string) (Content, error)
 	Validate(externalValidationEndpoint string, txID string, username string, password string) ValidationResponse
 	GetType() string
 	GetUUID() string
@@ -47,11 +47,12 @@ func init() {
 }
 
 // UnmarshalContent unmarshals the message body into the appropriate content type based on the systemID header.
-func UnmarshalContent(msg consumer.Message) (Content, error) {
+func UnmarshalContent(msg consumer.Message, uuidResolverUrl string) (Content, error) {
 	binaryContent := []byte(msg.Body)
 
 	headers := msg.Headers
 	systemID := headers[systemIDKey]
+	txID := msg.Headers["X-Request-Id"]
 	switch systemID {
 	case "http://cmdb.ft.com/systems/methode-web-pub":
 		var eomFile EomFile
@@ -62,15 +63,21 @@ func UnmarshalContent(msg consumer.Message) (Content, error) {
 		}
 		xml.Unmarshal([]byte(eomFile.Attributes), &eomFile.Source)
 
-		return eomFile.Initialize(binaryContent), err
+		return eomFile.Initialize(binaryContent, uuidResolverUrl, txID)
 	case "http://cmdb.ft.com/systems/wordpress":
 		var wordPressMsg WordPressMessage
 		err := json.Unmarshal(binaryContent, &wordPressMsg)
-		return wordPressMsg.Initialize(binaryContent), err
+		if err != nil {
+			return nil, err
+		}
+		return wordPressMsg.Initialize(binaryContent, "", "")
 	case "http://cmdb.ft.com/systems/next-video-editor":
 		var video Video
 		err := json.Unmarshal(binaryContent, &video)
-		return video.Initialize(binaryContent), err
+		if err != nil {
+			return nil, err
+		}
+		return video.Initialize(binaryContent, "", "")
 	default:
 		return nil, fmt.Errorf("Unsupported content with system ID: [%s].", systemID)
 	}
@@ -83,7 +90,7 @@ func doExternalValidation(p validationParam, validCheck func(int) bool, deletedC
 	}
 
 	resp, err := httpCaller.DoCall(checks.Config{
-		HttpMethod: "POST", Url: p.validationURL, Username: p.username, Password: p.password,
+		HttpMethod:  "POST", Url: p.validationURL, Username: p.username, Password: p.password,
 		TxId:        checks.ConstructPamTxId(p.txID),
 		ContentType: "application/json", Entity: bytes.NewReader(p.binaryContent)})
 

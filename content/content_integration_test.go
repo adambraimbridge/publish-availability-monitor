@@ -55,7 +55,7 @@ func TestThat_ContentPayloadFromKafkaMsg_MatchesTheContentPayloadSentToValidatio
 			checkSameContentBody(t, strings.TrimSpace(tc.msg.Body), strings.TrimSpace(string(body)), "[%s] testcase failure", tc.name)
 		}))
 		defer ts.Close()
-		content, err := UnmarshalContent(tc.msg)
+		content, err := UnmarshalContent(tc.msg, "")
 		if err != nil {
 			t.Errorf("Expected success, but error occured [%v]", err)
 			return

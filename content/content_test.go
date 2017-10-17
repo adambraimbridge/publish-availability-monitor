@@ -8,43 +8,43 @@ import (
 )
 
 func TestUnmarshalContent_ValidMessageMethodeSystemHeader_NoError(t *testing.T) {
-	if _, err := UnmarshalContent(validMethodeMessage); err != nil {
+	if _, err := UnmarshalContent(validMethodeMessage, ""); err != nil {
 		t.Errorf("Message with valid system ID [%s] cannot be unmarshalled!", validMethodeMessage.Headers["Origin-System-Id"])
 	}
 }
 
 func TestUnmarshalContent_ValidMessageWordpressSystemHeader_NoError(t *testing.T) {
-	if _, err := UnmarshalContent(validWordpressMessage); err != nil {
+	if _, err := UnmarshalContent(validWordpressMessage, ""); err != nil {
 		t.Errorf("Message with valid system ID [%s] cannot be unmarshalled!", validWordpressMessage.Headers["Origin-System-Id"])
 	}
 }
 
 func TestUnmarshalContent_InvalidMessageMissingHeader_Error(t *testing.T) {
-	if _, err := UnmarshalContent(invalidMessageWrongHeader); err == nil {
+	if _, err := UnmarshalContent(invalidMessageWrongHeader, ""); err == nil {
 		t.Error("Expected failure, but message with missing system ID successfully unmarshalled!")
 	}
 }
 
 func TestUnmarshalContent_InvalidMessageWrongSystemId_Error(t *testing.T) {
-	if _, err := UnmarshalContent(invalidMessageWrongSystemID); err == nil {
+	if _, err := UnmarshalContent(invalidMessageWrongSystemID, ""); err == nil {
 		t.Error("Expected failure, but message with wrong system ID successfully unmarshalled!")
 	}
 }
 
 func TestUnmarshalContent_InvalidMethodeContentWrongJSONFormat_Error(t *testing.T) {
-	if _, err := UnmarshalContent(invalidMethodeMessageWrongJSONFormat); err == nil {
+	if _, err := UnmarshalContent(invalidMethodeMessageWrongJSONFormat, ""); err == nil {
 		t.Error("Expected failure, but message with wrong system ID successfully unmarshalled!")
 	}
 }
 
 func TestUnmarshalContent_InvalidWordPressContentWrongJSONFormat_Error(t *testing.T) {
-	if _, err := UnmarshalContent(invalidWordPressMessageWrongJSONFormat); err == nil {
+	if _, err := UnmarshalContent(invalidWordPressMessageWrongJSONFormat, ""); err == nil {
 		t.Error("Expected failure, but message with wrong system ID successfully unmarshalled!")
 	}
 }
 
 func TestUnmarshalContent_ValidWordPressMessageWithTypeField_TypeIsCorrectlyUnmarshalled(t *testing.T) {
-	content, err := UnmarshalContent(validWordPressMessageWithTypeField)
+	content, err := UnmarshalContent(validWordPressMessageWithTypeField, "")
 	if err != nil {
 		t.Errorf("Expected success, but error occured [%v]", err)
 		return
@@ -63,7 +63,7 @@ func TestUnmarshalContent_ValidVideoMessage(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		content, err := UnmarshalContent(testCase.videoMessage)
+		content, err := UnmarshalContent(testCase.videoMessage, "")
 		if err != nil {
 			t.Errorf("Expected success, but error occured [%v]", err)
 			return
@@ -74,7 +74,7 @@ func TestUnmarshalContent_ValidVideoMessage(t *testing.T) {
 }
 
 func TestUnmarshalContent_ValidDeletedVideoMessage(t *testing.T) {
-	content, err := UnmarshalContent(validDeleteVideoMsg)
+	content, err := UnmarshalContent(validDeleteVideoMsg, "")
 	if err != nil {
 		t.Errorf("Expected success, but error occured [%v]", err)
 		return
@@ -84,7 +84,7 @@ func TestUnmarshalContent_ValidDeletedVideoMessage(t *testing.T) {
 }
 
 func TestUnmarshalContent_InvalidVideoMessage(t *testing.T) {
-	content, err := UnmarshalContent(invalidVideoMsg)
+	content, err := UnmarshalContent(invalidVideoMsg, "")
 	if err != nil {
 		t.Errorf("Expected success, but error occured [%v]", err)
 		return
@@ -100,7 +100,7 @@ func TestUnmarshalContent_ContentIsMethodeList_LinkedObjectsFieldIsMarshalled(t 
 		},
 		Body: string(loadBytesForFile(t, "methode_list.json")),
 	}
-	content, err := UnmarshalContent(validMethodeListMessage)
+	content, err := UnmarshalContent(validMethodeListMessage, "")
 	if err != nil {
 		t.Errorf("Expected success, but error occured [%v]", err)
 		return
@@ -121,7 +121,7 @@ func TestUnmarshalContent_ContentIsMethodeArticle_LinkedObjectsFieldIsEmpty(t *t
 		},
 		Body: string(loadBytesForFile(t, "methode_article.json")),
 	}
-	content, err := UnmarshalContent(validMethodeListMessage)
+	content, err := UnmarshalContent(validMethodeListMessage, "")
 	if err != nil {
 		t.Errorf("Expected success, but error occured [%v]", err)
 		return
@@ -136,7 +136,7 @@ func TestUnmarshalContent_ContentIsMethodeArticle_LinkedObjectsFieldIsEmpty(t *t
 }
 
 func TestUnmarshalContent_MethodeBinaryContentSet(t *testing.T) {
-	content, err := UnmarshalContent(validMethodeMessage)
+	content, err := UnmarshalContent(validMethodeMessage, "")
 	assert.NoError(t, err)
 
 	eomFile, ok := content.(EomFile)
@@ -146,7 +146,7 @@ func TestUnmarshalContent_MethodeBinaryContentSet(t *testing.T) {
 }
 
 func TestUnmarshalContent_VideoBinaryContentSet(t *testing.T) {
-	content, err := UnmarshalContent(validVideoMsg)
+	content, err := UnmarshalContent(validVideoMsg, "")
 	assert.NoError(t, err)
 
 	video, ok := content.(Video)
@@ -156,7 +156,7 @@ func TestUnmarshalContent_VideoBinaryContentSet(t *testing.T) {
 }
 
 func TestIsValidContentPlaceholder(t *testing.T) {
-	content, err := UnmarshalContent(validContentPlaceholder)
+	content, err := UnmarshalContent(validContentPlaceholder, "")
 	if err != nil {
 		t.Error("Expected failure")
 		return
