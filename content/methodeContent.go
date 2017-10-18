@@ -115,7 +115,7 @@ func buildAttributes(attributesXML string) (Attributes, error) {
 }
 
 func readBrandMappings() map[string]string {
-	brandMappingsFile, err := ioutil.ReadFile("./brandMappings.json")
+	brandMappingsFile, err := ioutil.ReadFile("../brandMappings.json")
 	if err != nil {
 		log.Errorf("Couldn't read brand mapping configuration: %v\n", err)
 		os.Exit(1)
