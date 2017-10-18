@@ -155,13 +155,13 @@ func TestUnmarshalContent_VideoBinaryContentSet(t *testing.T) {
 	assert.Equal(t, []byte(validVideoMsg.Body), video.BinaryContent)
 }
 
-func TestIsValidContentPlaceholder(t *testing.T) {
+func TestIsValidExternalCPH(t *testing.T) {
 	content, err := UnmarshalContent(validContentPlaceholder, "")
 	if err != nil {
 		t.Error("Expected failure")
 		return
 	}
-	assert.Equal(t, "EOM::CompoundStory_ContentPlaceholder", content.GetType())
+	assert.Equal(t, "EOM::CompoundStory_External_CPH", content.GetType())
 }
 
 var invalidMethodeMessageWrongJSONFormat = consumer.Message{
