@@ -123,5 +123,5 @@
     "video": "VIDEO_MAPPER_URL",
     "wordpress": "WORDPRESS_MAPPER_URL"
   },
-  "uuidResolverUrl": "$UUID_RESOLVER_URL"
+  "uuidResolverUrl": "UUID_RESOLVER_URL"
 }
