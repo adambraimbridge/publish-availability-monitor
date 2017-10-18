@@ -6,6 +6,8 @@ import (
 	"github.com/Sirupsen/logrus"
 	"net/http"
 	"net/url"
+	"golang.org/x/tools/go/gcimporter15/testdata"
+	"bytes"
 )
 
 type DocStoreClient interface {
@@ -14,11 +16,18 @@ type DocStoreClient interface {
 
 type httpDocStoreClient struct {
 	docStoreAddress string
-	client          *http.Client
+	httpCaller      HttpCaller
+	username        string
+	password        string
 }
 
-func NewHttpDocStoreClient(client *http.Client, docStoreAddress string) *httpDocStoreClient {
-	return &httpDocStoreClient{docStoreAddress: docStoreAddress, client: client}
+func NewHttpDocStoreClient(docStoreAddress string, httpCaller HttpCaller, username, password string) *httpDocStoreClient {
+	return &httpDocStoreClient{
+		docStoreAddress: docStoreAddress,
+		httpCaller: httpCaller,
+		username: username,
+		password: password,
+	}
 }
 
 func (c *httpDocStoreClient) ContentQuery(authority string, identifier string, tid string) (status int, location string, err error) {
@@ -30,16 +39,15 @@ func (c *httpDocStoreClient) ContentQuery(authority string, identifier string, t
 	query.Add("identifierValue", identifier)
 	query.Add("identifierAuthority", authority)
 	docStoreUrl.RawQuery = query.Encode()
-	req, err := http.NewRequest(http.MethodGet, docStoreUrl.String(), nil)
+
+	resp, err := c.httpCaller.DoCall(Config{
+		Url: docStoreUrl.String(),
+		Username: c.username,
+		Password: c.password,
+		TxId: ConstructPamTxId(tid),
+	})
 	if err != nil {
-		return -1, "", fmt.Errorf("Couldn't create request to fetch canonical identifier for authority=%v identifier=%v", authority, identifier)
-	}
-	// TODO: Remove when host based routing doesn't exist any more.
-	req.Host = "document-store-api"
-	req.Header.Add(transactionidutils.TransactionIDHeader, tid)
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return -1, "", fmt.Errorf("Unsucessful request for fetching canonical identifier for authority=%v identifier=%v", authority, identifier)
+		return -1, "", fmt.Errorf("Unsucessful request for fetching canonical identifier for authority=%v identifier=%v url=%v", authority, identifier, docStoreUrl.String())
 	}
 	niceClose(resp)
 
