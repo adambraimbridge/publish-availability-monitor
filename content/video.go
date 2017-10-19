@@ -15,7 +15,7 @@ type Video struct {
 	BinaryContent []byte `json:"-"` //This field is for internal application usage
 }
 
-func (video Video) Initialize(binaryContent []byte, uuidResolverUrl string, txID string) (Content, error) {
+func (video Video) Initialize(binaryContent []byte, txID string) (Content, error) {
 	video.BinaryContent = binaryContent
 	return video, nil
 }

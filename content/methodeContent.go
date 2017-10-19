@@ -6,8 +6,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"fmt"
-	"time"
-	"net"
 	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"io/ioutil"
 	"os"
@@ -28,7 +26,7 @@ type EomFile struct {
 	WorkflowStatus   string        `json:"workflowStatus"`
 	Type             string        `json:"-"` //This field is for internal application usage
 	Source           Source        `json:"-"` //This field is for internal application usage
-	BinaryContent    []byte        `json:"-"` //This field is for internal application usage
+	BinaryContent    []byte        `json:"-"` //This field is for internal application usag
 }
 
 type Source struct {
@@ -47,12 +45,38 @@ type Attributes struct {
 	IsDeleted           bool     `xml:"OutputChannels>DIFTcom>DIFTcomMarkDeleted"`
 }
 
-func (eomfile EomFile) initType(uuidResolverUrl string, txID string) (EomFile, error) {
+var iResolver checks.IResolver
+
+func init() {
+	httpCaller = checks.NewHttpCaller(10)
+}
+
+func InitializeUUIDResolver(iResolverAddress string, readEnvUsername string, readEnvPassword string) {
+	docStoreClient := checks.NewHttpDocStoreClient(iResolverAddress, httpCaller, readEnvUsername, readEnvPassword)
+	iResolver = checks.NewHttpIResolver(docStoreClient, readBrandMappings())
+}
+
+func readBrandMappings() map[string]string {
+	brandMappingsFile, err := ioutil.ReadFile("../brandMappings.json")
+	if err != nil {
+		log.Errorf("Couldn't read brand mapping configuration: %v\n", err)
+		os.Exit(1)
+	}
+	var brandMappings map[string]string
+	err = json.Unmarshal(brandMappingsFile, &brandMappings)
+	if err != nil {
+		log.Errorf("Couldn't unmarshal brand mapping configuration: %v\n", err)
+		os.Exit(1)
+	}
+	return brandMappings
+}
+
+func (eomfile EomFile) initType(txID string) (EomFile, error) {
 	contentType := eomfile.ContentType
 	contentSrc := eomfile.Source.SourceCode
 
 	if contentSrc == "ContentPlaceholder" && contentType == "EOM::CompoundStory" {
-		uuid, err := eomfile.resolveUUID(uuidResolverUrl, txID)
+		uuid, err := eomfile.resolveUUID(txID)
 		if err != nil {
 			return EomFile{}, err
 		}
@@ -71,25 +95,7 @@ func (eomfile EomFile) initType(uuidResolverUrl string, txID string) (EomFile, e
 	return eomfile, nil
 }
 
-func (eomfile EomFile) resolveUUID(uuidResolverUrl string, txID string) (string, error) {
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).DialContext,
-			MaxIdleConnsPerHost:   20,
-			TLSHandshakeTimeout:   3 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
-
-	docStoreClient := checks.NewHttpDocStoreClient(httpClient, uuidResolverUrl)
-	iResolver := checks.NewHttpIResolver(docStoreClient, readBrandMappings())
+func (eomfile EomFile) resolveUUID(txID string) (string, error) {
 	attributes, err := buildAttributes(eomfile.Attributes)
 	if err != nil {
 		return "", err
@@ -114,21 +120,6 @@ func buildAttributes(attributesXML string) (Attributes, error) {
 	return attrs, nil
 }
 
-func readBrandMappings() map[string]string {
-	brandMappingsFile, err := ioutil.ReadFile("../brandMappings.json")
-	if err != nil {
-		log.Errorf("Couldn't read brand mapping configuration: %v\n", err)
-		os.Exit(1)
-	}
-	var brandMappings map[string]string
-	err = json.Unmarshal(brandMappingsFile, &brandMappings)
-	if err != nil {
-		log.Errorf("Couldn't unmarshal brand mapping configuration: %v\n", err)
-		os.Exit(1)
-	}
-	return brandMappings
-}
-
 func isBlogCategory(attributes Attributes) bool {
 	for _, c := range blogCategories {
 		if c == attributes.Category {
@@ -138,9 +129,9 @@ func isBlogCategory(attributes Attributes) bool {
 	return false
 }
 
-func (eomfile EomFile) Initialize(binaryContent []byte, uuidResolverUrl string, txID string) (Content, error) {
+func (eomfile EomFile) Initialize(binaryContent []byte, txID string) (Content, error) {
 	eomfile.BinaryContent = binaryContent
-	eomfileInitilized, err := eomfile.initType(uuidResolverUrl, txID)
+	eomfileInitilized, err := eomfile.initType(txID)
 	return Content(eomfileInitilized), err
 }
 

@@ -17,10 +17,13 @@ import (
 
 // Content is the interface for different type of contents from different CMSs.
 type Content interface {
-	Initialize(binaryContent []byte, uuidResolverUrl string, txID string) (Content, error)
+	Initialize(binaryContent []byte, txID string) (Content, error)
 	Validate(externalValidationEndpoint string, txID string, username string, password string) ValidationResponse
 	GetType() string
 	GetUUID() string
+}
+
+type InitConfig struct {
 }
 
 type ValidationResponse struct {
@@ -47,7 +50,7 @@ func init() {
 }
 
 // UnmarshalContent unmarshals the message body into the appropriate content type based on the systemID header.
-func UnmarshalContent(msg consumer.Message, uuidResolverUrl string) (Content, error) {
+func UnmarshalContent(msg consumer.Message) (Content, error) {
 	binaryContent := []byte(msg.Body)
 
 	headers := msg.Headers
@@ -63,21 +66,21 @@ func UnmarshalContent(msg consumer.Message, uuidResolverUrl string) (Content, er
 		}
 		xml.Unmarshal([]byte(eomFile.Attributes), &eomFile.Source)
 
-		return eomFile.Initialize(binaryContent, uuidResolverUrl, txID)
+		return eomFile.Initialize(binaryContent, txID)
 	case "http://cmdb.ft.com/systems/wordpress":
 		var wordPressMsg WordPressMessage
 		err := json.Unmarshal(binaryContent, &wordPressMsg)
 		if err != nil {
 			return nil, err
 		}
-		return wordPressMsg.Initialize(binaryContent, "", "")
+		return wordPressMsg.Initialize(binaryContent, txID)
 	case "http://cmdb.ft.com/systems/next-video-editor":
 		var video Video
 		err := json.Unmarshal(binaryContent, &video)
 		if err != nil {
 			return nil, err
 		}
-		return video.Initialize(binaryContent, "", "")
+		return video.Initialize(binaryContent, txID)
 	default:
 		return nil, fmt.Errorf("Unsupported content with system ID: [%s].", systemID)
 	}

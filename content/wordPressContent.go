@@ -23,7 +23,7 @@ type Post struct {
 	Url  string `json:"url"`
 }
 
-func (wordPressMessage WordPressMessage) Initialize(binaryContent []byte, uuidResolverUrl string, txID string) (Content, error) {
+func (wordPressMessage WordPressMessage) Initialize(binaryContent []byte, txID string) (Content, error) {
 	wordPressMessage.BinaryContent = binaryContent
 	return wordPressMessage, nil
 }

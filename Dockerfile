@@ -4,7 +4,7 @@ ENV PROJECT=publish-availability-monitor
 COPY . /${PROJECT}-sources/
 ADD config.json.template /config.json
 ADD startup.sh /
-ADD brandMappings.json /brandMappings.json
+ADD brandMappings.json /
 
 RUN apk --no-cache --virtual .build-dependencies add git \
   && ORG_PATH="github.com/Financial-Times" \

@@ -67,7 +67,7 @@ type AppConfig struct {
 	SplunkConf          SplunkConfig         `json:"splunk-config"`
 	HealthConf          HealthConfig         `json:"healthConfig"`
 	ValidationEndpoints map[string]string    `json:"validationEndpoints"` //contentType to validation endpoint mapping, ex. { "EOM::Story": "http://methode-article-transformer/content-transform" }
-	UUIDResolverUrl 	string				 `json:"uuidResolverUrl"`
+	UUIDResolverUrl     string               `json:"uuidResolverUrl"`
 }
 
 // HealthConfig holds the application's healthchecks configuration
@@ -196,6 +196,8 @@ func attachProfiler(router *mux.Router) {
 }
 
 func readMessages() {
+	readEnvUsernam, readEnvPassword := getValidationCredentials()
+	content.InitializeUUIDResolver(appConfig.UUIDResolverUrl, readEnvUsernam, readEnvPassword)
 	c := consumer.NewConsumer(appConfig.QueueConf, handleMessage, &http.Client{})
 
 	var wg sync.WaitGroup
@@ -247,7 +249,7 @@ func handleMessage(msg consumer.Message) {
 		return
 	}
 
-	publishedContent, err := content.UnmarshalContent(msg, appConfig.UUIDResolverUrl)
+	publishedContent, err := content.UnmarshalContent(msg)
 	if err != nil {
 		log.Warnf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
 		return

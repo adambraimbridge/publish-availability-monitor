@@ -2,12 +2,9 @@ package checks
 
 import (
 	"fmt"
-	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/Sirupsen/logrus"
 	"net/http"
 	"net/url"
-	"golang.org/x/tools/go/gcimporter15/testdata"
-	"bytes"
 )
 
 type DocStoreClient interface {
@@ -24,9 +21,9 @@ type httpDocStoreClient struct {
 func NewHttpDocStoreClient(docStoreAddress string, httpCaller HttpCaller, username, password string) *httpDocStoreClient {
 	return &httpDocStoreClient{
 		docStoreAddress: docStoreAddress,
-		httpCaller: httpCaller,
-		username: username,
-		password: password,
+		httpCaller:      httpCaller,
+		username:        username,
+		password:        password,
 	}
 }
 
@@ -41,10 +38,10 @@ func (c *httpDocStoreClient) ContentQuery(authority string, identifier string, t
 	docStoreUrl.RawQuery = query.Encode()
 
 	resp, err := c.httpCaller.DoCall(Config{
-		Url: docStoreUrl.String(),
+		Url:      docStoreUrl.String(),
 		Username: c.username,
 		Password: c.password,
-		TxId: ConstructPamTxId(tid),
+		TxId:     ConstructPamTxId(tid),
 	})
 	if err != nil {
 		return -1, "", fmt.Errorf("Unsucessful request for fetching canonical identifier for authority=%v identifier=%v url=%v", authority, identifier, docStoreUrl.String())
