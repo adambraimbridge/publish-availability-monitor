@@ -196,8 +196,13 @@ func attachProfiler(router *mux.Router) {
 }
 
 func readMessages() {
+	for len(environments) == 0 {
+		log.Info("Environments not set, retry in 3s...")
+		time.Sleep(3 * time.Second)
+	}
+
 	for _, env := range environments {
-		content.InitializeUUIDResolver(env.ReadUrl + appConfig.UUIDResolverUrl, env.Username, env.Password)
+		content.InitializeUUIDResolver(env.ReadUrl+appConfig.UUIDResolverUrl, env.Username, env.Password)
 		break
 	}
 

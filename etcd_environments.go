@@ -29,7 +29,7 @@ func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string
 	validatorKey = etcdValidatorCredKey
 
 	transport := &http.Transport{
-		Dial: proxy.Direct.Dial,
+		Dial:                  proxy.Direct.Dial,
 		ResponseHeaderTimeout: 10 * time.Second,
 		MaxIdleConnsPerHost:   100,
 	}
