@@ -195,6 +195,14 @@ func attachProfiler(router *mux.Router) {
 	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 }
 
+type messageHandler interface {
+	handleMessage(msg consumer.Message)
+}
+
+type kafkaMessageHandler struct {
+}
+
+
 func readMessages() {
 	for len(environments) == 0 {
 		log.Info("Environments not set, retry in 3s...")
@@ -206,7 +214,8 @@ func readMessages() {
 		break
 	}
 
-	c := consumer.NewConsumer(appConfig.QueueConf, handleMessage, &http.Client{})
+	h := kafkaMessageHandler{}
+	c := consumer.NewConsumer(appConfig.QueueConf, h.handleMessage, &http.Client{})
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -240,11 +249,11 @@ func loadHistory(w http.ResponseWriter, r *http.Request) {
 	metricContainer.RUnlock()
 }
 
-func handleMessage(msg consumer.Message) {
+func (h *kafkaMessageHandler) handleMessage(msg consumer.Message) {
 	tid := msg.Headers["X-Request-Id"]
 	log.Infof("Received message with TID [%v]", tid)
 
-	if isIgnorableMessage(tid) {
+	if h.isIgnorableMessage(tid) {
 		log.Infof("Message [%v] is ignorable. Skipping...", tid)
 		return
 	}
@@ -287,15 +296,15 @@ func handleMessage(msg consumer.Message) {
 	}
 }
 
-func isIgnorableMessage(tid string) bool {
-	return isSyntheticTransactionID(tid) || isContentCarouselTransactionID(tid)
+func (h *kafkaMessageHandler) isIgnorableMessage(tid string) bool {
+	return h.isSyntheticTransactionID(tid) || h.isContentCarouselTransactionID(tid)
 }
 
-func isSyntheticTransactionID(tid string) bool {
+func (h *kafkaMessageHandler) isSyntheticTransactionID(tid string) bool {
 	return strings.HasPrefix(tid, "SYNTHETIC")
 }
 
-func isContentCarouselTransactionID(tid string) bool {
+func (h *kafkaMessageHandler) isContentCarouselTransactionID(tid string) bool {
 	return carouselTransactionIDRegExp.MatchString(tid)
 }
 
