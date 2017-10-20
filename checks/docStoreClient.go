@@ -44,7 +44,7 @@ func (c *httpDocStoreClient) ContentQuery(authority string, identifier string, t
 		TxId:     ConstructPamTxId(tid),
 	})
 	if err != nil {
-		return -1, "", fmt.Errorf("Unsucessful request for fetching canonical identifier for authority=%v identifier=%v url=%v", authority, identifier, docStoreUrl.String())
+		return -1, "", fmt.Errorf("Unsucessful request for fetching canonical identifier for authority=%v identifier=%v url=%v, error was: %v", authority, identifier, docStoreUrl.String(), err.Error())
 	}
 	niceClose(resp)
 
