@@ -51,8 +51,8 @@ func init() {
 	httpCaller = checks.NewHttpCaller(10)
 }
 
-func InitializeUUIDResolver(iResolverAddress string, readEnvUsername string, readEnvPassword string) {
-	docStoreClient := checks.NewHttpDocStoreClient(iResolverAddress, httpCaller, readEnvUsername, readEnvPassword)
+func InitializeUUIDResolver(readEnvUrl string, readEnvUsername string, readEnvPassword string) {
+	docStoreClient := checks.NewHttpDocStoreClient(readEnvUrl, httpCaller, readEnvUsername, readEnvPassword)
 	iResolver = checks.NewHttpIResolver(docStoreClient, readBrandMappings())
 }
 

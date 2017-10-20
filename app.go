@@ -196,8 +196,11 @@ func attachProfiler(router *mux.Router) {
 }
 
 func readMessages() {
-	readEnvUsernam, readEnvPassword := getValidationCredentials()
-	content.InitializeUUIDResolver(appConfig.UUIDResolverUrl, readEnvUsernam, readEnvPassword)
+	for _, env := range environments {
+		content.InitializeUUIDResolver(env.ReadUrl + appConfig.UUIDResolverUrl, env.Username, env.Password)
+		break
+	}
+
 	c := consumer.NewConsumer(appConfig.QueueConf, handleMessage, &http.Client{})
 
 	var wg sync.WaitGroup
