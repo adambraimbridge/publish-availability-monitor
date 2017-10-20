@@ -36,8 +36,6 @@ func (c *httpDocStoreClient) ContentQuery(authority string, identifier string, t
 	query.Add("identifierValue", identifier)
 	query.Add("identifierAuthority", authority)
 	docStoreUrl.RawQuery = query.Encode()
-	
-	logrus.Infof("Doing uuid resolver call")
 
 	resp, err := c.httpCaller.DoCall(Config{
 		Url:      docStoreUrl.String(),
