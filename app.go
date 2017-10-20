@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -16,12 +15,14 @@ import (
 	"fmt"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	"github.com/Financial-Times/publish-availability-monitor/logformat"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"encoding/json"
+	"io/ioutil"
+	"github.com/Financial-Times/publish-availability-monitor/checks"
 )
 
 // Interval is a simple representation of an interval of time, with a lower and
@@ -127,6 +128,8 @@ func init() {
 func main() {
 	flag.Parse()
 
+	brandMappings := readBrandMappings()
+
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
@@ -159,7 +162,7 @@ func main() {
 	go startHttpListener()
 
 	startAggregator()
-	readMessages()
+	readMessages(brandMappings)
 }
 
 func startHttpListener() {
@@ -195,26 +198,22 @@ func attachProfiler(router *mux.Router) {
 	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 }
 
-type messageHandler interface {
-	handleMessage(msg consumer.Message)
-}
-
-type kafkaMessageHandler struct {
-}
-
-
-func readMessages() {
+func readMessages(brandMappings map[string]string) {
 	for len(environments) == 0 {
 		log.Info("Environments not set, retry in 3s...")
 		time.Sleep(3 * time.Second)
 	}
 
+	var typeRes typeResolver
 	for _, env := range environments {
-		content.InitializeUUIDResolver(env.ReadUrl+appConfig.UUIDResolverUrl, env.Username, env.Password)
+		docStoreCaller := checks.NewHttpCaller(10)
+		docStoreClient := checks.NewHttpDocStoreClient(env.ReadUrl+appConfig.UUIDResolverUrl, docStoreCaller, env.Username, env.Password)
+		iResolver := checks.NewHttpIResolver(docStoreClient, brandMappings)
+		typeRes = NewMethodeTypeResolver(iResolver)
 		break
 	}
 
-	h := kafkaMessageHandler{}
+	h := kafkaMessageHandler{typeRes}
 	c := consumer.NewConsumer(appConfig.QueueConf, h.handleMessage, &http.Client{})
 
 	var wg sync.WaitGroup
@@ -249,63 +248,19 @@ func loadHistory(w http.ResponseWriter, r *http.Request) {
 	metricContainer.RUnlock()
 }
 
-func (h *kafkaMessageHandler) handleMessage(msg consumer.Message) {
-	tid := msg.Headers["X-Request-Id"]
-	log.Infof("Received message with TID [%v]", tid)
-
-	if h.isIgnorableMessage(tid) {
-		log.Infof("Message [%v] is ignorable. Skipping...", tid)
-		return
-	}
-
-	publishDateString := msg.Headers["Message-Timestamp"]
-	publishDate, err := time.Parse(dateLayout, publishDateString)
+func readBrandMappings() map[string]string {
+	brandMappingsFile, err := ioutil.ReadFile("brandMappings.json")
 	if err != nil {
-		log.Errorf("Cannot parse publish date [%v] from message [%v], error: [%v]",
-			publishDateString, tid, err.Error())
-		return
+		log.Errorf("Couldn't read brand mapping configuration: %v\n", err)
+		os.Exit(1)
 	}
-
-	publishedContent, err := content.UnmarshalContent(msg)
+	var brandMappings map[string]string
+	err = json.Unmarshal(brandMappingsFile, &brandMappings)
 	if err != nil {
-		log.Warnf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
-		return
+		log.Errorf("Couldn't unmarshal brand mapping configuration: %v\n", err)
+		os.Exit(1)
 	}
-
-	var paramsToSchedule []*schedulerParam
-
-	for _, preCheck := range mainPreChecks() {
-		ok, scheduleParam := preCheck(publishedContent, tid, publishDate)
-		if ok {
-			paramsToSchedule = append(paramsToSchedule, scheduleParam)
-		} else {
-			//if a main check is not ok, additional checks make no sense
-			return
-		}
-	}
-
-	for _, preCheck := range additionalPreChecks() {
-		ok, scheduleParam := preCheck(publishedContent, tid, publishDate)
-		if ok {
-			paramsToSchedule = append(paramsToSchedule, scheduleParam)
-		}
-	}
-
-	for _, scheduleParam := range paramsToSchedule {
-		scheduleChecks(scheduleParam)
-	}
-}
-
-func (h *kafkaMessageHandler) isIgnorableMessage(tid string) bool {
-	return h.isSyntheticTransactionID(tid) || h.isContentCarouselTransactionID(tid)
-}
-
-func (h *kafkaMessageHandler) isSyntheticTransactionID(tid string) bool {
-	return strings.HasPrefix(tid, "SYNTHETIC")
-}
-
-func (h *kafkaMessageHandler) isContentCarouselTransactionID(tid string) bool {
-	return carouselTransactionIDRegExp.MatchString(tid)
+	return brandMappings
 }
 
 func (pm PublishMetric) String() string {

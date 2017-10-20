@@ -23,9 +23,9 @@ type Post struct {
 	Url  string `json:"url"`
 }
 
-func (wordPressMessage WordPressMessage) Initialize(binaryContent []byte, txID string) (Content, error) {
+func (wordPressMessage WordPressMessage) Initialize(binaryContent []byte) Content {
 	wordPressMessage.BinaryContent = binaryContent
-	return wordPressMessage, nil
+	return wordPressMessage
 }
 
 func (wordPressMessage WordPressMessage) Validate(extValEndpoint string, txId string, username string, password string) ValidationResponse {

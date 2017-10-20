@@ -1,23 +1,17 @@
 package content
 
 import (
-	"encoding/json"
-	"encoding/xml"
-	"fmt"
-
 	"bytes"
 	"io"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/checks"
 	log "github.com/Sirupsen/logrus"
 )
 
 // Content is the interface for different type of contents from different CMSs.
 type Content interface {
-	Initialize(binaryContent []byte, txID string) (Content, error)
+	Initialize(binaryContent []byte) Content
 	Validate(externalValidationEndpoint string, txID string, username string, password string) ValidationResponse
 	GetType() string
 	GetUUID() string
@@ -41,49 +35,10 @@ type validationParam struct {
 	contentType   string
 }
 
-const systemIDKey = "Origin-System-Id"
-
 var httpCaller checks.HttpCaller
 
 func init() {
 	httpCaller = checks.NewHttpCaller(10)
-}
-
-// UnmarshalContent unmarshals the message body into the appropriate content type based on the systemID header.
-func UnmarshalContent(msg consumer.Message) (Content, error) {
-	binaryContent := []byte(msg.Body)
-
-	headers := msg.Headers
-	systemID := headers[systemIDKey]
-	txID := msg.Headers["X-Request-Id"]
-	switch systemID {
-	case "http://cmdb.ft.com/systems/methode-web-pub":
-		var eomFile EomFile
-
-		err := json.Unmarshal(binaryContent, &eomFile)
-		if err != nil {
-			return nil, err
-		}
-		xml.Unmarshal([]byte(eomFile.Attributes), &eomFile.Source)
-
-		return eomFile.Initialize(binaryContent, txID)
-	case "http://cmdb.ft.com/systems/wordpress":
-		var wordPressMsg WordPressMessage
-		err := json.Unmarshal(binaryContent, &wordPressMsg)
-		if err != nil {
-			return nil, err
-		}
-		return wordPressMsg.Initialize(binaryContent, txID)
-	case "http://cmdb.ft.com/systems/next-video-editor":
-		var video Video
-		err := json.Unmarshal(binaryContent, &video)
-		if err != nil {
-			return nil, err
-		}
-		return video.Initialize(binaryContent, txID)
-	default:
-		return nil, fmt.Errorf("Unsupported content with system ID: [%s].", systemID)
-	}
 }
 
 func doExternalValidation(p validationParam, validCheck func(int) bool, deletedCheck func(...int) bool) ValidationResponse {
