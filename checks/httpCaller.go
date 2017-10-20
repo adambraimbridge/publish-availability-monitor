@@ -27,9 +27,18 @@ type Config struct {
 func NewHttpCaller(timeoutSeconds int) HttpCaller {
 	var client http.Client
 	if timeoutSeconds > 0 {
-		client = http.Client{Timeout: time.Duration(timeoutSeconds) * time.Second}
+		client = http.Client{
+			Timeout: time.Duration(timeoutSeconds) * time.Second,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
 	} else {
-		client = http.Client{}
+		client = http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
 	}
 
 	return defaultHttpCaller{&client}
