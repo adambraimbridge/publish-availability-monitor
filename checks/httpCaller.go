@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"time"
+	"github.com/Sirupsen/logrus"
 )
 
 // httpCaller abstracts http calls
@@ -59,6 +60,7 @@ func (c defaultHttpCaller) DoCall(config Config) (resp *http.Response, err error
 	req.Header.Add("User-Agent", "UPP Publish Availability Monitor")
 
 	op := func() error {
+		logrus.Infof("Http Caller request url %v", req.URL.String())
 		resp, err = c.client.Do(req)
 		if err != nil {
 			return err

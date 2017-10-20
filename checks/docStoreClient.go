@@ -36,6 +36,8 @@ func (c *httpDocStoreClient) ContentQuery(authority string, identifier string, t
 	query.Add("identifierValue", identifier)
 	query.Add("identifierAuthority", authority)
 	docStoreUrl.RawQuery = query.Encode()
+	
+	logrus.Infof("Doing uuid resolver call")
 
 	resp, err := c.httpCaller.DoCall(Config{
 		Url:      docStoreUrl.String(),
@@ -43,6 +45,7 @@ func (c *httpDocStoreClient) ContentQuery(authority string, identifier string, t
 		Password: c.password,
 		TxId:     ConstructPamTxId(tid),
 	})
+
 	if err != nil {
 		return -1, "", fmt.Errorf("Unsucessful request for fetching canonical identifier for authority=%v identifier=%v url=%v, error was: %v", authority, identifier, docStoreUrl.String(), err.Error())
 	}
