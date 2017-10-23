@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"time"
-	"github.com/Sirupsen/logrus"
 )
 
 // httpCaller abstracts http calls
