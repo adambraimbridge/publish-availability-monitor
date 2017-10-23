@@ -12,27 +12,6 @@ import (
 
 const validUUID = "e28b12f7-9796-3331-b030-05082f0b8157"
 
-//func TestInitTypeForContentPlaceholders(t *testing.T) {
-//	var file = EomFile{
-//		UUID:             validUUID,
-//		ContentType:      "EOM::CompoundStory",
-//		Value:            "bar",
-//		SystemAttributes: "systemAttributes",
-//	}
-//	xml.Unmarshal([]byte(supportedSourceCodeAttributesContentPlaceholder), &file.Source)
-//
-//	mockResolver := new(MockIResolver)
-//
-//	mockResolver.On("ResolveIdentifier",
-//		mock.MatchedBy(func(uuid string) bool { return true }),
-//		mock.MatchedBy(func(tid string) bool { return true }),
-//		mock.MatchedBy(func(lmd string) bool { return true })).
-//		Return("", errors.New("Could not resolve uuid"))
-//
-//	file, _ = file.initType("", "")
-//	assert.Equal(t, "EOM::CompoundStory_External_CPH", file.Type)
-//}
-
 type MockIResolver struct {
 	mock.Mock
 }

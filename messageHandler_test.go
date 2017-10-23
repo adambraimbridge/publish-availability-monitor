@@ -228,6 +228,32 @@ func TestUnmarshalContent_ContentIsMethodeArticle_LinkedObjectsFieldIsEmpty(t *t
 	}
 }
 
+func TestUnmarshalContent_ContentIsMethodeList_EmptyLinkedObjectsFieldIsMarshalled(t *testing.T) {
+	typeRes := new(MockTypeResolver)
+	typeRes.On("ResolveTypeAndUuid", mock.MatchedBy(func(eomFile content.EomFile) bool { return true }), "tid_0123wxyz").Return("EOM::CompoundStory", "79e7f5ed-63c7-46b2-9767-736f8ae3a3f6", nil)
+	h := kafkaMessageHandler{typeRes}
+
+	var validMethodeListMessage = consumer.Message{
+		Headers: map[string]string{
+			"Origin-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
+			"X-Request-Id":     "tid_0123wxyz",
+		},
+		Body: string(loadBytesForFile(t, "content/testdata/methode_empty_list.json")),
+	}
+	resultContent, err := h.unmarshalContent(validMethodeListMessage)
+	if err != nil {
+		t.Errorf("Expected success, but error occured [%v]", err)
+		return
+	}
+	methodeContent, ok := resultContent.(content.EomFile)
+	if !ok {
+		t.Error("Expected Methode list to be an EomFile")
+	}
+	if len(methodeContent.LinkedObjects) != 0 {
+		t.Error("Expected list to have no linked objects")
+	}
+}
+
 func TestUnmarshalContent_MethodeBinaryContentSet(t *testing.T) {
 	typeRes := new(MockTypeResolver)
 	typeRes.On("ResolveTypeAndUuid", mock.MatchedBy(func(eomFile content.EomFile) bool { return true }), "tid_0123wxyz").Return("EOM::CompoundStory", "79e7f5ed-63c7-46b2-9767-736f8ae3a3f6", nil)
