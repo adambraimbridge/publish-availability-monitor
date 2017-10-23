@@ -14,15 +14,14 @@ import (
 const systemIDKey = "Origin-System-Id"
 
 type messageHandler interface {
-	handleMessage(msg consumer.Message)
+	HandleMessage(msg consumer.Message)
 }
 
 type kafkaMessageHandler struct {
 	typeRes typeResolver
 }
 
-
-func (h *kafkaMessageHandler) handleMessage(msg consumer.Message) {
+func (h *kafkaMessageHandler) HandleMessage(msg consumer.Message) {
 	tid := msg.Headers["X-Request-Id"]
 	log.Infof("Received message with TID [%v]", tid)
 
@@ -97,7 +96,7 @@ func (h *kafkaMessageHandler) unmarshalContent(msg consumer.Message) (content.Co
 			return nil, err
 		}
 		xml.Unmarshal([]byte(eomFile.Attributes), &eomFile.Source)
-		eomFile.Initialize(binaryContent)
+		eomFile = eomFile.Initialize(binaryContent).(content.EomFile)
 		theType, resolvedUuid, err := h.typeRes.ResolveTypeAndUuid(eomFile, txID)
 		if err != nil {
 			return nil, fmt.Errorf("Couldn't map kafka message to methode Content while fetching its type and uuid. %v", err)

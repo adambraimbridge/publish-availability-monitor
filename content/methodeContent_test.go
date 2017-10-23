@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"encoding/json"
-	"encoding/xml"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -42,18 +40,6 @@ type MockIResolver struct {
 func (m *MockIResolver) ResolveIdentifier(serviceId, refField, tid string) (string, error) {
 	args := m.Called(serviceId, refField, tid)
 	return args.String(0), args.Error(1)
-}
-
-func TestInitTypeForNonContentPlaceholders(t *testing.T) {
-	var file = EomFile{
-		UUID:             validUUID,
-		ContentType:      "EOM::CompoundStory",
-		Value:            "bar",
-		SystemAttributes: "systemAttributes",
-	}
-	xml.Unmarshal([]byte(supportedSourceCodeAttributes), &file.Source)
-	file, _ = file.initType("")
-	assert.Equal(t, "EOM::CompoundStory", file.Type)
 }
 
 func TestIsEomfileValid_EmptyValidationURL_Invalid(t *testing.T) {
