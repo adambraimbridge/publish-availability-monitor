@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"encoding/xml"
+	"fmt"
+
 	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"github.com/Financial-Times/publish-availability-monitor/content"
 	log "github.com/Sirupsen/logrus"
@@ -14,7 +15,7 @@ type typeResolver interface {
 	ResolveTypeAndUuid(eomFile content.EomFile, txID string) (string, string, error)
 }
 
-type methodeTypeResolver struct{
+type methodeTypeResolver struct {
 	iResolver checks.IResolver
 }
 
@@ -39,7 +40,7 @@ func (m *methodeTypeResolver) ResolveTypeAndUuid(eomFile content.EomFile, txID s
 			theType = "EOM::CompoundStory_Internal_CPH"
 			cphUuid = resolvedUuid
 		}
-		log.Infof("For placeholder resolved type=%v uuid=%v", theType, cphUuid)
+		log.Infof("For placeholder resolved tid=&v type=%v uuid=%v", txID, theType, cphUuid)
 		return theType, cphUuid, nil
 	}
 	return eomFile.ContentType, eomFile.UUID, nil
@@ -55,7 +56,7 @@ func (m *methodeTypeResolver) resolveUUID(eomFile content.EomFile, txID string) 
 	if isBlogCategory(attributes) {
 		resolvedUuid, err := m.iResolver.ResolveIdentifier(attributes.ServiceId, attributes.RefField, txID)
 		if err != nil {
-			return "", fmt.Errorf("Couldn't resolve blog uuid %v", err)
+			return "", fmt.Errorf("Couldn't resolve blog uuid, error was: %v", err)
 		}
 		uuid = resolvedUuid
 	}

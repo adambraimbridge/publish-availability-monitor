@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+
 	"github.com/Financial-Times/publish-availability-monitor/checks"
 	log "github.com/Sirupsen/logrus"
 )
@@ -15,9 +16,6 @@ type Content interface {
 	Validate(externalValidationEndpoint string, txID string, username string, password string) ValidationResponse
 	GetType() string
 	GetUUID() string
-}
-
-type InitConfig struct {
 }
 
 type ValidationResponse struct {
@@ -48,7 +46,7 @@ func doExternalValidation(p validationParam, validCheck func(int) bool, deletedC
 	}
 
 	resp, err := httpCaller.DoCall(checks.Config{
-		HttpMethod:  "POST", Url: p.validationURL, Username: p.username, Password: p.password,
+		HttpMethod: "POST", Url: p.validationURL, Username: p.username, Password: p.password,
 		TxId:        checks.ConstructPamTxId(p.txID),
 		ContentType: "application/json", Entity: bytes.NewReader(p.binaryContent)})
 

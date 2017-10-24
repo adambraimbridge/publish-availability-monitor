@@ -64,9 +64,9 @@ func init() {
 
 	//key is the endpoint alias from the config
 	endpointSpecificChecks = map[string]EndpointSpecificCheck{
-		"content":                 ContentCheck{hC},
-		"complementary-content":   ContentCheck{hC},
-		"internal-components":     ContentCheck{hC},
+		"content":               ContentCheck{hC},
+		"complementary-content": ContentCheck{hC},
+		"internal-components":   ContentCheck{hC},
 		"S3":                      S3Check{hC},
 		"enrichedContent":         ContentCheck{hC},
 		"lists":                   ContentCheck{hC},

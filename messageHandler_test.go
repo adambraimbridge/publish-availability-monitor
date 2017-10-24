@@ -1,13 +1,13 @@
 package main
 
 import (
+	"io/ioutil"
 	"testing"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/Financial-Times/publish-availability-monitor/content"
-	"io/ioutil"
 )
 
 const wordpressType = "wordpress"

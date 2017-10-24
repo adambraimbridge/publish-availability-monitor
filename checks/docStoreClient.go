@@ -2,9 +2,10 @@ package checks
 
 import (
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	"net/http"
 	"net/url"
+
+	"github.com/Sirupsen/logrus"
 )
 
 type DocStoreClient interface {
@@ -45,7 +46,7 @@ func (c *httpDocStoreClient) ContentQuery(authority string, identifier string, t
 	})
 
 	if err != nil {
-		return -1, "", fmt.Errorf("Unsucessful request for fetching canonical identifier for authority=%v identifier=%v url=%v, error was: %v", authority, identifier, docStoreUrl.String(), err.Error())
+		return -1, "", fmt.Errorf("Unsuccessful request for fetching canonical identifier for authority=%v identifier=%v url=%v, error was: %v", authority, identifier, docStoreUrl.String(), err.Error())
 	}
 	niceClose(resp)
 

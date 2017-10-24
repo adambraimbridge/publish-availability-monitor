@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
@@ -12,17 +15,13 @@ import (
 	"syscall"
 	"time"
 
-	"fmt"
-
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	"github.com/Financial-Times/publish-availability-monitor/logformat"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"encoding/json"
-	"io/ioutil"
-	"github.com/Financial-Times/publish-availability-monitor/checks"
 )
 
 // Interval is a simple representation of an interval of time, with a lower and

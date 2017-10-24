@@ -2,10 +2,11 @@ package checks
 
 import (
 	"fmt"
-	"github.com/giantswarm/retry-go"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/giantswarm/retry-go"
 )
 
 // httpCaller abstracts http calls

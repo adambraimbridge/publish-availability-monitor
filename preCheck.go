@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/Financial-Times/publish-availability-monitor/content"
 	"strings"
 	"time"
 
+	"github.com/Financial-Times/publish-availability-monitor/content"
 	"github.com/Financial-Times/uuid-utils-go"
 	log "github.com/Sirupsen/logrus"
 )

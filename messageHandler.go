@@ -1,14 +1,15 @@
 package main
 
 import (
-	"time"
-	"strings"
-	log "github.com/Sirupsen/logrus"
-	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"strings"
+	"time"
+
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/content"
+	log "github.com/Sirupsen/logrus"
 )
 
 const systemIDKey = "Origin-System-Id"

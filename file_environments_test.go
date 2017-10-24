@@ -3,11 +3,12 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/Financial-Times/publish-availability-monitor/feeds"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/Financial-Times/publish-availability-monitor/feeds"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
