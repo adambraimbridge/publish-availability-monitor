@@ -17,12 +17,22 @@
       "granularity": 40,
       "contentTypes": [
         "EOM::CompoundStory",
-        "EOM::CompoundStory_ContentPlaceholder",
+        "EOM::CompoundStory_External_CPH",
         "EOM::Story",
         "Image",
         "ImageSet",
         "video",
         "wordpress"
+      ]
+    },
+    {
+      "endpoint": "COMPLEMENTARY_CONTENT_URL",
+      "alias": "complementary-content",
+      "health": "/__document-store-api/__health",
+      "granularity": 40,
+      "contentTypes": [
+        "EOM::CompoundStory_External_CPH",
+        "EOM::CompoundStory_Internal_CPH"
       ]
     },
     {
@@ -49,7 +59,8 @@
       "health": "/__notifications-rw/__health",
       "contentTypes": [
         "EOM::CompoundStory",
-        "EOM::CompoundStory_ContentPlaceholder",
+        "EOM::CompoundStory_External_CPH",
+        "EOM::CompoundStory_Internal_CPH",
         "post"
       ]
     },
@@ -61,7 +72,8 @@
       "health": "/__notifications-push/__health",
       "contentTypes": [
         "EOM::CompoundStory",
-        "EOM::CompoundStory_ContentPlaceholder",
+        "EOM::CompoundStory_External_CPH",
+        "EOM::CompoundStory_Internal_CPH",
         "post"
       ]
     },
@@ -102,12 +114,14 @@
   },
   "validationEndpoints": {
     "EOM::CompoundStory": "METHODE_ARTICLE_VALIDATION_URL",
-    "EOM::CompoundStory_ContentPlaceholder": "METHODE_CONTENT_PLACEHOLDER_MAPPER_URL",
+    "EOM::CompoundStory_External_CPH": "METHODE_CONTENT_PLACEHOLDER_MAPPER_URL",
+    "EOM::CompoundStory_Internal_CPH": "METHODE_CONTENT_PLACEHOLDER_MAPPER_URL",
     "EOM::Story": "METHODE_ARTICLE_VALIDATION_URL",
     "EOM::WebContainer": "METHODE_LIST_VALIDATION_URL",
     "Image": "METHODE_IMAGE_MODEL_MAPPER_URL",
     "InternalComponents": "METHODE_ARTICLE_INTERNAL_COMPONENTS_MAPPER_URL",
     "video": "VIDEO_MAPPER_URL",
     "wordpress": "WORDPRESS_MAPPER_URL"
-  }
+  },
+  "uuidResolverUrl": "UUID_RESOLVER_URL"
 }

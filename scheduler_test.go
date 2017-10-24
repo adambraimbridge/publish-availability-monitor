@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/Financial-Times/publish-availability-monitor/content"
-	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/Financial-Times/publish-availability-monitor/content"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidType(testing *testing.T) {

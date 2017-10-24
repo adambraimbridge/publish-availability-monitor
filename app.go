@@ -1,22 +1,22 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
 	"os"
 	"os/signal"
 	"regexp"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
 
-	"fmt"
-
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/Financial-Times/publish-availability-monitor/content"
+	"github.com/Financial-Times/publish-availability-monitor/checks"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	"github.com/Financial-Times/publish-availability-monitor/logformat"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
@@ -67,6 +67,7 @@ type AppConfig struct {
 	SplunkConf          SplunkConfig         `json:"splunk-config"`
 	HealthConf          HealthConfig         `json:"healthConfig"`
 	ValidationEndpoints map[string]string    `json:"validationEndpoints"` //contentType to validation endpoint mapping, ex. { "EOM::Story": "http://methode-article-transformer/content-transform" }
+	UUIDResolverUrl     string               `json:"uuidResolverUrl"`
 }
 
 // HealthConfig holds the application's healthchecks configuration
@@ -126,6 +127,8 @@ func init() {
 func main() {
 	flag.Parse()
 
+	brandMappings := readBrandMappings()
+
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
@@ -158,7 +161,7 @@ func main() {
 	go startHttpListener()
 
 	startAggregator()
-	readMessages()
+	readMessages(brandMappings)
 }
 
 func startHttpListener() {
@@ -194,8 +197,23 @@ func attachProfiler(router *mux.Router) {
 	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 }
 
-func readMessages() {
-	c := consumer.NewConsumer(appConfig.QueueConf, handleMessage, &http.Client{})
+func readMessages(brandMappings map[string]string) {
+	for len(environments) == 0 {
+		log.Info("Environments not set, retry in 3s...")
+		time.Sleep(3 * time.Second)
+	}
+
+	var typeRes typeResolver
+	for _, env := range environments {
+		docStoreCaller := checks.NewHttpCaller(10)
+		docStoreClient := checks.NewHttpDocStoreClient(env.ReadUrl+appConfig.UUIDResolverUrl, docStoreCaller, env.Username, env.Password)
+		iResolver := checks.NewHttpIResolver(docStoreClient, brandMappings)
+		typeRes = NewMethodeTypeResolver(iResolver)
+		break
+	}
+
+	h := kafkaMessageHandler{typeRes}
+	c := consumer.NewConsumer(appConfig.QueueConf, h.HandleMessage, &http.Client{})
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -229,63 +247,19 @@ func loadHistory(w http.ResponseWriter, r *http.Request) {
 	metricContainer.RUnlock()
 }
 
-func handleMessage(msg consumer.Message) {
-	tid := msg.Headers["X-Request-Id"]
-	log.Infof("Received message with TID [%v]", tid)
-
-	if isIgnorableMessage(tid) {
-		log.Infof("Message [%v] is ignorable. Skipping...", tid)
-		return
-	}
-
-	publishDateString := msg.Headers["Message-Timestamp"]
-	publishDate, err := time.Parse(dateLayout, publishDateString)
+func readBrandMappings() map[string]string {
+	brandMappingsFile, err := ioutil.ReadFile("brandMappings.json")
 	if err != nil {
-		log.Errorf("Cannot parse publish date [%v] from message [%v], error: [%v]",
-			publishDateString, tid, err.Error())
-		return
+		log.Errorf("Couldn't read brand mapping configuration: %v\n", err)
+		os.Exit(1)
 	}
-
-	publishedContent, err := content.UnmarshalContent(msg)
+	var brandMappings map[string]string
+	err = json.Unmarshal(brandMappingsFile, &brandMappings)
 	if err != nil {
-		log.Warnf("Cannot unmarshal message [%v], error: [%v]", tid, err.Error())
-		return
+		log.Errorf("Couldn't unmarshal brand mapping configuration: %v\n", err)
+		os.Exit(1)
 	}
-
-	var paramsToSchedule []*schedulerParam
-
-	for _, preCheck := range mainPreChecks() {
-		ok, scheduleParam := preCheck(publishedContent, tid, publishDate)
-		if ok {
-			paramsToSchedule = append(paramsToSchedule, scheduleParam)
-		} else {
-			//if a main check is not ok, additional checks make no sense
-			return
-		}
-	}
-
-	for _, preCheck := range additionalPreChecks() {
-		ok, scheduleParam := preCheck(publishedContent, tid, publishDate)
-		if ok {
-			paramsToSchedule = append(paramsToSchedule, scheduleParam)
-		}
-	}
-
-	for _, scheduleParam := range paramsToSchedule {
-		scheduleChecks(scheduleParam)
-	}
-}
-
-func isIgnorableMessage(tid string) bool {
-	return isSyntheticTransactionID(tid) || isContentCarouselTransactionID(tid)
-}
-
-func isSyntheticTransactionID(tid string) bool {
-	return strings.HasPrefix(tid, "SYNTHETIC")
-}
-
-func isContentCarouselTransactionID(tid string) bool {
-	return carouselTransactionIDRegExp.MatchString(tid)
+	return brandMappings
 }
 
 func (pm PublishMetric) String() string {

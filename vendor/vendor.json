@@ -39,6 +39,12 @@
 			"versionExact": "0.1.0"
 		},
 		{
+			"checksumSHA1": "+sjiZBzrsk91W1A3Md1azCkZadg=",
+			"path": "github.com/Financial-Times/transactionid-utils-go",
+			"revision": "df2f00c734957c9dd651ce23ab0e0902504c7636",
+			"revisionTime": "2017-03-28T16:39:54Z"
+		},
+		{
 			"checksumSHA1": "OctXH9nxfVzFlVWD7h4K5e+x5/M=",
 			"path": "github.com/Financial-Times/uuid-utils-go",
 			"revision": "e22658edd0f130936e99079bf844bde7087c914c",
@@ -125,6 +131,12 @@
 			"revisionTime": "2016-05-04T02:26:26Z"
 		},
 		{
+			"checksumSHA1": "rJab1YdNhQooDiBWNnt7TLWPyBU=",
+			"path": "github.com/pkg/errors",
+			"revision": "c605e284fe17294bda444b34710735b29d1a9d90",
+			"revisionTime": "2017-05-05T04:36:39Z"
+		},
+		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
 			"path": "github.com/pmezard/go-difflib/difflib",
 			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
@@ -139,12 +151,24 @@
 			"versionExact": "v1.1.0"
 		},
 		{
+			"checksumSHA1": "K0crHygPTP42i1nLKWphSlvOQJw=",
+			"path": "github.com/stretchr/objx",
+			"revision": "1a9d0bb9f541897e62256577b352fdbc1fb4fd94",
+			"revisionTime": "2015-09-28T12:21:52Z"
+		},
+		{
 			"checksumSHA1": "q1qqfgDOGwfEuMlbHWNjYf09ACM=",
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "69483b4bd14f5845b5a1e55bca19e954e827f1d0",
 			"revisionTime": "2016-09-25T01:54:16Z",
 			"version": "v1.1.4",
 			"versionExact": "v1.1.4"
+		},
+		{
+			"checksumSHA1": "5NoqTZ3uM2gh0L79yoFZHhRiKR4=",
+			"path": "github.com/stretchr/testify/mock",
+			"revision": "eb84487caee2d64c96bb5c6afb60fd4f631eb0f0",
+			"revisionTime": "2017-05-26T06:56:33Z"
 		},
 		{
 			"checksumSHA1": "P9FJpir2c4G5PA46qEkaWy3l60U=",
@@ -179,7 +203,7 @@
 			"revisionTime": "2017-02-18T20:36:51Z"
 		},
 		{
-			"checksumSHA1": "mIZhS4hXW3qVQxsJ6tqztjJoJ8A=",
+			"checksumSHA1": "4QNPodwXUeikptYFnWj57xf5zhs=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "9a7256cb28ed514b4e1e5f68959914c4c28a92e0",
 			"revisionTime": "2017-03-29T05:31:33Z"

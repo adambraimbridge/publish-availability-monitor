@@ -3,8 +3,6 @@ package content
 import (
 	"encoding/xml"
 	"net/http"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 // EomFile models Methode content
@@ -19,7 +17,7 @@ type EomFile struct {
 	WorkflowStatus   string        `json:"workflowStatus"`
 	Type             string        `json:"-"` //This field is for internal application usage
 	Source           Source        `json:"-"` //This field is for internal application usage
-	BinaryContent    []byte        `json:"-"` //This field is for internal application usage
+	BinaryContent    []byte        `json:"-"` //This field is for internal application usag
 }
 
 type Source struct {
@@ -27,22 +25,20 @@ type Source struct {
 	SourceCode string   `xml:"EditorialNotes>Sources>Source>SourceCode"`
 }
 
-func (eomfile EomFile) initType() EomFile {
-	contentType := eomfile.ContentType
-	contentSrc := eomfile.Source.SourceCode
-
-	if contentSrc == "ContentPlaceholder" && contentType == "EOM::CompoundStory" {
-		eomfile.Type = "EOM::CompoundStory_ContentPlaceholder"
-		log.Infof("results [%v] ....", eomfile.Type)
-		return eomfile
-	}
-	eomfile.Type = eomfile.ContentType
-	return eomfile
+// Attributes is the data structure that models methode content placeholders attributes
+type Attributes struct {
+	XMLName             xml.Name `xml:"ObjectMetadata"`
+	SourceCode          string   `xml:"EditorialNotes>Sources>Source>SourceCode"`
+	LastPublicationDate string   `xml:"OutputChannels>DIFTcom>DIFTcomLastPublication"`
+	RefField            string   `xml:"WiresIndexing>ref_field"`
+	ServiceId           string   `xml:"WiresIndexing>serviceid"`
+	Category            string   `xml:"WiresIndexing>category"`
+	IsDeleted           bool     `xml:"OutputChannels>DIFTcom>DIFTcomMarkDeleted"`
 }
 
 func (eomfile EomFile) Initialize(binaryContent []byte) Content {
 	eomfile.BinaryContent = binaryContent
-	return eomfile.initType()
+	return eomfile
 }
 
 func (eomfile EomFile) Validate(externalValidationEndpoint string, txID string, username string, password string) ValidationResponse {

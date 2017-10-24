@@ -1,40 +1,24 @@
 package content
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"encoding/json"
-	"encoding/xml"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 const validUUID = "e28b12f7-9796-3331-b030-05082f0b8157"
 
-func TestInitTypeForContentPlaceholders(t *testing.T) {
-	var file = EomFile{
-		UUID:             validUUID,
-		ContentType:      "EOM::CompoundStory",
-		Value:            "bar",
-		SystemAttributes: "systemAttributes",
-	}
-	xml.Unmarshal([]byte(supportedSourceCodeAttributesContentPlaceholder), &file.Source)
-	file = file.initType()
-	assert.Equal(t, "EOM::CompoundStory_ContentPlaceholder", file.Type)
+type MockIResolver struct {
+	mock.Mock
 }
 
-func TestInitTypeForNonContentPlaceholders(t *testing.T) {
-	var file = EomFile{
-		UUID:             validUUID,
-		ContentType:      "EOM::CompoundStory",
-		Value:            "bar",
-		SystemAttributes: "systemAttributes",
-	}
-	xml.Unmarshal([]byte(supportedSourceCodeAttributes), &file.Source)
-	file = file.initType()
-	assert.Equal(t, "EOM::CompoundStory", file.Type)
+func (m *MockIResolver) ResolveIdentifier(serviceId, refField, tid string) (string, error) {
+	args := m.Called(serviceId, refField, tid)
+	return args.String(0), args.Error(1)
 }
 
 func TestIsEomfileValid_EmptyValidationURL_Invalid(t *testing.T) {

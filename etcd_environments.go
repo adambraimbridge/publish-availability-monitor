@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	etcd "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 	"golang.org/x/net/proxy"
 
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	log "github.com/Sirupsen/logrus"
+	etcd "github.com/coreos/etcd/client"
 )
 
 var (

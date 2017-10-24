@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/Financial-Times/publish-availability-monitor/content"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/Financial-Times/publish-availability-monitor/content"
+	"github.com/stretchr/testify/assert"
 )
 
 const threshold = 120
