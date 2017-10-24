@@ -1,16 +1,16 @@
 package checks
 
 import (
-	"github.com/Financial-Times/methode-content-placeholder-mapper/model"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"strings"
 	"testing"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestResolve_Ok(t *testing.T) {
-	mockClient := new(model.MockDocStoreClient)
+	mockClient := new(MockDocStoreClient)
 	mockClient.On("ContentQuery", "http://api.ft.com/system/FT-LABS-WP-1-24", "http://ftalphaville.ft.com/?p=2193913", "tid_1").Return(http.StatusMovedPermanently, "http://api.ft.com/content/5414b08f-5ae1-3bd6-9901-a9dd1bf9db03", nil)
 
 	resolver := NewHttpIResolver(mockClient, map[string]string{"ftalphaville.ft.com": "FT-LABS-WP-1-24"})
@@ -21,7 +21,7 @@ func TestResolve_Ok(t *testing.T) {
 }
 
 func TestResolve_NotInMap(t *testing.T) {
-	mockClient := new(model.MockDocStoreClient)
+	mockClient := new(MockDocStoreClient)
 	mockClient.On("ContentQuery", "http://api.ft.com/system/FT-LABS-WP-1-24", "http://ftalphaville.ft.com/?p=2193913", "tid_1").Return(http.StatusMovedPermanently, "http://api.ft.com/content/5414b08f-5ae1-3bd6-9901-a9dd1bf9db03", nil)
 
 	resolver := NewHttpIResolver(mockClient, map[string]string{})
@@ -31,7 +31,7 @@ func TestResolve_NotInMap(t *testing.T) {
 }
 
 func TestResolve_InvalidUuid(t *testing.T) {
-	mockClient := new(model.MockDocStoreClient)
+	mockClient := new(MockDocStoreClient)
 	mockClient.On("ContentQuery", "http://api.ft.com/system/FT-LABS-WP-1-24", "http://ftalphaville.ft.com/?p=2193913", "tid_1").Return(http.StatusMovedPermanently, "http://api.ft.com/content/5414b08f-xxxxx", nil)
 
 	resolver := NewHttpIResolver(mockClient, map[string]string{"ftalphaville.ft.com": "FT-LABS-WP-1-24"})
@@ -41,7 +41,7 @@ func TestResolve_InvalidUuid(t *testing.T) {
 }
 
 func TestResolve_InvalidLocation(t *testing.T) {
-	mockClient := new(model.MockDocStoreClient)
+	mockClient := new(MockDocStoreClient)
 	mockClient.On("ContentQuery", "http://api.ft.com/system/FT-LABS-WP-1-24", "http://ftalphaville.ft.com/?p=2193913", "tid_1").Return(http.StatusMovedPermanently, "wrong", nil)
 
 	resolver := NewHttpIResolver(mockClient, map[string]string{"ftalphaville.ft.com": "FT-LABS-WP-1-24"})
@@ -51,7 +51,7 @@ func TestResolve_InvalidLocation(t *testing.T) {
 }
 
 func TestResolve_NotFound(t *testing.T) {
-	mockClient := new(model.MockDocStoreClient)
+	mockClient := new(MockDocStoreClient)
 	mockClient.On("ContentQuery", "http://api.ft.com/system/FT-LABS-WP-1-24", "http://ftalphaville.ft.com/?p=2193913", "tid_1").Return(http.StatusNotFound, "", nil)
 
 	resolver := NewHttpIResolver(mockClient, map[string]string{"ftalphaville.ft.com": "FT-LABS-WP-1-24"})
@@ -61,11 +61,20 @@ func TestResolve_NotFound(t *testing.T) {
 }
 
 func TestResolve_NetFail(t *testing.T) {
-	mockClient := new(model.MockDocStoreClient)
+	mockClient := new(MockDocStoreClient)
 	mockClient.On("ContentQuery", "http://api.ft.com/system/FT-LABS-WP-1-24", "http://ftalphaville.ft.com/?p=2193913", "tid_1").Return(-1, "", errors.New("Couldn't make HTTP call"))
 
 	resolver := NewHttpIResolver(mockClient, map[string]string{"ftalphaville.ft.com": "FT-LABS-WP-1-24"})
 	_, err := resolver.ResolveIdentifier("http://ftalphaville.ft.com/?p=2193913", "2193913", "tid_1")
 
 	assert.Equal(t, "Couldn't make HTTP call", err.Error())
+}
+
+type MockDocStoreClient struct {
+	mock.Mock
+}
+
+func (m *MockDocStoreClient) ContentQuery(authority string, identifier string, tid string) (status int, location string, err error) {
+	args := m.Called(authority, identifier, tid)
+	return args.Int(0), args.String(1), args.Error(2)
 }
