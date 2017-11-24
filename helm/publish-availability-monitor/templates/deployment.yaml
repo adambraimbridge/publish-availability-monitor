@@ -65,10 +65,7 @@ spec:
             secretKeyRef:
               name: publish-availability-monitor-secrets
               key: notifications_push.api_key
-        {{- if nil .Values.envs.validation_endpoints.base_url }}
-        {{- $base_url := .Values.cluster.delivery.url }}
-        {{- else }}
-        {{- $base_url := .Values.envs.validation_endpoints.base_url }}
+        {{- $base_url := default .Values.envs.validation_endpoints.base_url .Values.cluster.delivery.url }}
         - name: METHODE_ARTICLE_VALIDATION_URL
           value: "{{ $base_url }}{{ .Values.envs.validation_endpoints.methode_article_mapper }}"
         - name: METHODE_CONTENT_PLACEHOLDER_MAPPER_URL
