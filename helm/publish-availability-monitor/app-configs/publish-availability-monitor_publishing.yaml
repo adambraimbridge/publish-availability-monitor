@@ -12,7 +12,7 @@ envs:
   # I had to split the URL into 2 parts because I couldn't find a way to put the exact string \& in the value
   # This way I moved handling that value in the template chart where it seems it doesn't have a problem with it.
   notifications_push_url:  "/content/notifications-push?monitor=true"
-  notifications_pursh_url_param2: "type=all"
+  notifications_push_url_param2: "type=all"
   lists_notifications_url: "/__list-notifications-rw/lists/notifications"
   lists_notifications_push_url: "/lists/notifications-push?monitor=true"
   validation_endpoints:

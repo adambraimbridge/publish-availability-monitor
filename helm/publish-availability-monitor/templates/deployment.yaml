@@ -50,7 +50,7 @@ spec:
         - name: NOTIFICATIONS_URL
           value: "{{ .Values.envs.notifications_url }}"
         - name: NOTIFICATIONS_PUSH_URL
-          value: {{ .Values.envs.notifications_push_url }}\&{{ .Values.envs.notifications_pursh_url_param2 }}
+          value: {{ .Values.envs.notifications_push_url }}\&{{ .Values.envs.notifications_push_url_param2 }}
         - name: LISTS_NOTIFICATIONS_URL
           value: "{{ .Values.envs.lists_notifications_url }}"
         - name: LISTS_NOTIFICATIONS_PUSH_URL
