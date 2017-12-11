@@ -25,4 +25,4 @@ envs:
     wordpress_mapper: "__wordpress-article-mapper/map"
     # base_url is provided on install by the pipeline
     base_url: ""
-  uuid_resolver_url: "__document-store-api"
+  uuid_resolver_url: "/__document-store-api"
