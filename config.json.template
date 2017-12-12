@@ -87,16 +87,6 @@
       ]
     },
     {
-      "endpoint": "LISTS_NOTIFICATIONS_PUSH_URL",
-      "granularity": 40,
-      "alias": "list-notifications-push",
-      "apiKey": "LISTS_NOTIFICATIONS_PUSH_API_KEY",
-      "health": "/__list-notifications-push/__health",
-      "contentTypes": [
-        "EOM::WebContainer"
-      ]
-    },
-    {
       "endpoint": "INTERNAL_COMPONENTS_URL",
       "granularity": 40,
       "alias": "internal-components",
