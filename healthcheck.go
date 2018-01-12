@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	fthealth "github.com/Financial-Times/go-fthealth/v1a"
+	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	"github.com/Financial-Times/service-status-go/gtg"
@@ -42,7 +42,7 @@ type readEnvironmentHealthcheck struct {
 	client *http.Client
 }
 
-const pam_run_book_url = "https://dewey.ft.com/publish-availability-monitor.html"
+const pam_run_book_url = "https://dewey.in.ft.com/view/system/publish-availability-monitor"
 
 var readCheckEndpoints = map[string]func(string) (string, error){
 	"S3": buildAwsHealthcheckUrl,
@@ -60,7 +60,7 @@ var noReadEnvironments = fthealth.Check{
 	},
 }
 
-func (h *Healthcheck) checkHealth(writer http.ResponseWriter, req *http.Request) {
+func (h *Healthcheck) checkHealth() func(w http.ResponseWriter, r *http.Request) {
 	checks := make([]fthealth.Check, 4)
 	checks[0] = h.messageQueueProxyReachable()
 	checks[1] = h.reflectPublishFailures()
@@ -76,10 +76,17 @@ func (h *Healthcheck) checkHealth(writer http.ResponseWriter, req *http.Request)
 		}
 	}
 
-	fthealth.HandlerParallel(
-		"Dependent services healthcheck", "Checks if all the dependent services are reachable and healthy.",
-		checks...,
-	)(writer, req)
+	hc := fthealth.TimedHealthCheck{
+		HealthCheck: fthealth.HealthCheck{
+			SystemCode:  "publish-availability-monitor",
+			Name:        "Publish Availability Monitor",
+			Description: "Monitors publishes to the UPP platform and alerts on any publishing failures",
+			Checks:      checks,
+		},
+		Timeout: 10 * time.Second,
+	}
+
+	return fthealth.Handler(hc)
 }
 
 func (h *Healthcheck) GTG() gtg.Status {

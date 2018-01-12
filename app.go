@@ -132,7 +132,7 @@ func main() {
 	var err error
 	appConfig, err = ParseConfig(*configFileName)
 	if err != nil {
-		log.Errorf("Cannot load configuration: ", err)
+		log.WithError(err).Error("Cannot load configuration")
 		return
 	}
 
@@ -140,13 +140,13 @@ func main() {
 		log.Info("Sourcing dynamic configs from file")
 		err = updateEnvsIfChanged(*envsFileName, *envCredentialsFileName)
 		if err != nil {
-			log.Errorf("Cannot load envs config.", err)
+			log.WithError(err).Error("Cannot load envs config.")
 			return
 		}
 
 		err = updateValidationCredentialsIfChanged(*validatorCredentialsFileName)
 		if err != nil {
-			log.Errorf("Cannot load validation credentials.", err)
+			log.WithError(err).Error("Cannot load validation credentials.")
 			return
 		}
 
@@ -186,8 +186,8 @@ func startHttpListener() {
 
 func setupHealthchecks(router *mux.Router) {
 	hc := newHealthcheck(appConfig, &metricContainer)
-	router.HandleFunc("/__health", hc.checkHealth)
-	router.HandleFunc("/__gtg", status.NewGoodToGoHandler(hc.GTG))
+	router.HandleFunc("/__health", hc.checkHealth())
+	router.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(hc.GTG))
 }
 
 func attachProfiler(router *mux.Router) {
