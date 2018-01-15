@@ -35,3 +35,5 @@ volumes:
 resources:
   limits:
     memory: 512Mi
+  requests:
+    memory: 256Mi
