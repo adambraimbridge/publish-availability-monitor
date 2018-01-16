@@ -67,10 +67,10 @@ func TestScheduleChecksForS3AreCorrect(testing *testing.T) {
 		Threshold: 1,
 	}
 
-	var mockEnvironments = make(map[string]Environment)
+	var mockEnvironments = newThreadSafeEnvironments()
 	readURL := "http://env1.example.org"
 	s3URL := "http://s1.example.org"
-	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
+	mockEnvironments.envMap["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
 
 	capturingMetrics := runScheduleChecks(testing, validImageEomFile, mockEnvironments)
 	defer capturingMetrics.RUnlock()
@@ -96,10 +96,10 @@ func TestScheduleChecksForContentAreCorrect(testing *testing.T) {
 		Threshold: 1,
 	}
 
-	var mockEnvironments = make(map[string]Environment)
+	var mockEnvironments = newThreadSafeEnvironments()
 	readURL := "http://env1.example.org"
 	s3URL := "http://s1.example.org"
-	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
+	mockEnvironments.envMap["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
 
 	capturingMetrics := runScheduleChecks(testing, validImageEomFile, mockEnvironments)
 	defer capturingMetrics.RUnlock()
@@ -124,10 +124,11 @@ func TestScheduleChecksForContentWithInternalComponentsAreCorrect(testing *testi
 		Threshold: 1,
 	}
 
-	var mockEnvironments = make(map[string]Environment)
+	var mockEnvironments = newThreadSafeEnvironments()
 	readURL := "http://env1.example.org"
 	s3URL := "http://s1.example.org"
-	mockEnvironments["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
+
+	mockEnvironments.envMap["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
 
 	mockArticleEomFile.Type = "InternalComponents"
 
@@ -139,7 +140,7 @@ func TestScheduleChecksForContentWithInternalComponentsAreCorrect(testing *testi
 	require.Equal(testing, readURL+"/internalcomponents/", capturingMetrics.publishMetrics[0].endpoint.String())
 }
 
-func runScheduleChecks(testing *testing.T, content content.Content, mockEnvironments map[string]Environment) *publishHistory {
+func runScheduleChecks(testing *testing.T, content content.Content, mockEnvironments *threadSafeEnvironments) *publishHistory {
 	capturingMetrics := &publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 	tid := "tid_1234"
 	publishDate, err := time.Parse(dateLayout, "2016-01-08T14:22:06.271Z")
@@ -156,7 +157,7 @@ func runScheduleChecks(testing *testing.T, content content.Content, mockEnvironm
 	scheduleChecks(&schedulerParam{content, publishDate, tid, true, capturingMetrics, mockEnvironments})
 	for {
 		capturingMetrics.RLock()
-		if len(capturingMetrics.publishMetrics) == len(mockEnvironments) {
+		if len(capturingMetrics.publishMetrics) == mockEnvironments.len() {
 			return capturingMetrics // with a read lock
 		}
 

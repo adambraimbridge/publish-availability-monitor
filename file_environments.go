@@ -134,8 +134,12 @@ func updateEnvs(envsFileData []byte, credsFileData []byte) error {
 		return fmt.Errorf("cannot parse credentials because [%s]", err)
 	}
 
+	environments.Lock()
+	defer environments.Unlock()
+
 	removedEnvs := parseEnvsIntoMap(validEnvs, envCredentials)
 	configureFileFeeds(removedEnvs)
+	environments.ready = true
 
 	return nil
 }
@@ -166,7 +170,8 @@ func configureFileFeeds(removedEnvs []string) {
 	}
 
 	for _, metric := range appConfig.MetricConf {
-		for _, env := range environments {
+		for _, envName := range environments.names() {
+			env := environments.environment(envName)
 			var envFeeds []feeds.Feed
 			var found bool
 			if envFeeds, found = subscribedFeeds[env.Name]; !found {
@@ -244,10 +249,10 @@ func parseEnvsIntoMap(envs []Environment, envCredentials []Credentials) []string
 
 	//remove envs that don't exist anymore
 	removedEnvs := make([]string, 0)
-	for envName := range environments {
+	for envName := range environments.envMap {
 		if !isEnvInSlice(envName, envs) {
 			log.Infof("removing environment from monitoring: %v", envName)
-			delete(environments, envName)
+			delete(environments.envMap, envName)
 			removedEnvs = append(removedEnvs, envName)
 		}
 	}
@@ -255,7 +260,7 @@ func parseEnvsIntoMap(envs []Environment, envCredentials []Credentials) []string
 	//update envs
 	for _, env := range envs {
 		envName := env.Name
-		environments[envName] = env
+		environments.envMap[envName] = env
 		log.Infof("Added environment to monitoring: %s", envName)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/net/context"
@@ -22,7 +23,46 @@ var (
 	validatorKey *string
 )
 
-func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string, etcdCredKey *string, etcdS3EnvKey *string, etcdValidatorCredKey *string, environments map[string]Environment) error {
+type threadSafeEnvironments struct {
+	*sync.RWMutex
+	envMap map[string]Environment
+	ready  bool
+}
+
+func newThreadSafeEnvironments() *threadSafeEnvironments {
+	return &threadSafeEnvironments{&sync.RWMutex{}, make(map[string]Environment), false}
+}
+
+func (tse *threadSafeEnvironments) len() int {
+	tse.RLock()
+	defer tse.RUnlock()
+	return len(tse.envMap)
+}
+
+func (tse *threadSafeEnvironments) names() []string {
+	tse.RLock()
+	defer tse.RUnlock()
+	var s []string
+	for n := range tse.envMap {
+		s = append(s, n)
+	}
+	return s
+}
+
+func (tse *threadSafeEnvironments) environment(name string) Environment {
+	tse.RLock()
+	defer tse.RUnlock()
+	return tse.envMap[name]
+}
+
+func (tse *threadSafeEnvironments) areReady() bool {
+	tse.RLock()
+	defer tse.RUnlock()
+	return tse.ready
+}
+
+func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string, etcdCredKey *string, etcdS3EnvKey *string, etcdValidatorCredKey *string) error {
+
 	readEnvKey = etcdReadEnvKey
 	s3EnvKey = etcdS3EnvKey
 	credKey = etcdCredKey
@@ -46,15 +86,15 @@ func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string
 
 	etcdKeysAPI = etcd.NewKeysAPI(etcdClient)
 
-	for len(environments) == 0 {
-		if err = redefineEnvironments(environments); err != nil {
+	for environments.len() == 0 {
+		if err = environments.redefine(); err != nil {
 			log.Info("retry in 60s...")
 			time.Sleep(time.Minute)
 		}
 	}
 
 	fn := func() {
-		redefineEnvironments(environments)
+		environments.redefine()
 	}
 	go watch(readEnvKey, fn)
 	go watch(s3EnvKey, fn)
@@ -68,7 +108,10 @@ func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string
 	return nil
 }
 
-func redefineEnvironments(environments map[string]Environment) error {
+func (tse *threadSafeEnvironments) redefine() error {
+	tse.Lock()
+	defer tse.Unlock()
+
 	etcdReadEnvResp, err := etcdKeysAPI.Get(context.Background(), *readEnvKey, &etcd.GetOptions{Sort: true})
 	if err != nil {
 		log.Errorf("Failed to get value from %v: %v.", *readEnvKey, err.Error())
@@ -86,14 +129,16 @@ func redefineEnvironments(environments map[string]Environment) error {
 		log.Errorf("Failed to get value from %v: %v.", *s3EnvKey, err.Error())
 		return err
 	}
-	removedEnvs := parseEnvironmentsIntoMap(etcdReadEnvResp.Node.Value, etcdCredResp.Node.Value, etcdS3EnvResp.Node.Value, environments)
+	removedEnvs := parseEnvironmentsIntoMap(etcdReadEnvResp.Node.Value, etcdCredResp.Node.Value, etcdS3EnvResp.Node.Value, tse.envMap)
 
-	configureEtcdFeeds(removedEnvs)
+	configureEtcdFeeds(tse.envMap, removedEnvs)
+
+	tse.ready = true
 
 	return nil
 }
 
-func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env string, environments map[string]Environment) []string {
+func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env string, envMap map[string]Environment) []string {
 	envReadEndpoints := strings.Split(etcdReadEnv, ",")
 	envCredentials := strings.Split(etcdCred, ",")
 	envS3Endpoints := strings.Split(etcdS3Env, ",")
@@ -136,19 +181,19 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 			log.Infof("No S3 url supplied for access to environment %v", name)
 		}
 
-		environments[name] = Environment{name, readUrl, s3Url, username, password}
+		envMap[name] = Environment{name, readUrl, s3Url, username, password}
 	}
 
 	// now remove unseen environments
 	toDelete := make([]string, 0)
-	for name, _ := range environments {
+	for name := range envMap {
 		if _, exists := seen[name]; !exists {
 			toDelete = append(toDelete, name)
 		}
 	}
 	for _, name := range toDelete {
 		log.Infof("removing environment from monitoring: %v", name)
-		delete(environments, name)
+		delete(envMap, name)
 	}
 
 	return toDelete
@@ -179,7 +224,7 @@ func watch(etcdKey *string, fn func()) {
 	}
 }
 
-func configureEtcdFeeds(removedEnvs []string) {
+func configureEtcdFeeds(envMap map[string]Environment, removedEnvs []string) {
 	for _, envName := range removedEnvs {
 		feeds, found := subscribedFeeds[envName]
 		if found {
@@ -192,7 +237,7 @@ func configureEtcdFeeds(removedEnvs []string) {
 	}
 
 	for _, metric := range appConfig.MetricConf {
-		for _, env := range environments {
+		for _, env := range envMap {
 			var envFeeds []feeds.Feed
 			var found bool
 			if envFeeds, found = subscribedFeeds[env.Name]; !found {
