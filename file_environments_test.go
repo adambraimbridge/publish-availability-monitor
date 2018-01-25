@@ -2,10 +2,12 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	"github.com/stretchr/testify/assert"
@@ -226,7 +228,7 @@ func TestConfigureFeedsWithEmptyListOfMetrics(t *testing.T) {
 	}
 	appConfig = &AppConfig{}
 
-	configureFileFeeds([]string{"test-feed"})
+	configureFileFeeds(make(map[string]Environment), []string{"test-feed"})
 
 	assert.Equal(t, 0, len(subscribedFeeds))
 }
@@ -545,6 +547,28 @@ func TestUpdateValidationCredentialsIfChangedFileUnchanged(t *testing.T) {
 	assert.Nil(t, err, "Shouldn't get an error for valid file")
 	assert.Equal(t, "test-user:test-pwd", validatorCredentials, "Validator credentials shouldn't have changed")
 	assert.Equal(t, "cc4d51dfe137ec8cbba8fd3ff24474be", configFilesHashValues[validationCredsFile], "Hashes shouldn't have changed")
+}
+
+func TestTickerWithInitialDelay(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	delay := 2
+	ticker := newTicker(time.Duration(delay)*time.Second, time.Minute)
+	defer ticker.Stop()
+
+	before := time.Now()
+	go func() {
+		<-ticker.C
+		cancel()
+	}()
+
+	select {
+	case <-ctx.Done():
+		assert.WithinDuration(t, before.Add(time.Duration(delay)*time.Second), time.Now(), time.Second, "initial tick")
+	case <-time.After(time.Duration(delay+1) * time.Second):
+		assert.Fail(t, "timed out waiting for initial tick")
+	}
 }
 
 func prepareFile(fileContent string) string {

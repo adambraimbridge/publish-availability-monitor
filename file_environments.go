@@ -16,7 +16,7 @@ import (
 )
 
 func watchConfigFiles(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string, configRefreshPeriod int) {
-	ticker := time.NewTicker(time.Minute * time.Duration(configRefreshPeriod))
+	ticker := newTicker(0, time.Minute * time.Duration(configRefreshPeriod))
 
 	for range ticker.C {
 		err := updateEnvsIfChanged(envsFileName, envCredentialsFileName)
@@ -29,6 +29,22 @@ func watchConfigFiles(envsFileName string, envCredentialsFileName string, valida
 			log.Errorf("Could not update validation credentials config, error was: %s", err)
 		}
 	}
+}
+
+func newTicker(delay, repeat time.Duration) *time.Ticker {
+	// adapted from https://stackoverflow.com/questions/32705582/how-to-get-time-tick-to-tick-immediately
+	ticker := time.NewTicker(repeat)
+	oc := ticker.C
+	nc := make(chan time.Time, 1)
+	go func() {
+		time.Sleep(delay)
+		nc <- time.Now()
+		for tm := range oc {
+			nc <- tm
+		}
+	}()
+	ticker.C = nc
+	return ticker
 }
 
 func updateValidationCredentialsIfChanged(validationCredentialsFileName string) error {
@@ -138,7 +154,7 @@ func updateEnvs(envsFileData []byte, credsFileData []byte) error {
 	defer environments.Unlock()
 
 	removedEnvs := parseEnvsIntoMap(validEnvs, envCredentials)
-	configureFileFeeds(removedEnvs)
+	configureFileFeeds(environments.envMap, removedEnvs)
 	environments.ready = true
 
 	return nil
@@ -157,7 +173,7 @@ func updateValidationCredentials(data []byte) error {
 	return nil
 }
 
-func configureFileFeeds(removedEnvs []string) {
+func configureFileFeeds(envMap map[string]Environment, removedEnvs []string) {
 	for _, envName := range removedEnvs {
 		feeds, found := subscribedFeeds[envName]
 		if found {
@@ -170,8 +186,7 @@ func configureFileFeeds(removedEnvs []string) {
 	}
 
 	for _, metric := range appConfig.MetricConf {
-		for _, envName := range environments.names() {
-			env := environments.environment(envName)
+		for _, env := range envMap {
 			var envFeeds []feeds.Feed
 			var found bool
 			if envFeeds, found = subscribedFeeds[env.Name]; !found {
