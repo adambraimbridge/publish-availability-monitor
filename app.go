@@ -136,13 +136,16 @@ func main() {
 		return
 	}
 
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
 	if *etcdPeers == "NOT_AVAILABLE" {
 		log.Info("Sourcing dynamic configs from file")
-		go watchConfigFiles(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName, *configRefreshPeriod)
+		go watchConfigFiles(wg, *envsFileName, *envCredentialsFileName, *validatorCredentialsFileName, *configRefreshPeriod)
 	} else {
 		log.Info("Sourcing dynamic configs from ETCD")
-		go DiscoverEnvironmentsAndValidators(etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey)
+		go DiscoverEnvironmentsAndValidators(wg, etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey)
 	}
+	wg.Wait()
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 

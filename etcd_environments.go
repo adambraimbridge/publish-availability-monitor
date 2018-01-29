@@ -61,7 +61,11 @@ func (tse *threadSafeEnvironments) areReady() bool {
 	return tse.ready
 }
 
-func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string, etcdCredKey *string, etcdS3EnvKey *string, etcdValidatorCredKey *string) error {
+func DiscoverEnvironmentsAndValidators(wg *sync.WaitGroup, etcdPeers *string, etcdReadEnvKey *string, etcdCredKey *string, etcdS3EnvKey *string, etcdValidatorCredKey *string) error {
+	first := true
+	defer func() {
+		markWaitGroupDone(wg, first)
+	}()
 
 	readEnvKey = etcdReadEnvKey
 	s3EnvKey = etcdS3EnvKey
@@ -87,7 +91,10 @@ func DiscoverEnvironmentsAndValidators(etcdPeers *string, etcdReadEnvKey *string
 	etcdKeysAPI = etcd.NewKeysAPI(etcdClient)
 
 	for environments.len() == 0 {
-		if err = environments.redefine(); err != nil {
+		err = environments.redefine()
+		first = markWaitGroupDone(wg, first)
+
+		if err != nil {
 			log.Info("retry in 60s...")
 			time.Sleep(time.Minute)
 		}

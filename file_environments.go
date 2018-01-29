@@ -9,14 +9,19 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	log "github.com/Sirupsen/logrus"
 )
 
-func watchConfigFiles(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string, configRefreshPeriod int) {
+func watchConfigFiles(wg *sync.WaitGroup, envsFileName string, envCredentialsFileName string, validationCredentialsFileName string, configRefreshPeriod int) {
 	ticker := newTicker(0, time.Minute * time.Duration(configRefreshPeriod))
+	first := true
+	defer func() {
+		markWaitGroupDone(wg, first)
+	}()
 
 	for range ticker.C {
 		err := updateEnvsIfChanged(envsFileName, envCredentialsFileName)
@@ -28,7 +33,18 @@ func watchConfigFiles(envsFileName string, envCredentialsFileName string, valida
 		if err != nil {
 			log.Errorf("Could not update validation credentials config, error was: %s", err)
 		}
+
+		first = markWaitGroupDone(wg, first)
 	}
+}
+
+func markWaitGroupDone(wg *sync.WaitGroup, first bool) bool {
+	if first {
+		wg.Done()
+		first = false
+	}
+
+	return first
 }
 
 func newTicker(delay, repeat time.Duration) *time.Ticker {
