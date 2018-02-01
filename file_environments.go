@@ -9,14 +9,19 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/Financial-Times/publish-availability-monitor/feeds"
 	log "github.com/Sirupsen/logrus"
 )
 
-func watchConfigFiles(envsFileName string, envCredentialsFileName string, validationCredentialsFileName string, configRefreshPeriod int) {
-	ticker := time.NewTicker(time.Minute * time.Duration(configRefreshPeriod))
+func watchConfigFiles(wg *sync.WaitGroup, envsFileName string, envCredentialsFileName string, validationCredentialsFileName string, configRefreshPeriod int) {
+	ticker := newTicker(0, time.Minute * time.Duration(configRefreshPeriod))
+	first := true
+	defer func() {
+		markWaitGroupDone(wg, first)
+	}()
 
 	for range ticker.C {
 		err := updateEnvsIfChanged(envsFileName, envCredentialsFileName)
@@ -28,7 +33,34 @@ func watchConfigFiles(envsFileName string, envCredentialsFileName string, valida
 		if err != nil {
 			log.Errorf("Could not update validation credentials config, error was: %s", err)
 		}
+
+		first = markWaitGroupDone(wg, first)
 	}
+}
+
+func markWaitGroupDone(wg *sync.WaitGroup, first bool) bool {
+	if first {
+		wg.Done()
+		first = false
+	}
+
+	return first
+}
+
+func newTicker(delay, repeat time.Duration) *time.Ticker {
+	// adapted from https://stackoverflow.com/questions/32705582/how-to-get-time-tick-to-tick-immediately
+	ticker := time.NewTicker(repeat)
+	oc := ticker.C
+	nc := make(chan time.Time, 1)
+	go func() {
+		time.Sleep(delay)
+		nc <- time.Now()
+		for tm := range oc {
+			nc <- tm
+		}
+	}()
+	ticker.C = nc
+	return ticker
 }
 
 func updateValidationCredentialsIfChanged(validationCredentialsFileName string) error {
@@ -134,8 +166,12 @@ func updateEnvs(envsFileData []byte, credsFileData []byte) error {
 		return fmt.Errorf("cannot parse credentials because [%s]", err)
 	}
 
+	environments.Lock()
+	defer environments.Unlock()
+
 	removedEnvs := parseEnvsIntoMap(validEnvs, envCredentials)
-	configureFileFeeds(removedEnvs)
+	configureFileFeeds(environments.envMap, removedEnvs)
+	environments.ready = true
 
 	return nil
 }
@@ -153,7 +189,7 @@ func updateValidationCredentials(data []byte) error {
 	return nil
 }
 
-func configureFileFeeds(removedEnvs []string) {
+func configureFileFeeds(envMap map[string]Environment, removedEnvs []string) {
 	for _, envName := range removedEnvs {
 		feeds, found := subscribedFeeds[envName]
 		if found {
@@ -166,7 +202,7 @@ func configureFileFeeds(removedEnvs []string) {
 	}
 
 	for _, metric := range appConfig.MetricConf {
-		for _, env := range environments {
+		for _, env := range envMap {
 			var envFeeds []feeds.Feed
 			var found bool
 			if envFeeds, found = subscribedFeeds[env.Name]; !found {
@@ -244,10 +280,10 @@ func parseEnvsIntoMap(envs []Environment, envCredentials []Credentials) []string
 
 	//remove envs that don't exist anymore
 	removedEnvs := make([]string, 0)
-	for envName := range environments {
+	for envName := range environments.envMap {
 		if !isEnvInSlice(envName, envs) {
 			log.Infof("removing environment from monitoring: %v", envName)
-			delete(environments, envName)
+			delete(environments.envMap, envName)
 			removedEnvs = append(removedEnvs, envName)
 		}
 	}
@@ -255,7 +291,7 @@ func parseEnvsIntoMap(envs []Environment, envCredentials []Credentials) []string
 	//update envs
 	for _, env := range envs {
 		envName := env.Name
-		environments[envName] = env
+		environments.envMap[envName] = env
 		log.Infof("Added environment to monitoring: %s", envName)
 	}
 

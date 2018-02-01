@@ -20,7 +20,7 @@ type schedulerParam struct {
 	tid             string
 	isMarkedDeleted bool
 	metricContainer *publishHistory
-	environments    map[string]Environment
+	environments    *threadSafeEnvironments
 }
 
 func scheduleChecks(p *schedulerParam) {
@@ -29,8 +29,9 @@ func scheduleChecks(p *schedulerParam) {
 			continue
 		}
 
-		if len(p.environments) > 0 {
-			for name, env := range p.environments {
+		if p.environments.len() > 0 {
+			for _, name := range p.environments.names() {
+				env := p.environments.environment(name)
 				var endpointURL *url.URL
 				var err error
 

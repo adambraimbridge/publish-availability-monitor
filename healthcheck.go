@@ -50,6 +50,7 @@ var readCheckEndpoints = map[string]func(string) (string, error){
 }
 
 var noReadEnvironments = fthealth.Check{
+	ID:               "ReadEnvironments",
 	BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
 	Name:             "ReadEnvironments",
 	PanicGuide:       pam_run_book_url,
@@ -113,6 +114,7 @@ func gtgCheck(handler func() (string, error)) gtg.Status {
 
 func isConsumingFromPushFeeds() fthealth.Check {
 	return fthealth.Check{
+		ID:               "IsConsumingFromNotificationsPushFeeds",
 		BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
 		Name:             "IsConsumingFromNotificationsPushFeeds",
 		PanicGuide:       pam_run_book_url,
@@ -142,6 +144,7 @@ func isConsumingFromPushFeeds() fthealth.Check {
 
 func (h *Healthcheck) messageQueueProxyReachable() fthealth.Check {
 	return fthealth.Check{
+		ID:               "MessageQueueProxyReachable",
 		BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
 		Name:             "MessageQueueProxyReachable",
 		PanicGuide:       pam_run_book_url,
@@ -153,6 +156,7 @@ func (h *Healthcheck) messageQueueProxyReachable() fthealth.Check {
 
 func (h *Healthcheck) reflectPublishFailures() fthealth.Check {
 	return fthealth.Check{
+		ID:               "ReflectPublishFailures",
 		BusinessImpact:   "At least two of the last 10 publishes failed. This will reflect in the SLA measurement.",
 		Name:             "ReflectPublishFailures",
 		PanicGuide:       pam_run_book_url,
@@ -188,6 +192,7 @@ func (h *Healthcheck) checkForPublishFailures() (string, error) {
 
 func (h *Healthcheck) validationServicesReachable() fthealth.Check {
 	return fthealth.Check{
+		ID:               "validationServicesReachable",
 		BusinessImpact:   "Publish metrics might not be correct. False positive failures might be recorded. This will impact the SLA measurement.",
 		Name:             "validationServicesReachable",
 		PanicGuide:       pam_run_book_url,
@@ -250,17 +255,23 @@ func checkServiceReachable(healthcheckURL string, username string, password stri
 }
 
 func (h *Healthcheck) readEnvironmentsReachable() []fthealth.Check {
-	hc := make([]fthealth.Check, len(environments))
+	for i := 0; !environments.areReady() && i < 5; i++ {
+		log.Info("Environments not set, retry in 2s...")
+		time.Sleep(2 * time.Second)
+	}
+
+	hc := make([]fthealth.Check, environments.len())
 
 	i := 0
-	for _, env := range environments {
+	for _, envName := range environments.names() {
 		hc[i] = fthealth.Check{
+			ID:               envName + "-readEndpointsReachable",
 			BusinessImpact:   "Publish metrics might not be correct. False positive failures might be recorded. This will impact the SLA measurement.",
-			Name:             env.Name + " readEndpointsReachable",
+			Name:             envName + "-readEndpointsReachable",
 			PanicGuide:       pam_run_book_url,
 			Severity:         1,
 			TechnicalSummary: "Read services are not reachable/healthy",
-			Checker:          (&readEnvironmentHealthcheck{env, h.client}).checkReadEnvironmentReachable,
+			Checker:          (&readEnvironmentHealthcheck{environments.environment(envName), h.client}).checkReadEnvironmentReachable,
 		}
 		i++
 	}

@@ -111,7 +111,7 @@ var validatorCredentialsFileName = flag.String("validator-credentials-file-name"
 var configRefreshPeriod = flag.Int("config-refresh-period", 1, "Refresh period for configuration in minutes. By default it is 1 minute.")
 
 var appConfig *AppConfig
-var environments = make(map[string]Environment)
+var environments = newThreadSafeEnvironments()
 var subscribedFeeds = make(map[string][]feeds.Feed)
 var metricSink = make(chan PublishMetric)
 var metricContainer publishHistory
@@ -136,25 +136,16 @@ func main() {
 		return
 	}
 
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
 	if *etcdPeers == "NOT_AVAILABLE" {
 		log.Info("Sourcing dynamic configs from file")
-		err = updateEnvsIfChanged(*envsFileName, *envCredentialsFileName)
-		if err != nil {
-			log.WithError(err).Error("Cannot load envs config.")
-			return
-		}
-
-		err = updateValidationCredentialsIfChanged(*validatorCredentialsFileName)
-		if err != nil {
-			log.WithError(err).Error("Cannot load validation credentials.")
-			return
-		}
-
-		go watchConfigFiles(*envsFileName, *envCredentialsFileName, *validatorCredentialsFileName, *configRefreshPeriod)
+		go watchConfigFiles(wg, *envsFileName, *envCredentialsFileName, *validatorCredentialsFileName, *configRefreshPeriod)
 	} else {
 		log.Info("Sourcing dynamic configs from ETCD")
-		go DiscoverEnvironmentsAndValidators(etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey, environments)
+		go DiscoverEnvironmentsAndValidators(wg, etcdPeers, etcdReadEnvKey, etcdCredKey, etcdS3EnvKey, etcdValidatorCredKey)
 	}
+	wg.Wait()
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
@@ -198,13 +189,15 @@ func attachProfiler(router *mux.Router) {
 }
 
 func readMessages(brandMappings map[string]string) {
-	for len(environments) == 0 {
+
+	for !environments.areReady() {
 		log.Info("Environments not set, retry in 3s...")
 		time.Sleep(3 * time.Second)
 	}
 
 	var typeRes typeResolver
-	for _, env := range environments {
+	for _, envName := range environments.names() {
+		env := environments.environment(envName)
 		docStoreCaller := checks.NewHttpCaller(10)
 		docStoreClient := checks.NewHttpDocStoreClient(env.ReadUrl+appConfig.UUIDResolverUrl, docStoreCaller, env.Username, env.Password)
 		iResolver := checks.NewHttpIResolver(docStoreClient, brandMappings)
