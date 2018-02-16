@@ -140,3 +140,14 @@ The monitor reads from `etcd` and watches for changes in the following paths:
  </pre>
  
 Checks that have already been initiated are unaffected by changes to the values above.
+
+### Kubernetes details
+In K8s we're using the File-based configuration for environments, and the files are actually contents
+from ConfigMaps as following:
+
+- *environments configuration* is read from `global-config` ConfigMap, key `pam.read.environments`
+- *credentials configuration* is read from secret `publish-availability-monitor-secrets`, key `read-credentials`
+- *validation credentials* configuration is read from secret `publish-availability-monitor-secrets`, key `validator-credentials`
+
+These keys can be modified on the fly and they will be picked up by the application without restart with a tiny delay.
+More details on how this works [here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#mounted-configmaps-are-updated-automatically)
