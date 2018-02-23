@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/kr/pretty"
 )
 
 // ParseConfig opens the file at configFileName and unmarshals it into an AppConfig.
@@ -23,6 +22,5 @@ func ParseConfig(configFileName string) (*AppConfig, error) {
 		return nil, err
 	}
 
-	log.Infof("Using configuration: %# v", pretty.Formatter(conf))
 	return &conf, nil
 }
