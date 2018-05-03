@@ -10,16 +10,6 @@ jobs:
           CIRCLE_COVERAGE_REPORT: /tmp/coverage-results
     steps:
       - checkout
-      - setup_docker_engine:
-          docker_layer_caching: true
-      - run:
-          name: Install Docker client
-          command: |
-            set -x
-            VER="17.12.1-ce"
-            curl -L -o /tmp/docker-$VER.tgz https://download.docker.com/linux/static/stable/x86_64/docker-$VER.tgz
-            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
-            mv /tmp/docker/* /usr/bin
       - run:
           name: External Dependencies
           command: |
@@ -43,9 +33,6 @@ jobs:
           command: |
             govendor test -race -v +local | /go/bin/go-junit-report > ${CIRCLE_TEST_REPORTS}/main.xml
             goverage -covermode=atomic -race -coverprofile=${CIRCLE_COVERAGE_REPORT}/coverage.out ./...
-            docker build --rm=false -t test/pam .
-            docker run -d -p 9200:8080 --env="ETCD_PEERS=http://localhost:2379" test/pam; sleep 12
-            curl --retry 10 --retry-delay 5 -v http://localhost:9200/__health
       - run:
           name: Upload Coverage
           command: /go/bin/goveralls -coverprofile=${CIRCLE_COVERAGE_REPORT}/coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
@@ -54,7 +41,7 @@ jobs:
   dockerfile:
     working_directory: /publish-availability-monitor
     docker:
-      - image: docker:1.12.6-git
+      - image: docker:18.03
     steps:
       - checkout
       - setup_docker_engine
