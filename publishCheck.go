@@ -190,11 +190,7 @@ func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFin
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Warnf("Checking %s. Cannot read response: [%s]",
-			loggingContextForCheck(pm.config.Alias,
-				pm.UUID,
-				pm.platform,
-				pm.tid),
-			err.Error())
+			loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
 		return false, false
 	}
 
@@ -207,8 +203,7 @@ func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFin
 		return false, false
 	}
 
-	// check uuid
-	return pc.Metric.UUID == jsonResp["uuid"].(string), false
+	return isSamePublishEvent(jsonResp, pc)
 }
 
 func isSamePublishEvent(jsonContent map[string]interface{}, pc *PublishCheck) (operationFinished, ignoreCheck bool) {
