@@ -185,7 +185,7 @@ func (h *Healthcheck) checkForPublishFailures() (string, error) {
 	}
 
 	if len(failures) >= failureThreshold {
-		return "", fmt.Errorf("%d publish failures happened during the last 10 publishes", failures)
+		return "", fmt.Errorf("%d publish failures happened during the last 10 publishes", len(failures))
 	}
 	return "", nil
 }

@@ -37,6 +37,70 @@ type ContentCheck struct {
 	httpCaller checks.HttpCaller
 }
 
+// ContentCheck implements the EndpointSpecificCheck interface to check operation
+// status for the content endpoint.
+type ContentNeo4jCheck struct {
+	httpCaller checks.HttpCaller
+}
+
+func (c ContentNeo4jCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFinished, ignoreCheck bool) {
+
+	pm := pc.Metric
+	url := pm.endpoint.String() + pm.UUID
+
+	resp, err := c.httpCaller.DoCall(checks.Config{
+		Url:      url,
+		Username: pc.username,
+		Password: pc.password,
+		TxId:     checks.ConstructPamTxId(pm.tid)})
+
+	if err != nil {
+		log.Warnf("Error calling URL: [%v] for %s : [%v]", url, pc, err.Error())
+		return false, false
+	}
+
+	defer cleanupResp(resp)
+
+	// if the article was marked as deleted, operation is finished when the
+	// article cannot be found anymore
+	if pm.isMarkedDeleted {
+		log.Infof("Content Marked deleted. Checking %s, status code [%v]", pc, resp.StatusCode)
+		return resp.StatusCode == 404, false
+	}
+
+	// if not marked deleted, operation isn't finished until status is 200
+	if resp.StatusCode != 200 {
+		if resp.StatusCode != 404 {
+			log.Infof("Checking %s, status code [%v]", pc, resp.StatusCode)
+		}
+		return false, false
+	}
+
+	// if status is 200, we check the publishReference
+	// this way we can handle updates
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Warnf("Checking %s. Cannot read response: [%s]",
+			loggingContextForCheck(pm.config.Alias,
+				pm.UUID,
+				pm.platform,
+				pm.tid),
+			err.Error())
+		return false, false
+	}
+
+	var jsonResp map[string]interface{}
+
+	err = json.Unmarshal(data, &jsonResp)
+	if err != nil {
+		log.Warnf("Checking %s. Cannot unmarshal JSON response: [%s]",
+			loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
+		return false, false
+	}
+
+	return isSamePublishEvent(jsonResp, pc)
+}
+
 // S3Check implements the EndpointSpecificCheck interface to check operation
 // status for the S3 endpoint.
 type S3Check struct {
@@ -65,6 +129,7 @@ func init() {
 	//key is the endpoint alias from the config
 	endpointSpecificChecks = map[string]EndpointSpecificCheck{
 		"content":               ContentCheck{hC},
+		"content-neo4j":         ContentNeo4jCheck{hC},
 		"complementary-content": ContentCheck{hC},
 		"internal-components":   ContentCheck{hC},
 		"S3":                      S3Check{hC},
@@ -124,7 +189,12 @@ func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFin
 	// this way we can handle updates
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Warnf("Checking %s. Cannot read response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
+		log.Warnf("Checking %s. Cannot read response: [%s]",
+			loggingContextForCheck(pm.config.Alias,
+				pm.UUID,
+				pm.platform,
+				pm.tid),
+			err.Error())
 		return false, false
 	}
 
@@ -132,11 +202,13 @@ func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFin
 
 	err = json.Unmarshal(data, &jsonResp)
 	if err != nil {
-		log.Warnf("Checking %s. Cannot unmarshal JSON response: [%s]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
+		log.Warnf("Checking %s. Cannot unmarshal JSON response: [%s]",
+			loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), err.Error())
 		return false, false
 	}
 
-	return isSamePublishEvent(jsonResp, pc)
+	// check uuid
+	return pc.Metric.UUID == jsonResp["uuid"].(string), false
 }
 
 func isSamePublishEvent(jsonContent map[string]interface{}, pc *PublishCheck) (operationFinished, ignoreCheck bool) {
