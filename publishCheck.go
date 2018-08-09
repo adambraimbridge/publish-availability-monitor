@@ -98,7 +98,7 @@ func (c ContentNeo4jCheck) isCurrentOperationFinished(pc *PublishCheck) (operati
 		return false, false
 	}
 
-	return isSamePublishEvent(jsonResp, pc)
+	return pm.UUID == jsonResp["uuid"].(string), false
 }
 
 // S3Check implements the EndpointSpecificCheck interface to check operation
