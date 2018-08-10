@@ -205,7 +205,7 @@ func readMessages(brandMappings map[string]string) {
 		break
 	}
 
-	h := kafkaMessageHandler{typeRes}
+	h := NewKafkaMessageHandler(typeRes)
 	c := consumer.NewConsumer(appConfig.QueueConf, h.HandleMessage, &http.Client{})
 
 	var wg sync.WaitGroup

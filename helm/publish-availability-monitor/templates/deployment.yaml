@@ -49,6 +49,8 @@ spec:
               key: kafka.proxy.url.with.protocol
         - name: CONTENT_URL
           value: "{{ .Values.envs.content_url }}"
+        - name: CONTENT_NEO4J_URL
+          value: "{{ .Values.envs.content_neo4j_url }}"
         - name: COMPLEMENTARY_CONTENT_URL
           value: "{{ .Values.envs.complementary_content_url }}"
         - name: ETCD_PEERS

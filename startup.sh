@@ -3,6 +3,7 @@ sed -i "s \"KAFKA_TOPIC\" \"$KAFKA_TOPIC\" " /config.json
 sed -i "s \"KAFKA_PROXY_HOST\" \"$KAFKA_PROXY_HOST\" " /config.json
 sed -i "s \"QUEUE_ADDR\" \"$QUEUE_ADDR\" " /config.json
 sed -i "s \"CONTENT_URL\" \"$CONTENT_URL\" " /config.json
+sed -i "s \"CONTENT_NEO4J_URL\" \"$CONTENT_NEO4J_URL\" " /config.json
 sed -i "s \"COMPLEMENTARY_CONTENT_URL\" \"$COMPLEMENTARY_CONTENT_URL\" " /config.json
 sed -i "s \"LISTS_URL\" \"$LISTS_URL\" " /config.json
 sed -i "s \"LISTS_NOTIFICATIONS_URL\" \"$LISTS_NOTIFICATIONS_URL\" " /config.json

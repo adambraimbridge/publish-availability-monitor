@@ -5,6 +5,7 @@ service:
 envs:
   kafka_topic: "PreNativeCmsPublicationEvents"
   content_url: "/__document-store-api/content/"
+  content_neo4j_url: "/__content-rw-neo4j/content/"
   complementary_content_url: "/__document-store-api/complementarycontent/"
   internal_components_url: "/__document-store-api/internalcomponents/"
   lists_url: "/__document-store-api/lists/"

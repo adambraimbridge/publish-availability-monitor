@@ -17,7 +17,7 @@ import (
 )
 
 func watchConfigFiles(wg *sync.WaitGroup, envsFileName string, envCredentialsFileName string, validationCredentialsFileName string, configRefreshPeriod int) {
-	ticker := newTicker(0, time.Minute * time.Duration(configRefreshPeriod))
+	ticker := newTicker(0, time.Minute*time.Duration(configRefreshPeriod))
 	first := true
 	defer func() {
 		markWaitGroupDone(wg, first)
@@ -66,7 +66,7 @@ func newTicker(delay, repeat time.Duration) *time.Ticker {
 func updateValidationCredentialsIfChanged(validationCredentialsFileName string) error {
 	fileContents, err := ioutil.ReadFile(validationCredentialsFileName)
 	if err != nil {
-		return fmt.Errorf("could not read creds file [%s] because [%s]", envsFileName, err)
+		return fmt.Errorf("could not read creds file [%v] because [%s]", envsFileName, err)
 	}
 
 	var validationCredentialsChanged bool

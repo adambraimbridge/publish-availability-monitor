@@ -26,6 +26,17 @@
       ]
     },
     {
+      "endpoint": "CONTENT_NEO4J_URL",
+      "alias": "content-neo4j",
+      "health": "/__content-rw-neo4j/__health",
+      "granularity": 40,
+      "contentTypes": [
+        "EOM::CompoundStory",
+        "EOM::Story",
+        "wordpress"
+      ]
+    },
+    {
       "endpoint": "COMPLEMENTARY_CONTENT_URL",
       "alias": "complementary-content",
       "health": "/__document-store-api/__health",

@@ -14,8 +14,12 @@ import (
 
 const systemIDKey = "Origin-System-Id"
 
-type messageHandler interface {
+type MessageHandler interface {
 	HandleMessage(msg consumer.Message)
+}
+
+func NewKafkaMessageHandler(typeRes typeResolver) MessageHandler {
+	return &kafkaMessageHandler{typeRes: typeRes}
 }
 
 type kafkaMessageHandler struct {
@@ -100,7 +104,7 @@ func (h *kafkaMessageHandler) unmarshalContent(msg consumer.Message) (content.Co
 		eomFile = eomFile.Initialize(binaryContent).(content.EomFile)
 		theType, resolvedUuid, err := h.typeRes.ResolveTypeAndUuid(eomFile, txID)
 		if err != nil {
-			return nil, fmt.Errorf("Couldn't map kafka message to methode Content while fetching its type and uuid. %v", err)
+			return nil, fmt.Errorf("couldn't map kafka message to methode Content while fetching its type and uuid. %v", err)
 		}
 		eomFile.Type = theType
 		eomFile.UUID = resolvedUuid
@@ -120,6 +124,6 @@ func (h *kafkaMessageHandler) unmarshalContent(msg consumer.Message) (content.Co
 		}
 		return video.Initialize(binaryContent), nil
 	default:
-		return nil, fmt.Errorf("Unsupported content with system ID: [%s].", systemID)
+		return nil, fmt.Errorf("unsupported content with system ID: [%s]", systemID)
 	}
 }
