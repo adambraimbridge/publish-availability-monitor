@@ -72,7 +72,7 @@
         "EOM::CompoundStory",
         "EOM::CompoundStory_External_CPH",
         "EOM::CompoundStory_Internal_CPH",
-        "post"
+        "wordpress"
       ]
     },
     {
@@ -85,7 +85,7 @@
         "EOM::CompoundStory",
         "EOM::CompoundStory_External_CPH",
         "EOM::CompoundStory_Internal_CPH",
-        "post"
+        "wordpress"
       ]
     },
     {
