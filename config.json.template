@@ -18,6 +18,7 @@
       "contentTypes": [
         "EOM::CompoundStory",
         "EOM::CompoundStory_External_CPH",
+        "EOM::CompoundStory_DynamicContent",
         "EOM::Story",
         "Image",
         "ImageSet",
@@ -32,6 +33,7 @@
       "granularity": 40,
       "contentTypes": [
         "EOM::CompoundStory",
+        "EOM::CompoundStory_DynamicContent",
         "EOM::Story",
         "wordpress"
       ]
@@ -72,6 +74,7 @@
         "EOM::CompoundStory",
         "EOM::CompoundStory_External_CPH",
         "EOM::CompoundStory_Internal_CPH",
+        "EOM::CompoundStory_DynamicContent",
         "post"
       ]
     },
@@ -103,7 +106,8 @@
       "alias": "internal-components",
       "health": "/__document-store-api/__health",
       "contentTypes": [
-        "InternalComponents"
+        "InternalComponents",
+        "EOM::CompoundStory_DynamicContent"
       ]
     }
   ],
@@ -117,6 +121,7 @@
     "EOM::CompoundStory": "METHODE_ARTICLE_VALIDATION_URL",
     "EOM::CompoundStory_External_CPH": "METHODE_CONTENT_PLACEHOLDER_MAPPER_URL",
     "EOM::CompoundStory_Internal_CPH": "METHODE_CONTENT_PLACEHOLDER_MAPPER_URL",
+    "EOM::CompoundStory_DynamicContent": "METHODE_ARTICLE_INTERNAL_COMPONENTS_MAPPER_URL",
     "EOM::Story": "METHODE_ARTICLE_VALIDATION_URL",
     "EOM::WebContainer": "METHODE_LIST_VALIDATION_URL",
     "Image": "METHODE_IMAGE_MODEL_MAPPER_URL",

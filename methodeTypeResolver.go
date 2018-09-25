@@ -29,20 +29,25 @@ func (m *methodeTypeResolver) ResolveTypeAndUuid(eomFile content.EomFile, txID s
 	contentType := eomFile.ContentType
 	contentSrc := eomFile.Source.SourceCode
 	if contentSrc == "ContentPlaceholder" && contentType == "EOM::CompoundStory" {
-		resolvedUuid, err := m.resolveUUID(eomFile, txID)
+		resolvedUUID, err := m.resolveUUID(eomFile, txID)
 		if err != nil {
 			return "", "", err
 		}
 
 		theType := "EOM::CompoundStory_External_CPH"
-		cphUuid := eomFile.UUID
-		if resolvedUuid != "" {
+		cphUUID := eomFile.UUID
+		if resolvedUUID != "" {
 			theType = "EOM::CompoundStory_Internal_CPH"
-			cphUuid = resolvedUuid
+			cphUUID = resolvedUUID
 		}
-		log.Infof("For placeholder resolved tid=&v type=%v uuid=%v", txID, theType, cphUuid)
-		return theType, cphUuid, nil
+		log.Infof("For placeholder resolved tid=&v type=%v uuid=%v", txID, theType, cphUUID)
+		return theType, cphUUID, nil
 	}
+
+	if contentSrc == "DynamicContent" && contentType == "EOM::CompoundStory" {
+		return "EOM::CompoundStory_DynamicContent", eomFile.UUID, nil
+	}
+
 	return eomFile.ContentType, eomFile.UUID, nil
 }
 

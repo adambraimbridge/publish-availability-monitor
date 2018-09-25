@@ -122,6 +122,26 @@ func TestResolveTypeAndUuid_CPH_InvalidAttributes_ThrowsError(t *testing.T) {
 	assert.Error(t, err, "CPH should throw error on invalid attributes.")
 }
 
+func TestResolveTypeAndUuid_DynamicContent(t *testing.T) {
+	eomFile := content.EomFile{
+		UUID:        "e28b12f7-9796-3331-b030-05082f0b8157",
+		ContentType: "EOM::CompoundStory",
+		Source: content.Source{
+			SourceCode: "DynamicContent",
+		},
+		Attributes: notWordpressAttributesXML,
+	}
+
+	iResolverMock := new(MockIResolver)
+	typeResolver := methodeTypeResolver{iResolver: iResolverMock}
+
+	resultType, resultUUID, err := typeResolver.ResolveTypeAndUuid(eomFile, "tid_0123wxyz")
+
+	assert.NoError(t, err, "Internal CPH shouldn't throw error on type and uuid resolve.")
+	assert.Equal(t, "EOM::CompoundStory_DynamicContent", resultType)
+	assert.Equal(t, "e28b12f7-9796-3331-b030-05082f0b8157", resultUUID)
+}
+
 type MockIResolver struct {
 	mock.Mock
 }

@@ -140,6 +140,38 @@ func TestScheduleChecksForContentWithInternalComponentsAreCorrect(testing *testi
 	require.Equal(testing, readURL+"/internalcomponents/", capturingMetrics.publishMetrics[0].endpoint.String())
 }
 
+func TestScheduleChecksForDynamicContentWithInternalComponentsAreCorrect(testing *testing.T) {
+	appConfig = &AppConfig{
+		MetricConf: []MetricConfig{
+			{
+				Endpoint:    "/internalcomponents/",
+				Granularity: 1,
+				Alias:       "internal-components",
+				ContentTypes: []string{
+					"InternalComponents",
+					"EOM::CompoundStory_DynamicContent",
+				},
+			},
+		},
+		Threshold: 1,
+	}
+
+	var mockEnvironments = newThreadSafeEnvironments()
+	readURL := "http://env1.example.org"
+	s3URL := "http://s1.example.org"
+
+	mockEnvironments.envMap["env1"] = Environment{"env1", readURL, s3URL, "user1", "pass1"}
+
+	mockArticleEomFile.Type = "EOM::CompoundStory_DynamicContent"
+
+	capturingMetrics := runScheduleChecks(testing, mockArticleEomFile, mockEnvironments)
+	defer capturingMetrics.RUnlock()
+
+	require.NotNil(testing, capturingMetrics)
+	require.Equal(testing, 1, len(capturingMetrics.publishMetrics))
+	require.Equal(testing, readURL+"/internalcomponents/", capturingMetrics.publishMetrics[0].endpoint.String())
+}
+
 func runScheduleChecks(testing *testing.T, content content.Content, mockEnvironments *threadSafeEnvironments) *publishHistory {
 	capturingMetrics := &publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 	tid := "tid_1234"
