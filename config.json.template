@@ -71,8 +71,7 @@
       "contentTypes": [
         "EOM::CompoundStory",
         "EOM::CompoundStory_External_CPH",
-        "EOM::CompoundStory_Internal_CPH",
-        "wordpress"
+        "EOM::CompoundStory_Internal_CPH"
       ]
     },
     {
