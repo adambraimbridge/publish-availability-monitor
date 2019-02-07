@@ -200,8 +200,8 @@ func readMessages(brandMappings map[string]string) {
 		env := environments.environment(envName)
 		docStoreCaller := checks.NewHttpCaller(10)
 		docStoreClient := checks.NewHttpDocStoreClient(env.ReadUrl+appConfig.UUIDResolverUrl, docStoreCaller, env.Username, env.Password)
-		iResolver := checks.NewHttpIResolver(docStoreClient, brandMappings)
-		typeRes = NewMethodeTypeResolver(iResolver)
+		uuidResolver := checks.NewHttpUUIDResolver(docStoreClient, brandMappings)
+		typeRes = NewMethodeTypeResolver(uuidResolver)
 		break
 	}
 

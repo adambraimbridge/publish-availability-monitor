@@ -16,12 +16,12 @@ type typeResolver interface {
 }
 
 type methodeTypeResolver struct {
-	iResolver checks.IResolver
+	resolver checks.UUIDResolver
 }
 
-func NewMethodeTypeResolver(iResolver checks.IResolver) *methodeTypeResolver {
+func NewMethodeTypeResolver(uuidResolver checks.UUIDResolver) *methodeTypeResolver {
 	return &methodeTypeResolver{
-		iResolver: iResolver,
+		resolver: uuidResolver,
 	}
 }
 
@@ -40,7 +40,7 @@ func (m *methodeTypeResolver) ResolveTypeAndUuid(eomFile content.EomFile, txID s
 			theType = "EOM::CompoundStory_Internal_CPH"
 			cphUUID = resolvedUUID
 		}
-		log.Infof("For placeholder resolved tid=&v type=%v uuid=%v", txID, theType, cphUUID)
+		log.Infof("For placeholder resolved tid=%v type=%v uuid=%v", txID, theType, cphUUID)
 		return theType, cphUUID, nil
 	}
 
@@ -57,14 +57,25 @@ func (m *methodeTypeResolver) resolveUUID(eomFile content.EomFile, txID string) 
 		return "", err
 	}
 
-	uuid := ""
-	if isBlogCategory(attributes) {
-		resolvedUuid, err := m.iResolver.ResolveIdentifier(attributes.ServiceId, attributes.RefField, txID)
+	var uuid string
+	if attributes.OriginalUUID != "" {
+		uuid, err = m.resolver.ResolveOriginalUUID(attributes.OriginalUUID, txID)
 		if err != nil {
-			return "", fmt.Errorf("Couldn't resolve blog uuid, error was: %v", err)
+			return "", err
 		}
-		uuid = resolvedUuid
+
+		if uuid == "" {
+			return "", fmt.Errorf("couldn't resolve CPH uuid for tid=%v, OriginalUUID=%v is not present in the database", txID, attributes.OriginalUUID)
+		}
+	} else {
+		if isBlogCategory(attributes) {
+			uuid, err = m.resolver.ResolveIdentifier(attributes.ServiceId, attributes.RefField, txID)
+			if err != nil {
+				return "", fmt.Errorf("couldn't resolve blog uuid, error was: %v", err)
+			}
+		}
 	}
+
 	return uuid, nil
 }
 
