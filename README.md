@@ -4,11 +4,12 @@
 
 Monitors publish availability and collects related metrics. Collected metrics are sent to various systems (ex. Splunk).
 
-# Usage
+# Installation
+
+Download the source code, dependencies, and build the binary:
+
 ```
-go get -u github.com/kardianos/govendor
 go get github.com/Financial-Times/publish-availability-monitor
-govendor sync
 publish-availability-monitor -config=int-config.json
 ```
 

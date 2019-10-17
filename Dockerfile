@@ -3,12 +3,10 @@ FROM golang:1
 ENV PROJECT=publish-availability-monitor
 
 ENV ORG_PATH="github.com/Financial-Times"
-ENV SRC_FOLDER="${GOPATH}/src/${ORG_PATH}/${PROJECT}"
 ENV BUILDINFO_PACKAGE="${ORG_PATH}/${PROJECT}/vendor/${ORG_PATH}/service-status-go/buildinfo."
-ENV REPO_PATH="${ORG_PATH}/${PROJECT}" 
 
-COPY . ${SRC_FOLDER}
-WORKDIR ${SRC_FOLDER}
+COPY . ${PROJECT}}
+WORKDIR ${PROJECT}}
 
 ADD config.json.template /config.json
 ADD startup.sh /
@@ -20,10 +18,8 @@ RUN VERSION="version=$(git describe --tag --always 2> /dev/null)" \
   && REVISION="revision=$(git rev-parse HEAD)" \
   && BUILDER="builder=$(go version)" \
   && LDFLAGS="-s -w -X '"${BUILDINFO_PACKAGE}$VERSION"' -X '"${BUILDINFO_PACKAGE}$DATETIME"' -X '"${BUILDINFO_PACKAGE}$REPOSITORY"' -X '"${BUILDINFO_PACKAGE}$REVISION"' -X '"${BUILDINFO_PACKAGE}$BUILDER"'" \
-  && echo "Build flags: $LDFLAGS" \
-  && go get -u github.com/kardianos/govendor \
-  && $GOPATH/bin/govendor sync \
-  && CGO_ENABLED=0 go build -a -o /artifacts/${PROJECT} -ldflags="${LDFLAGS}" 
+  && CGO_ENABLED=0 go build -a -o /artifacts/${PROJECT} -ldflags="${LDFLAGS}" \
+  && echo "Build flags: $LDFLAGS" 
 
 # Multi-stage build - copy certs and the binary into the image
 FROM scratch
