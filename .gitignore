@@ -10,5 +10,7 @@
 /default.etcd
 *.iml
 /projectFilesBackup
+.vscode
+.DS_Store
 
 vendor/*/
