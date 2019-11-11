@@ -10,5 +10,6 @@
 /default.etcd
 *.iml
 /projectFilesBackup
+.DS_Store
 
 vendor/*/
