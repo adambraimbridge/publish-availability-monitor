@@ -3,7 +3,7 @@ FROM golang:1
 ENV PROJECT=publish-availability-monitor
 
 ENV ORG_PATH="github.com/Financial-Times"
-ENV BUILDINFO_PACKAGE="${ORG_PATH}/${PROJECT}/vendor/${ORG_PATH}/service-status-go/buildinfo."
+ENV BUILDINFO_PACKAGE="${ORG_PATH}/${PROJECT}/${ORG_PATH}/service-status-go/buildinfo."
 
 COPY . ${PROJECT}}
 WORKDIR ${PROJECT}}
@@ -18,12 +18,15 @@ RUN VERSION="version=$(git describe --tag --always 2> /dev/null)" \
   && REVISION="revision=$(git rev-parse HEAD)" \
   && BUILDER="builder=$(go version)" \
   && LDFLAGS="-s -w -X '"${BUILDINFO_PACKAGE}$VERSION"' -X '"${BUILDINFO_PACKAGE}$DATETIME"' -X '"${BUILDINFO_PACKAGE}$REPOSITORY"' -X '"${BUILDINFO_PACKAGE}$REVISION"' -X '"${BUILDINFO_PACKAGE}$BUILDER"'" \
-  && CGO_ENABLED=0 go build -a -o /artifacts/${PROJECT} -ldflags="${LDFLAGS}" \
+  && CGO_ENABLED=0 go build -mod=readonly -o /artifacts/${PROJECT} -v -ldflags="${LDFLAGS}" \
   && echo "Build flags: $LDFLAGS" 
 
 # Multi-stage build - copy certs and the binary into the image
 FROM scratch
-WORKDIR /	WORKDIR /
+WORKDIR /	
+COPY config.json.template /config.json
+COPY startup.sh /
+COPY brandMappings.json /
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=0 /artifacts/* /
 
