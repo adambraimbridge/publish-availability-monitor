@@ -3,14 +3,10 @@ FROM golang:1
 ENV PROJECT=publish-availability-monitor
 
 ENV ORG_PATH="github.com/Financial-Times"
-ENV BUILDINFO_PACKAGE="${ORG_PATH}/${PROJECT}/${ORG_PATH}/service-status-go/buildinfo."
+ENV BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo."
 
-COPY . ${PROJECT}}
-WORKDIR ${PROJECT}}
-
-ADD config.json.template /config.json
-ADD startup.sh /
-ADD brandMappings.json /
+COPY . /${PROJECT}/
+WORKDIR /${PROJECT}
 
 RUN VERSION="version=$(git describe --tag --always 2> /dev/null)" \
   && DATETIME="dateTime=$(date -u +%Y%m%d%H%M%S)" \
@@ -24,9 +20,9 @@ RUN VERSION="version=$(git describe --tag --always 2> /dev/null)" \
 # Multi-stage build - copy certs and the binary into the image
 FROM scratch
 WORKDIR /	
-COPY config.json.template /config.json
-COPY startup.sh /
-COPY brandMappings.json /
+COPY --from=0 /publish-availability-monitor/config.json.template /config.json 
+COPY --from=0 /publish-availability-monitor/startup.sh /
+COPY --from=0 /publish-availability-monitor/brandMappings.json /
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=0 /artifacts/* /
 
