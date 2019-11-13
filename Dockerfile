@@ -3,7 +3,7 @@ FROM golang:1
 ENV PROJECT=publish-availability-monitor
 
 ENV ORG_PATH="github.com/Financial-Times"
-ENV BUILDINFO_PACKAGE="${ORG_PATH}/${PROJECT}/${ORG_PATH}/service-status-go/buildinfo."
+ENV BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo."
 
 COPY . /${PROJECT}/
 WORKDIR /${PROJECT}
