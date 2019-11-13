@@ -6,12 +6,19 @@ Monitors publish availability and collects related metrics. Collected metrics ar
 
 # Installation
 
-Download the source code, dependencies, and build the binary:
+1. Download the source code, dependencies, and build the binary:
 
 ```
 go get github.com/Financial-Times/publish-availability-monitor
-publish-availability-monitor -config=int-config.json
+go build
 ```
+
+2. Set all environment variables listed in `startup.sh`.
+
+3. Run 
+````
+startup.sh
+````
 
 With Docker:
 
