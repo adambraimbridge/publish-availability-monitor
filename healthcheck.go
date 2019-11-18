@@ -42,7 +42,7 @@ type readEnvironmentHealthcheck struct {
 	client *http.Client
 }
 
-const pam_run_book_url = "https://dewey.in.ft.com/view/system/publish-availability-monitor"
+const pam_run_book_url = "https://runbooks.in.ft.com/publish-availability-monitor"
 
 var readCheckEndpoints = map[string]func(string) (string, error){
 	"S3": buildAwsHealthcheckUrl,
