@@ -4,19 +4,27 @@
 
 Monitors publish availability and collects related metrics. Collected metrics are sent to various systems (ex. Splunk).
 
-# Usage
+# Installation
+
+1. Download the source code, dependencies, and build the binary:
+
 ```
-go get -u github.com/kardianos/govendor
 go get github.com/Financial-Times/publish-availability-monitor
-govendor sync
-publish-availability-monitor -config=int-config.json
+go build
 ```
+
+2. Set all environment variables listed in `startup.sh`.
+
+3. Run 
+````
+startup.sh
+````
 
 With Docker:
 
 `docker build -t coco/publish-availability-monitor .`
 
-`docker run -ti --env QUEUE_ADDR=<addr> --env S3_URL=<S3 bucket URL> --env CONTENT_URL=<document store api article endpoint path> --env LISTS_URL=<document store api lists endpoint path> --env NOTIFICATIONS_URL=<notifications read path> --env NOTIFICATIONS_PUSH_URL=<notifications push path> --env METHODE_ARTICLE_TRANSFORMER_URL=<methode article transformer URL>  --env METHODE_CONTENT_PLACEHOLDER_MAPPER_URL=<methode content placeholder mapper URL> coco/publish-availability-monitor`
+`docker run -it --env QUEUE_ADDR=<addr> --env S3_URL=<S3 bucket URL> --env CONTENT_URL=<document store api article endpoint path> --env LISTS_URL=<document store api lists endpoint path> --env NOTIFICATIONS_URL=<notifications read path> --env NOTIFICATIONS_PUSH_URL=<notifications push path> --env METHODE_ARTICLE_TRANSFORMER_URL=<methode article transformer URL>  --env METHODE_CONTENT_PLACEHOLDER_MAPPER_URL=<methode content placeholder mapper URL> coco/publish-availability-monitor`
 
 # Build and deploy
 __Note that deployment to FTP2 is no longer supported.__
