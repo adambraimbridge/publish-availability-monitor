@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/Financial-Times/publish-availability-monitor/content"
-	log "github.com/Sirupsen/logrus"
+	"github.com/Financial-Times/publish-availability-monitor/v2/content"
+	log "github.com/sirupsen/logrus"
 )
 
 const systemIDKey = "Origin-System-Id"
