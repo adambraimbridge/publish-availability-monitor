@@ -2,6 +2,9 @@
 replicaCount: 1
 service:
   name: publish-availability-monitor
+
+eksCluster: true
+
 envs:
   kafka_topic: "PreNativeCmsPublicationEvents"
   content_url: "/__document-store-api/content/"
