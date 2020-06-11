@@ -3,7 +3,7 @@ package content
 import (
 	"net/http"
 
-	"github.com/Financial-Times/uuid-utils-go"
+	uuidutils "github.com/Financial-Times/uuid-utils-go"
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -20,7 +20,7 @@ func (video Video) Initialize(binaryContent []byte) Content {
 	return video
 }
 
-func (video Video) Validate(externalValidationEndpoint string, txId string, username string, password string) ValidationResponse {
+func (video Video) Validate(externalValidationEndpoint string, txID string, username string, password string) ValidationResponse {
 	if uuidutils.ValidateUUID(video.GetUUID()) != nil {
 		log.Warnf("Video invalid: invalid UUID: [%s]", video.GetUUID())
 		return ValidationResponse{IsValid: false, IsMarkedDeleted: video.isMarkedDeleted()}
@@ -31,7 +31,7 @@ func (video Video) Validate(externalValidationEndpoint string, txId string, user
 		externalValidationEndpoint,
 		username,
 		password,
-		txId,
+		txID,
 		video.GetUUID(),
 		video.GetType(),
 	}

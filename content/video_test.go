@@ -16,12 +16,12 @@ func TestIsVideoValid_Valid(t *testing.T) {
 		BinaryContent: []byte("valid-json"),
 	}
 
-	txId := "tid_1234"
-	pamTxId := checks.ConstructPamTxId(txId)
+	txID := "tid_1234"
+	pamTxID := checks.ConstructPamTxID(txID)
 
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, "/map", req.RequestURI)
-		assert.Equal(t, pamTxId, req.Header.Get("X-Request-Id"))
+		assert.Equal(t, pamTxID, req.Header.Get("X-Request-Id"))
 
 		defer req.Body.Close()
 		reqBody, err := ioutil.ReadAll(req.Body)
@@ -29,7 +29,7 @@ func TestIsVideoValid_Valid(t *testing.T) {
 		assert.Equal(t, videoValid.BinaryContent, reqBody)
 	}))
 
-	validationResponse := videoValid.Validate(testServer.URL+"/map", txId, "", "")
+	validationResponse := videoValid.Validate(testServer.URL+"/map", txID, "", "")
 	assert.True(t, validationResponse.IsValid, "Video should be valid.")
 }
 
@@ -46,12 +46,12 @@ func TestIsVideoValid_failedExternalValidation(t *testing.T) {
 		BinaryContent: []byte("invalid-json"),
 	}
 
-	txId := "tid_1234"
-	pamTxId := checks.ConstructPamTxId(txId)
+	txID := "tid_1234"
+	pamTxID := checks.ConstructPamTxID(txID)
 
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, "/map", req.RequestURI)
-		assert.Equal(t, pamTxId, req.Header.Get("X-Request-Id"))
+		assert.Equal(t, pamTxID, req.Header.Get("X-Request-Id"))
 
 		defer req.Body.Close()
 		reqBody, err := ioutil.ReadAll(req.Body)
@@ -61,7 +61,7 @@ func TestIsVideoValid_failedExternalValidation(t *testing.T) {
 		w.WriteHeader(http.StatusBadRequest)
 	}))
 
-	validationResponse := videoInvalid.Validate(testServer.URL+"/map", txId, "", "")
+	validationResponse := videoInvalid.Validate(testServer.URL+"/map", txID, "", "")
 	assert.False(t, validationResponse.IsMarkedDeleted, "Video should fail external validation.")
 }
 

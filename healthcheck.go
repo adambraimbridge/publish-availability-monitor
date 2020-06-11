@@ -42,10 +42,10 @@ type readEnvironmentHealthcheck struct {
 	client *http.Client
 }
 
-const pam_run_book_url = "https://runbooks.in.ft.com/publish-availability-monitor"
+const pamRunbookURL = "https://runbooks.in.ft.com/publish-availability-monitor"
 
 var readCheckEndpoints = map[string]func(string) (string, error){
-	"S3": buildAwsHealthcheckUrl,
+	"S3": buildAwsHealthcheckURL,
 	// only exceptions need to be listed here - everything else will default to standard FT healthcheck URLs
 }
 
@@ -53,11 +53,11 @@ var noReadEnvironments = fthealth.Check{
 	ID:               "ReadEnvironments",
 	BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
 	Name:             "ReadEnvironments",
-	PanicGuide:       pam_run_book_url,
+	PanicGuide:       pamRunbookURL,
 	Severity:         1,
 	TechnicalSummary: "There are no read environments to monitor. This could be because none have been configured",
 	Checker: func() (string, error) {
-		return "", errors.New("There are no read environments to monitor.")
+		return "", errors.New("There are no read environments to monitor")
 	},
 }
 
@@ -117,7 +117,7 @@ func isConsumingFromPushFeeds() fthealth.Check {
 		ID:               "IsConsumingFromNotificationsPushFeeds",
 		BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
 		Name:             "IsConsumingFromNotificationsPushFeeds",
-		PanicGuide:       pam_run_book_url,
+		PanicGuide:       pamRunbookURL,
 		Severity:         1,
 		TechnicalSummary: "The connections to the configured notifications-push feeds are operating correctly.",
 		Checker: func() (string, error) {
@@ -147,7 +147,7 @@ func (h *Healthcheck) messageQueueProxyReachable() fthealth.Check {
 		ID:               "MessageQueueProxyReachable",
 		BusinessImpact:   "Publish metrics are not recorded. This will impact the SLA measurement.",
 		Name:             "MessageQueueProxyReachable",
-		PanicGuide:       pam_run_book_url,
+		PanicGuide:       pamRunbookURL,
 		Severity:         1,
 		TechnicalSummary: "Message queue proxy is not reachable/healthy",
 		Checker:          h.consumer.ConnectivityCheck,
@@ -159,7 +159,7 @@ func (h *Healthcheck) reflectPublishFailures() fthealth.Check {
 		ID:               "ReflectPublishFailures",
 		BusinessImpact:   "At least two of the last 10 publishes failed. This will reflect in the SLA measurement.",
 		Name:             "ReflectPublishFailures",
-		PanicGuide:       pam_run_book_url,
+		PanicGuide:       pamRunbookURL,
 		Severity:         1,
 		TechnicalSummary: "Publishes did not meet the SLA measurments",
 		Checker:          h.checkForPublishFailures,
@@ -195,7 +195,7 @@ func (h *Healthcheck) validationServicesReachable() fthealth.Check {
 		ID:               "validationServicesReachable",
 		BusinessImpact:   "Publish metrics might not be correct. False positive failures might be recorded. This will impact the SLA measurement.",
 		Name:             "validationServicesReachable",
-		PanicGuide:       pam_run_book_url,
+		PanicGuide:       pamRunbookURL,
 		Severity:         1,
 		TechnicalSummary: "Validation services are not reachable/healthy",
 		Checker:          h.checkValidationServicesReachable,
@@ -208,7 +208,7 @@ func (h *Healthcheck) checkValidationServicesReachable() (string, error) {
 	hcErrs := make(chan error, len(endpoints))
 	for _, url := range endpoints {
 		wg.Add(1)
-		healthcheckURL, err := inferHealthCheckUrl(url)
+		healthcheckURL, err := inferHealthCheckURL(url)
 		if err != nil {
 			log.Errorf("Validation Service URL: [%s]. Err: [%v]", url, err.Error())
 			continue
@@ -268,7 +268,7 @@ func (h *Healthcheck) readEnvironmentsReachable() []fthealth.Check {
 			ID:               envName + "-readEndpointsReachable",
 			BusinessImpact:   "Publish metrics might not be correct. False positive failures might be recorded. This will impact the SLA measurement.",
 			Name:             envName + "-readEndpointsReachable",
-			PanicGuide:       pam_run_book_url,
+			PanicGuide:       pamRunbookURL,
 			Severity:         1,
 			TechnicalSummary: "Read services are not reachable/healthy",
 			Checker:          (&readEnvironmentHealthcheck{environments.environment(envName), h.client}).checkReadEnvironmentReachable,
@@ -286,13 +286,13 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		var endpointURL *url.URL
 		var err error
 		var username, password string
-		if absoluteUrlRegex.MatchString(metric.Endpoint) {
+		if absoluteURLRegex.MatchString(metric.Endpoint) {
 			endpointURL, err = url.Parse(metric.Endpoint)
 		} else {
 			if metric.Alias == "S3" {
 				endpointURL, err = url.Parse(h.env.S3Url + metric.Endpoint)
 			} else {
-				endpointURL, err = url.Parse(h.env.ReadUrl + metric.Endpoint)
+				endpointURL, err = url.Parse(h.env.ReadURL + metric.Endpoint)
 				username = h.env.Username
 				password = h.env.Password
 			}
@@ -307,7 +307,7 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 		if fn, ok := readCheckEndpoints[metric.Alias]; ok {
 			healthcheckURL, err = fn(endpointURL.String())
 		} else {
-			healthcheckURL, err = buildFtHealthcheckUrl(*endpointURL, metric.Health)
+			healthcheckURL, err = buildFtHealthcheckURL(*endpointURL, metric.Health)
 		}
 
 		if err != nil {
@@ -329,8 +329,8 @@ func (h *readEnvironmentHealthcheck) checkReadEnvironmentReachable() (string, er
 	return "", nil
 }
 
-func inferHealthCheckUrl(serviceUrl string) (string, error) {
-	parsedURL, err := url.Parse(serviceUrl)
+func inferHealthCheckURL(serviceURL string) (string, error) {
+	parsedURL, err := url.Parse(serviceURL)
 	if err != nil {
 		return "", err
 	}
@@ -346,12 +346,12 @@ func inferHealthCheckUrl(serviceUrl string) (string, error) {
 	return parsedURL.String(), nil
 }
 
-func buildFtHealthcheckUrl(endpoint url.URL, health string) (string, error) {
+func buildFtHealthcheckURL(endpoint url.URL, health string) (string, error) {
 	endpoint.Path = health
 	endpoint.RawQuery = "" // strip query params
 	return endpoint.String(), nil
 }
 
-func buildAwsHealthcheckUrl(serviceUrl string) (string, error) {
-	return serviceUrl + "healthCheckDummyFile", nil
+func buildAwsHealthcheckURL(serviceURL string) (string, error) {
+	return serviceURL + "healthCheckDummyFile", nil
 }

@@ -35,7 +35,7 @@ const (
 			"username": "test-user",
 			"password": "test-pwd"
 		}`
-	invalidJsonConfig = `invalid-config`
+	invalidJSONConfig = `invalid-config`
 )
 
 func TestParseEnvsIntoMap(t *testing.T) {
@@ -108,7 +108,7 @@ func TestFilterInvalidEnvsWithEmptyName(t *testing.T) {
 	envsToBeFiltered := []Environment{
 		{
 			Name:     "",
-			ReadUrl:  "test",
+			ReadURL:  "test",
 			S3Url:    "test",
 			Username: "dummy",
 			Password: "dummy",
@@ -124,7 +124,7 @@ func TestFilterInvalidEnvsWithEmptyReadUrl(t *testing.T) {
 	envsToBeFiltered := []Environment{
 		{
 			Name:     "test",
-			ReadUrl:  "",
+			ReadURL:  "",
 			S3Url:    "test",
 			Username: "dummy",
 			Password: "dummy",
@@ -140,7 +140,7 @@ func TestFilterInvalidEnvsWithEmptyS3Url(t *testing.T) {
 	envsToBeFiltered := []Environment{
 		{
 			Name:     "test",
-			ReadUrl:  "test",
+			ReadURL:  "test",
 			S3Url:    "",
 			Username: "dummy",
 			Password: "dummy",
@@ -156,7 +156,7 @@ func TestFilterInvalidEnvsWithEmptyUsernameUrl(t *testing.T) {
 	envsToBeFiltered := []Environment{
 		{
 			Name:     "test",
-			ReadUrl:  "test",
+			ReadURL:  "test",
 			S3Url:    "test",
 			Username: "",
 			Password: "dummy",
@@ -172,7 +172,7 @@ func TestFilterInvalidEnvsWithEmptyPwd(t *testing.T) {
 	envsToBeFiltered := []Environment{
 		{
 			Name:     "test",
-			ReadUrl:  "test",
+			ReadURL:  "test",
 			S3Url:    "test",
 			Username: "test",
 			Password: "",
@@ -208,7 +208,7 @@ func TestUpdateValidationCredentialNilFile(t *testing.T) {
 }
 
 func TestUpdateValidationCredentialsInvalidConfig(t *testing.T) {
-	fileName := prepareFile(invalidJsonConfig)
+	fileName := prepareFile(invalidJSONConfig)
 	validatorCredentials := Credentials{
 		Username: "test-username",
 		Password: "test-password",
@@ -428,7 +428,7 @@ func TestUpdateEnvsIfChangedNoChanges(t *testing.T) {
 		"test-env": {
 			Name:     "test-env",
 			Password: "test-pwd",
-			ReadUrl:  "https://test-env.ft.com",
+			ReadURL:  "https://test-env.ft.com",
 			S3Url:    "http://test.s3.amazonaws.com",
 			Username: "test-user",
 		},
@@ -448,7 +448,7 @@ func TestUpdateEnvsIfChangedNoChanges(t *testing.T) {
 }
 
 func TestUpdateEnvsIfChangedInvalidEnvsFile(t *testing.T) {
-	envsFile := prepareFile(invalidJsonConfig)
+	envsFile := prepareFile(invalidJSONConfig)
 	defer os.Remove(envsFile)
 	credsFile := prepareFile(validEnvCredentialsConfig)
 	defer os.Remove(credsFile)
@@ -466,7 +466,7 @@ func TestUpdateEnvsIfChangedInvalidEnvsFile(t *testing.T) {
 func TestUpdateEnvsIfChangedInvalidCredsFile(t *testing.T) {
 	envsFile := prepareFile(validEnvConfig)
 	defer os.Remove(envsFile)
-	credsFile := prepareFile(invalidJsonConfig)
+	credsFile := prepareFile(invalidJSONConfig)
 	defer os.Remove(credsFile)
 
 	environments = newThreadSafeEnvironments()
@@ -480,9 +480,9 @@ func TestUpdateEnvsIfChangedInvalidCredsFile(t *testing.T) {
 }
 
 func TestUpdateEnvsIfChangedInvalidFiles(t *testing.T) {
-	envsFile := prepareFile(invalidJsonConfig)
+	envsFile := prepareFile(invalidJSONConfig)
 	defer os.Remove(envsFile)
-	credsFile := prepareFile(invalidJsonConfig)
+	credsFile := prepareFile(invalidJSONConfig)
 	defer os.Remove(credsFile)
 
 	environments = newThreadSafeEnvironments()
@@ -507,7 +507,7 @@ func TestUpdateValidationCredentialsIfChangedFileDoesntExist(t *testing.T) {
 }
 
 func TestUpdateValidationCredentialsIfChangedInvalidFile(t *testing.T) {
-	validationCredsFile := prepareFile(invalidJsonConfig)
+	validationCredsFile := prepareFile(invalidJSONConfig)
 	defer os.Remove(validationCredsFile)
 
 	validatorCredentials = ""
@@ -588,12 +588,12 @@ func getValidEnvs() []Environment {
 	return []Environment{
 		{
 			Name:    "test",
-			ReadUrl: "test-url",
+			ReadURL: "test-url",
 			S3Url:   "test-s3-url",
 		},
 		{
 			Name:    "test2",
-			ReadUrl: "test-url2",
+			ReadURL: "test-url2",
 			S3Url:   "test-s3-url2",
 		},
 	}

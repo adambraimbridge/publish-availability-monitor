@@ -102,12 +102,12 @@ func (h *kafkaMessageHandler) unmarshalContent(msg consumer.Message) (content.Co
 		}
 		xml.Unmarshal([]byte(eomFile.Attributes), &eomFile.Source)
 		eomFile = eomFile.Initialize(binaryContent).(content.EomFile)
-		theType, resolvedUuid, err := h.typeRes.ResolveTypeAndUuid(eomFile, txID)
+		theType, resolvedUUID, err := h.typeRes.ResolveTypeAndUUID(eomFile, txID)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't map kafka message to methode Content while fetching its type and uuid. %v", err)
 		}
 		eomFile.Type = theType
-		eomFile.UUID = resolvedUuid
+		eomFile.UUID = resolvedUUID
 		return eomFile, nil
 	case "http://cmdb.ft.com/systems/wordpress":
 		var wordPressMsg content.WordPressMessage

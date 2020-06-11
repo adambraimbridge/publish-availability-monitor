@@ -43,7 +43,7 @@ func (c *httpDocStoreClient) ContentQuery(authority string, identifier string, t
 		Url:      docStoreUrl.String(),
 		Username: c.username,
 		Password: c.password,
-		TxId:     ConstructPamTxId(tid),
+		TxID:     ConstructPamTxID(tid),
 	})
 
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *httpDocStoreClient) IsUUIDPresent(uuid, tid string) (isPresent bool, er
 		Url:      docStoreUrl.String(),
 		Username: c.username,
 		Password: c.password,
-		TxId:     ConstructPamTxId(tid),
+		TxID:     ConstructPamTxID(tid),
 	})
 
 	if err != nil {

@@ -25,7 +25,7 @@ func TestNewPushFeed(t *testing.T) {
 	assert.IsType(t, (*NotificationsPushFeed)(nil), actual, "expected a NotificationsPushFeed")
 
 	npf := actual.(*NotificationsPushFeed)
-	assert.Equal(t, "expectedApiKey", npf.apiKey)
+	assert.Equal(t, "expectedApiKey", npf.APIKey)
 	assert.Equal(t, "expectedUser", npf.username)
 	assert.Equal(t, "expectedPwd", npf.password)
 }

@@ -219,7 +219,7 @@ func configureFileFeeds(envMap map[string]Environment, removedEnvs []string) {
 			}
 
 			if !found {
-				endpointUrl, err := url.Parse(env.ReadUrl + metric.Endpoint)
+				endpointURL, err := url.Parse(env.ReadURL + metric.Endpoint)
 				if err != nil {
 					log.Errorf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
 					continue
@@ -227,7 +227,7 @@ func configureFileFeeds(envMap map[string]Environment, removedEnvs []string) {
 
 				interval := appConfig.Threshold / metric.Granularity
 
-				if f := feeds.NewNotificationsFeed(metric.Alias, *endpointUrl, appConfig.Threshold, interval, env.Username, env.Password, metric.ApiKey); f != nil {
+				if f := feeds.NewNotificationsFeed(metric.Alias, *endpointURL, appConfig.Threshold, interval, env.Username, env.Password, metric.APIKey); f != nil {
 					subscribedFeeds[env.Name] = append(envFeeds, f)
 					f.Start()
 				}
@@ -246,7 +246,7 @@ func filterInvalidEnvs(envsFromFile []Environment) []Environment {
 		}
 
 		//envs without read-url are invalid
-		if env.ReadUrl == "" {
+		if env.ReadURL == "" {
 			log.Errorf("Env with name %s does not have readUrl, skipping it", env.Name)
 			continue
 		}

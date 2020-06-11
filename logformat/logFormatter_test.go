@@ -75,10 +75,10 @@ func TestTxIdLogging(t *testing.T) {
 
 	now := time.Now().Round(time.Millisecond)
 	msg := "Hello world"
-	txId := "tx_test123"
+	txID := "tx_test123"
 
 	logEntry := log.Entry{
-		Data:    log.Fields{"transaction_id": txId},
+		Data:    log.Fields{"transaction_id": txID},
 		Time:    now,
 		Level:   log.InfoLevel,
 		Message: msg,
@@ -88,10 +88,10 @@ func TestTxIdLogging(t *testing.T) {
 
 	assert.NoError(t, e, "no error expected")
 	actual := string(b)
-	checkLogEntry(t, "INFO", now, txId, msg, actual)
+	checkLogEntry(t, "INFO", now, txID, msg, actual)
 }
 
-func checkLogEntry(t *testing.T, expectedLogLevel string, expectedTimestamp time.Time, expectedTxId string, expectedMsg string, actual string) {
+func checkLogEntry(t *testing.T, expectedLogLevel string, expectedTimestamp time.Time, expectedTxID string, expectedMsg string, actual string) {
 	assert.True(t, strings.HasPrefix(actual, expectedLogLevel+" "), "formatted entry should begin with %s", expectedLogLevel)
 
 	loggedTimestamp := regexp.MustCompile(`\[(.*)\]`).FindStringSubmatch(actual)[1]
@@ -100,11 +100,11 @@ func checkLogEntry(t *testing.T, expectedLogLevel string, expectedTimestamp time
 
 	assert.True(t, regexp.MustCompile(`.* logFormatter_test\.go:\d+: `).MatchString(actual), "formatted entry should contain code location")
 
-	if expectedTxId == "" {
+	if expectedTxID == "" {
 		assert.False(t, regexp.MustCompile(`.* transaction_id=\S+ `).MatchString(actual), "formatted entry should not contain transaction_id")
 	} else {
-		actualTxId := regexp.MustCompile(`.* transaction_id=(\S+) `).FindStringSubmatch(actual)[1]
-		assert.Equal(t, expectedTxId, actualTxId, "transaction_id")
+		actualTxID := regexp.MustCompile(`.* transaction_id=(\S+) `).FindStringSubmatch(actual)[1]
+		assert.Equal(t, expectedTxID, actualTxID, "transaction_id")
 	}
 
 	assert.True(t, strings.Index(actual, expectedMsg) > 0, "formatted entry should contain message text")

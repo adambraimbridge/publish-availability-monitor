@@ -4,10 +4,10 @@ import (
 	"strings"
 )
 
-func ConstructPamTxId(txId string) string {
-	if strings.HasPrefix(txId, "tid_") {
-		txId = txId[:4] + "pam_" + txId[4:]
+func ConstructPamTxID(txID string) string {
+	if strings.HasPrefix(txID, "tid_") {
+		txID = txID[:4] + "pam_" + txID[4:]
 	}
 
-	return txId
+	return txID
 }

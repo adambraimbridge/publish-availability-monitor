@@ -28,13 +28,13 @@ func (wordPressMessage WordPressMessage) Initialize(binaryContent []byte) Conten
 	return wordPressMessage
 }
 
-func (wordPressMessage WordPressMessage) Validate(extValEndpoint string, txId string, username string, password string) ValidationResponse {
+func (wordPressMessage WordPressMessage) Validate(extValEndpoint string, txID string, username string, password string) ValidationResponse {
 	validationParam := validationParam{
 		wordPressMessage.BinaryContent,
 		extValEndpoint,
 		username,
 		password,
-		txId,
+		txID,
 		wordPressMessage.GetUUID(),
 		wordPressMessage.GetType(),
 	}

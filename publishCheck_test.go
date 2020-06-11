@@ -319,7 +319,7 @@ type testHTTPCaller struct {
 	t             *testing.T
 	authUser      string
 	authPass      string
-	txId          string
+	txID          string
 	mockResponses []*http.Response
 	current       int
 }
@@ -330,8 +330,8 @@ func (t *testHTTPCaller) DoCall(config checks.Config) (*http.Response, error) {
 		return buildResponse(401, `{message: "Not authenticated"}`), nil
 	}
 
-	if t.txId != "" {
-		assert.Equal(t.t, t.txId, config.TxId, "transaction id")
+	if t.txID != "" {
+		assert.Equal(t.t, t.txID, config.TxID, "transaction id")
 	}
 
 	response := t.mockResponses[t.current]
@@ -339,18 +339,18 @@ func (t *testHTTPCaller) DoCall(config checks.Config) (*http.Response, error) {
 	return response, nil
 }
 
-func (t *testHTTPCaller) DoCallWithEntity(httpMethod string, url string, username string, password string, txId string, contentType string, entity io.Reader) (*http.Response, error) {
+func (t *testHTTPCaller) DoCallWithEntity(httpMethod string, url string, username string, password string, txID string, contentType string, entity io.Reader) (*http.Response, error) {
 	return nil, nil
 }
 
 // builds testHTTPCaller with the given mocked responses in the provided order
-func mockHTTPCaller(t *testing.T, txId string, responses ...*http.Response) checks.HttpCaller {
-	return &testHTTPCaller{t: t, txId: txId, mockResponses: responses}
+func mockHTTPCaller(t *testing.T, txID string, responses ...*http.Response) checks.HttpCaller {
+	return &testHTTPCaller{t: t, txID: txID, mockResponses: responses}
 }
 
 // builds testHTTPCaller with the given mocked responses in the provided order
-func mockAuthenticatedHTTPCaller(t *testing.T, txId string, username string, password string, responses ...*http.Response) checks.HttpCaller {
-	return &testHTTPCaller{t: t, txId: txId, authUser: username, authPass: password, mockResponses: responses}
+func mockAuthenticatedHTTPCaller(t *testing.T, txID string, username string, password string, responses ...*http.Response) checks.HttpCaller {
+	return &testHTTPCaller{t: t, txID: txID, authUser: username, authPass: password, mockResponses: responses}
 }
 
 // this is necessary to be able to build an http.Response

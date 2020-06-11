@@ -20,7 +20,7 @@ type defaultHttpCaller struct {
 }
 
 type Config struct {
-	HttpMethod, Url, Username, Password, ApiKey, TxId, ContentType string
+	HttpMethod, Url, Username, Password, APIKey, TxID, ContentType string
 	Entity                                                         io.Reader
 }
 
@@ -54,12 +54,12 @@ func (c defaultHttpCaller) DoCall(config Config) (resp *http.Response, err error
 		req.SetBasicAuth(config.Username, config.Password)
 	}
 
-	if config.ApiKey != "" {
-		req.Header.Add("X-Api-Key", config.ApiKey)
+	if config.APIKey != "" {
+		req.Header.Add("X-Api-Key", config.APIKey)
 	}
 
-	if config.TxId != "" {
-		req.Header.Add("X-Request-Id", config.TxId)
+	if config.TxID != "" {
+		req.Header.Add("X-Request-Id", config.TxID)
 	}
 
 	if config.ContentType != "" {

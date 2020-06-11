@@ -14,7 +14,7 @@ const NotificationsPull = "Notifications-Pull"
 
 type NotificationsPullFeed struct {
 	baseNotificationsFeed
-	notificationsUrl         string
+	notificationsURL         string
 	notificationsQueryString string
 	notificationsUrlLock     *sync.Mutex
 	interval                 int
@@ -64,25 +64,25 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	f.notificationsUrlLock.Lock()
 	defer f.notificationsUrlLock.Unlock()
 
-	txId := f.buildNotificationsTxId()
-	notificationsUrl := f.notificationsUrl + "?" + f.notificationsQueryString
-	resp, err := f.httpCaller.DoCall(checks.Config{Url: notificationsUrl, Username: f.username, Password: f.password, TxId: txId})
+	txID := f.buildNotificationsTxID()
+	notificationsURL := f.notificationsURL + "?" + f.notificationsQueryString
+	resp, err := f.httpCaller.DoCall(checks.Config{Url: notificationsURL, Username: f.username, Password: f.password, TxID: txID})
 
 	if err != nil {
-		log.WithField("transaction_id", txId).WithError(err).Errorf("error calling notifications %s", notificationsUrl)
+		log.WithField("transaction_id", txID).WithError(err).Errorf("error calling notifications %s", notificationsURL)
 		return
 	}
 	defer cleanupResp(resp)
 
 	if resp.StatusCode != 200 {
-		log.WithField("transaction_id", txId).Errorf("Notifications [%s] status NOT OK: [%d]", notificationsUrl, resp.StatusCode)
+		log.WithField("transaction_id", txID).Errorf("Notifications [%s] status NOT OK: [%d]", notificationsURL, resp.StatusCode)
 		return
 	}
 
 	var notifications notificationsResponse
 	err = json.NewDecoder(resp.Body).Decode(&notifications)
 	if err != nil {
-		log.WithField("transaction_id", txId).Errorf("Cannot decode json response: [%s]", err.Error())
+		log.WithField("transaction_id", txID).Errorf("Cannot decode json response: [%s]", err.Error())
 		return
 	}
 
@@ -111,6 +111,6 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 	f.notificationsQueryString = nextPageUrl.RawQuery
 }
 
-func (f *NotificationsPullFeed) buildNotificationsTxId() string {
+func (f *NotificationsPullFeed) buildNotificationsTxID() string {
 	return "tid_pam_notifications_pull_" + time.Now().Format(time.RFC3339)
 }

@@ -51,7 +51,7 @@ type MetricConfig struct {
 	ContentTypes []string `json:"contentTypes"` //list of valid eom types for this metric
 	Alias        string   `json:"alias"`
 	Health       string   `json:"health,omitempty"`
-	ApiKey       string   `json:"apiKey,omitempty"`
+	APIKey       string   `json:"apiKey,omitempty"`
 }
 
 // SplunkConfig holds the SplunkFeeder-specific configuration
@@ -67,7 +67,7 @@ type AppConfig struct {
 	SplunkConf          SplunkConfig         `json:"splunk-config"`
 	HealthConf          HealthConfig         `json:"healthConfig"`
 	ValidationEndpoints map[string]string    `json:"validationEndpoints"` //contentType to validation endpoint mapping, ex. { "EOM::Story": "http://methode-article-transformer/content-transform" }
-	UUIDResolverUrl     string               `json:"uuidResolverUrl"`
+	UUIDResolverURL     string               `json:"uuidResolverUrl"`
 }
 
 // HealthConfig holds the application's healthchecks configuration
@@ -78,7 +78,7 @@ type HealthConfig struct {
 // Environment defines an environment in which the publish metrics should be checked
 type Environment struct {
 	Name     string `json:"name"`
-	ReadUrl  string `json:"read-url"`
+	ReadURL  string `json:"read-url"`
 	S3Url    string `json:"s3-url"`
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -149,13 +149,13 @@ func main() {
 
 	metricContainer = publishHistory{sync.RWMutex{}, make([]PublishMetric, 0)}
 
-	go startHttpListener()
+	go startHTTPListener()
 
 	startAggregator()
 	readMessages(brandMappings)
 }
 
-func startHttpListener() {
+func startHTTPListener() {
 	router := mux.NewRouter()
 	setupHealthchecks(router)
 	router.HandleFunc("/__history", loadHistory)
@@ -199,7 +199,7 @@ func readMessages(brandMappings map[string]string) {
 	for _, envName := range environments.names() {
 		env := environments.environment(envName)
 		docStoreCaller := checks.NewHttpCaller(10)
-		docStoreClient := checks.NewHttpDocStoreClient(env.ReadUrl+appConfig.UUIDResolverUrl, docStoreCaller, env.Username, env.Password)
+		docStoreClient := checks.NewHttpDocStoreClient(env.ReadURL+appConfig.UUIDResolverURL, docStoreCaller, env.Username, env.Password)
 		uuidResolver := checks.NewHttpUUIDResolver(docStoreClient, brandMappings)
 		typeRes = NewMethodeTypeResolver(uuidResolver)
 		break

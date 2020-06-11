@@ -12,7 +12,7 @@ import (
 var blogCategories = []string{"blog", "webchat-live-blogs", "webchat-live-qa", "webchat-markets-live", "fastft"}
 
 type typeResolver interface {
-	ResolveTypeAndUuid(eomFile content.EomFile, txID string) (string, string, error)
+	ResolveTypeAndUUID(eomFile content.EomFile, txID string) (string, string, error)
 }
 
 type methodeTypeResolver struct {
@@ -25,7 +25,7 @@ func NewMethodeTypeResolver(uuidResolver checks.UUIDResolver) *methodeTypeResolv
 	}
 }
 
-func (m *methodeTypeResolver) ResolveTypeAndUuid(eomFile content.EomFile, txID string) (string, string, error) {
+func (m *methodeTypeResolver) ResolveTypeAndUUID(eomFile content.EomFile, txID string) (string, string, error) {
 	contentType := eomFile.ContentType
 	contentSrc := eomFile.Source.SourceCode
 	if contentSrc == "ContentPlaceholder" && contentType == "EOM::CompoundStory" {
@@ -69,7 +69,7 @@ func (m *methodeTypeResolver) resolveUUID(eomFile content.EomFile, txID string) 
 		}
 	} else {
 		if isBlogCategory(attributes) {
-			uuid, err = m.resolver.ResolveIdentifier(attributes.ServiceId, attributes.RefField, txID)
+			uuid, err = m.resolver.ResolveIdentifier(attributes.ServiceID, attributes.RefField, txID)
 			if err != nil {
 				return "", fmt.Errorf("couldn't resolve blog uuid, error was: %v", err)
 			}

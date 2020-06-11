@@ -16,8 +16,8 @@ type MockIResolver struct {
 	mock.Mock
 }
 
-func (m *MockIResolver) ResolveIdentifier(serviceId, refField, tid string) (string, error) {
-	args := m.Called(serviceId, refField, tid)
+func (m *MockIResolver) ResolveIdentifier(serviceID, refField, tid string) (string, error) {
+	args := m.Called(serviceID, refField, tid)
 	return args.String(0), args.Error(1)
 }
 
@@ -29,28 +29,28 @@ func TestIsEomfileValid_EmptyValidationURL_Invalid(t *testing.T) {
 }
 
 func TestIsEomfileValid_ExternalValidationTrue_Valid(t *testing.T) {
-	txId := "1234"
+	txID := "1234"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "tid_pam_"+txId, r.Header.Get("X-Request-Id"), "transaction id")
+		assert.Equal(t, "tid_pam_"+txID, r.Header.Get("X-Request-Id"), "transaction id")
 		assert.Equal(t, "/content-transform", r.RequestURI, "Invalid external validation URL")
 		//return OK
 	}))
 	defer ts.Close()
-	valRes := validCompoundStory.Validate(ts.URL+"/content-transform", "tid_"+txId, "", "")
+	valRes := validCompoundStory.Validate(ts.URL+"/content-transform", "tid_"+txID, "", "")
 	if !valRes.IsValid {
 		t.Error("Valid CompoundStory marked as invalid!")
 	}
 }
 
 func TestIsEomfileValid_ExternalValidationFalseStatusCode418_Invalid(t *testing.T) {
-	txId := "invalidstory"
+	txID := "invalidstory"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "tid_pam_"+txId, r.Header.Get("X-Request-Id"), "transaction id")
+		assert.Equal(t, "tid_pam_"+txID, r.Header.Get("X-Request-Id"), "transaction id")
 		assert.Equal(t, "/content-transform", r.RequestURI, "Invalid external validation URL")
 		w.WriteHeader(http.StatusTeapot)
 	}))
 	defer ts.Close()
-	valRes := validCompoundStory.Validate(ts.URL+"/content-transform", "tid_"+txId, "", "")
+	valRes := validCompoundStory.Validate(ts.URL+"/content-transform", "tid_"+txID, "", "")
 	if valRes.IsValid {
 		t.Error("Valid CompoundStory regarded as invalid by external validation marked as valid!")
 	}

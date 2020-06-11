@@ -52,7 +52,7 @@ func (c ContentNeo4jCheck) isCurrentOperationFinished(pc *PublishCheck) (operati
 		Url:      url,
 		Username: pc.username,
 		Password: pc.password,
-		TxId:     checks.ConstructPamTxId(pm.tid)})
+		TxID:     checks.ConstructPamTxID(pm.tid)})
 
 	if err != nil {
 		log.Warnf("Error calling URL: [%v] for %s : [%v]", url, pc, err.Error())
@@ -128,10 +128,10 @@ func init() {
 
 	//key is the endpoint alias from the config
 	endpointSpecificChecks = map[string]EndpointSpecificCheck{
-		"content":               ContentCheck{hC},
-		"content-neo4j":         ContentNeo4jCheck{hC},
-		"complementary-content": ContentCheck{hC},
-		"internal-components":   ContentCheck{hC},
+		"content":                 ContentCheck{hC},
+		"content-neo4j":           ContentNeo4jCheck{hC},
+		"complementary-content":   ContentCheck{hC},
+		"internal-components":     ContentCheck{hC},
 		"S3":                      S3Check{hC},
 		"enrichedContent":         ContentCheck{hC},
 		"lists":                   ContentCheck{hC},
@@ -163,7 +163,7 @@ func (pc PublishCheck) String() string {
 func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFinished, ignoreCheck bool) {
 	pm := pc.Metric
 	url := pm.endpoint.String() + pm.UUID
-	resp, err := c.httpCaller.DoCall(checks.Config{Url: url, Username: pc.username, Password: pc.password, TxId: checks.ConstructPamTxId(pm.tid)})
+	resp, err := c.httpCaller.DoCall(checks.Config{Url: url, Username: pc.username, Password: pc.password, TxID: checks.ConstructPamTxID(pm.tid)})
 	if err != nil {
 		log.Warnf("Error calling URL: [%v] for %s : [%v]", url, pc, err.Error())
 		return false, false
@@ -294,7 +294,7 @@ func (n NotificationsCheck) shouldSkipCheck(pc *PublishCheck) bool {
 		return false
 	}
 	url := pm.endpoint.String() + "/" + pm.UUID
-	resp, err := n.httpCaller.DoCall(checks.Config{Url: url, Username: pc.username, Password: pc.password, TxId: checks.ConstructPamTxId(pm.tid)})
+	resp, err := n.httpCaller.DoCall(checks.Config{Url: url, Username: pc.username, Password: pc.password, TxID: checks.ConstructPamTxID(pm.tid)})
 	if err != nil {
 		log.Warnf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, err.Error())
 		return false

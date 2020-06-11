@@ -35,8 +35,8 @@ type testHTTPCaller struct {
 	t             *testing.T
 	authUser      string
 	authPass      string
-	apiKey        string
-	txIdPrefix    string
+	APIKey        string
+	txIDPrefix    string
 	mockResponses []*mockResponse
 	current       int
 }
@@ -47,21 +47,21 @@ func (t *testHTTPCaller) DoCall(config checks.Config) (*http.Response, error) {
 		return buildResponse(401, `{message: "Not authenticated"}`, nil).response, nil
 	}
 
-	if t.apiKey != config.ApiKey {
+	if t.APIKey != config.APIKey {
 		return buildResponse(401, `{"message":"No api key"}`, nil).response, nil
 	}
 
-	if t.txIdPrefix != "" {
-		assert.True(t.t, strings.HasPrefix(config.TxId, t.txIdPrefix), "transaction id should start with "+t.txIdPrefix)
-		timestamp := config.TxId[len(t.txIdPrefix):]
+	if t.txIDPrefix != "" {
+		assert.True(t.t, strings.HasPrefix(config.TxID, t.txIDPrefix), "transaction id should start with "+t.txIDPrefix)
+		timestamp := config.TxID[len(t.txIDPrefix):]
 		_, err := time.Parse(time.RFC3339, timestamp)
 		assert.Nil(t.t, err, "transaction id suffix did not parse as a timestamp")
 	}
 
 	response := t.mockResponses[t.current]
 	if response.query != nil {
-		requestUrl, _ := url.Parse(config.Url)
-		assert.Equal(t.t, *response.query, requestUrl.Query())
+		requestURL, _ := url.Parse(config.Url)
+		assert.Equal(t.t, *response.query, requestURL.Query())
 	}
 
 	t.current = (t.current + 1) % len(t.mockResponses)
@@ -69,13 +69,13 @@ func (t *testHTTPCaller) DoCall(config checks.Config) (*http.Response, error) {
 }
 
 // builds testHTTPCaller with the given mocked responses in the provided order
-func mockHTTPCaller(t *testing.T, txIdPrefix string, responses ...*mockResponse) checks.HttpCaller {
-	return &testHTTPCaller{t: t, txIdPrefix: txIdPrefix, mockResponses: responses}
+func mockHTTPCaller(t *testing.T, txIDPrefix string, responses ...*mockResponse) checks.HttpCaller {
+	return &testHTTPCaller{t: t, txIDPrefix: txIDPrefix, mockResponses: responses}
 }
 
 // builds testHTTPCaller with the given mocked responses in the provided order
-func mockAuthenticatedHTTPCaller(t *testing.T, txIdPrefix string, username string, password string, apiKey string, responses ...*mockResponse) checks.HttpCaller {
-	return &testHTTPCaller{t: t, txIdPrefix: txIdPrefix, authUser: username, authPass: password, apiKey: apiKey, mockResponses: responses}
+func mockAuthenticatedHTTPCaller(t *testing.T, txIDPrefix string, username string, password string, APIKey string, responses ...*mockResponse) checks.HttpCaller {
+	return &testHTTPCaller{t: t, txIDPrefix: txIDPrefix, authUser: username, authPass: password, APIKey: APIKey, mockResponses: responses}
 }
 
 // this is necessary to be able to build an http.Response

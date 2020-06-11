@@ -19,12 +19,12 @@ func TestIsValid_ExternalValidationInvalidArticle422(t *testing.T) {
 		BinaryContent: []byte{},
 	}
 
-	txId := "tid_1234"
-	pamTxId := checks.ConstructPamTxId(txId)
+	txID := "tid_1234"
+	pamTxID := checks.ConstructPamTxID(txID)
 
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, "/map", req.RequestURI)
-		assert.Equal(t, pamTxId, req.Header.Get("X-Request-Id"))
+		assert.Equal(t, pamTxID, req.Header.Get("X-Request-Id"))
 
 		defer req.Body.Close()
 		reqBody, err := ioutil.ReadAll(req.Body)
@@ -34,7 +34,7 @@ func TestIsValid_ExternalValidationInvalidArticle422(t *testing.T) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}))
 
-	valResp := wordpressMessage.Validate(testServer.URL+"/map", txId, "", "")
+	valResp := wordpressMessage.Validate(testServer.URL+"/map", txID, "", "")
 	if valResp.IsValid {
 		t.Error("Wordpress should fail external validation.")
 	}
@@ -49,12 +49,12 @@ func TestIsValid_ExternalValidationMarkedAsDeleted404(t *testing.T) {
 		BinaryContent: []byte{},
 	}
 
-	txId := "tid_1234"
-	pamTxId := checks.ConstructPamTxId(txId)
+	txID := "tid_1234"
+	pamTxID := checks.ConstructPamTxID(txID)
 
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, "/map", req.RequestURI)
-		assert.Equal(t, pamTxId, req.Header.Get("X-Request-Id"))
+		assert.Equal(t, pamTxID, req.Header.Get("X-Request-Id"))
 
 		defer req.Body.Close()
 		reqBody, err := ioutil.ReadAll(req.Body)
@@ -64,7 +64,7 @@ func TestIsValid_ExternalValidationMarkedAsDeleted404(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 
-	valResp := wordpressMessage.Validate(testServer.URL+"/map", txId, "", "")
+	valResp := wordpressMessage.Validate(testServer.URL+"/map", txID, "", "")
 	if !valResp.IsValid {
 		t.Error("Wordpress article marked as deleted shouldn't fail external validation.")
 	}

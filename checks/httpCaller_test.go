@@ -58,33 +58,33 @@ func TestUnauthenticated(t *testing.T) {
 func TestAuthenticated(t *testing.T) {
 	username := "scott"
 	password := "tiger"
-	apiKey := "someApiKey"
+	APIKey := "someApiKey"
 
 	server := stubServer(t, "GET", map[string]string{
 		"User-Agent":    "UPP Publish Availability Monitor",
 		"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password)),
-		"X-Api-Key":     apiKey,
+		"X-Api-Key":     APIKey,
 	}, nil)
 	defer server.Close()
 
 	httpCaller := NewHttpCaller(10)
-	resp, err := httpCaller.DoCall(Config{Url: server.URL, Username: username, Password: password, ApiKey: apiKey})
+	resp, err := httpCaller.DoCall(Config{Url: server.URL, Username: username, Password: password, APIKey: APIKey})
 	assert.Nil(t, err, "unexpected error")
 
 	assertExpectedResponse(t, resp)
 }
 
 func TestTransactionId(t *testing.T) {
-	txId := "tid_myTxId"
+	txID := "tid_myTxId"
 
 	server := stubServer(t, "GET", map[string]string{
 		"User-Agent":   "UPP Publish Availability Monitor",
-		"X-Request-Id": txId,
+		"X-Request-Id": txID,
 	}, nil)
 	defer server.Close()
 
 	httpCaller := NewHttpCaller(10)
-	resp, err := httpCaller.DoCall(Config{Url: server.URL, TxId: txId})
+	resp, err := httpCaller.DoCall(Config{Url: server.URL, TxID: txID})
 	assert.Nil(t, err, "unexpected error")
 
 	assertExpectedResponse(t, resp)

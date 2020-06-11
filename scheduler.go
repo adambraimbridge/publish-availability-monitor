@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	absoluteUrlRegex = regexp.MustCompile("(?i)https?://.*")
+	absoluteURLRegex = regexp.MustCompile("(?i)https?://.*")
 )
 
 type schedulerParam struct {
@@ -35,13 +35,13 @@ func scheduleChecks(p *schedulerParam) {
 				var endpointURL *url.URL
 				var err error
 
-				if absoluteUrlRegex.MatchString(metric.Endpoint) {
+				if absoluteURLRegex.MatchString(metric.Endpoint) {
 					endpointURL, err = url.Parse(metric.Endpoint)
 				} else {
 					if metric.Alias == "S3" {
 						endpointURL, err = url.Parse(env.S3Url + metric.Endpoint)
 					} else {
-						endpointURL, err = url.Parse(env.ReadUrl + metric.Endpoint)
+						endpointURL, err = url.Parse(env.ReadURL + metric.Endpoint)
 					}
 				}
 

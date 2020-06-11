@@ -18,7 +18,7 @@ type NotificationsPushFeed struct {
 	stopFeed     bool
 	stopFeedLock *sync.RWMutex
 	connected    bool
-	apiKey       string
+	APIKey       string
 }
 
 func (f *NotificationsPushFeed) Start() {
@@ -63,35 +63,35 @@ func (f *NotificationsPushFeed) isConsuming() bool {
 }
 
 func (f *NotificationsPushFeed) consumeFeed() bool {
-	txId := f.buildNotificationsTxId()
-	resp, err := f.httpCaller.DoCall(checks.Config{Url: f.baseUrl, Username: f.username, Password: f.password, ApiKey: f.apiKey, TxId: txId})
+	txID := f.buildNotificationsTxID()
+	resp, err := f.httpCaller.DoCall(checks.Config{Url: f.baseUrl, Username: f.username, Password: f.password, APIKey: f.APIKey, TxID: txID})
 
 	if err != nil {
-		log.WithField("transaction_id", txId).Errorf("Sending request: [%v]", err)
+		log.WithField("transaction_id", txID).Errorf("Sending request: [%v]", err)
 		return f.isConsuming()
 	}
 
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		log.WithField("transaction_id", txId).Errorf("Received invalid statusCode: [%v]", resp.StatusCode)
+		log.WithField("transaction_id", txID).Errorf("Received invalid statusCode: [%v]", resp.StatusCode)
 		return f.isConsuming()
 	}
 
-	log.WithField("transaction_id", txId).Info("Reconnected to push feed!")
+	log.WithField("transaction_id", txID).Info("Reconnected to push feed!")
 	f.connected = true
 	defer func() { f.connected = false }()
 
 	br := bufio.NewReader(resp.Body)
 	for {
 		if !f.isConsuming() {
-			log.WithField("transaction_id", txId).Info("stop consuming feed")
+			log.WithField("transaction_id", txID).Info("stop consuming feed")
 			break
 		}
 		f.purgeObsoleteNotifications()
 
 		event, err := br.ReadString('\n')
 		if err != nil {
-			log.WithField("transaction_id", txId).Infof("Disconnected from push feed: [%v]", err)
+			log.WithField("transaction_id", txID).Infof("Disconnected from push feed: [%v]", err)
 			return f.isConsuming()
 		}
 
@@ -104,7 +104,7 @@ func (f *NotificationsPushFeed) consumeFeed() bool {
 		var notifications []Notification
 		err = json.Unmarshal([]byte(data), &notifications)
 		if err != nil {
-			log.WithField("transaction_id", txId).Errorf("Error: [%v].", err)
+			log.WithField("transaction_id", txID).Errorf("Error: [%v].", err)
 			continue
 		}
 
@@ -135,6 +135,6 @@ func (f *NotificationsPushFeed) storeNotifications(notifications []Notification)
 	}
 }
 
-func (f *NotificationsPushFeed) buildNotificationsTxId() string {
+func (f *NotificationsPushFeed) buildNotificationsTxID() string {
 	return "tid_pam_notifications_push_" + time.Now().Format(time.RFC3339)
 }

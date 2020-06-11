@@ -31,7 +31,7 @@ type Attributes struct {
 	SourceCode          string   `xml:"EditorialNotes>Sources>Source>SourceCode"`
 	LastPublicationDate string   `xml:"OutputChannels>DIFTcom>DIFTcomLastPublication"`
 	RefField            string   `xml:"WiresIndexing>ref_field"`
-	ServiceId           string   `xml:"WiresIndexing>serviceid"`
+	ServiceID           string   `xml:"WiresIndexing>serviceid"`
 	Category            string   `xml:"WiresIndexing>category"`
 	IsDeleted           bool     `xml:"OutputChannels>DIFTcom>DIFTcomMarkDeleted"`
 	OriginalUUID        string   `xml:"EditorialNotes>OriginalUUID"`

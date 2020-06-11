@@ -9,11 +9,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func NewNotificationsFeed(name string, baseUrl url.URL, expiry int, interval int, username string, password string, apiKey string) Feed {
+func NewNotificationsFeed(name string, baseUrl url.URL, expiry int, interval int, username string, password string, APIKey string) Feed {
 	if isNotificationsPullFeed(name) {
 		return newNotificationsPullFeed(name, baseUrl, expiry, interval, username, password)
 	} else if isNotificationsPushFeed(name) {
-		return newNotificationsPushFeed(name, baseUrl, expiry, interval, username, password, apiKey)
+		return newNotificationsPushFeed(name, baseUrl, expiry, interval, username, password, APIKey)
 	}
 
 	return nil
@@ -56,7 +56,7 @@ func newNotificationsPullFeed(name string, baseUrl url.URL, expiry int, interval
 	}
 }
 
-func newNotificationsPushFeed(name string, baseUrl url.URL, expiry int, interval int, username string, password string, apiKey string) *NotificationsPushFeed {
+func newNotificationsPushFeed(name string, baseUrl url.URL, expiry int, interval int, username string, password string, APIKey string) *NotificationsPushFeed {
 	log.Infof("constructing NotificationsPushFeed, bootstrapUrl = [%s]", baseUrl.String())
 	return &NotificationsPushFeed{
 		baseNotificationsFeed{
@@ -72,6 +72,6 @@ func newNotificationsPushFeed(name string, baseUrl url.URL, expiry int, interval
 		true,
 		&sync.RWMutex{},
 		false,
-		apiKey,
+		APIKey,
 	}
 }

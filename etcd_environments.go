@@ -73,7 +73,7 @@ func DiscoverEnvironmentsAndValidators(wg *sync.WaitGroup, etcdPeers *string, et
 	validatorKey = etcdValidatorCredKey
 
 	transport := &http.Transport{
-		Dial: proxy.Direct.Dial,
+		Dial:                  proxy.Direct.Dial,
 		ResponseHeaderTimeout: 10 * time.Second,
 		MaxIdleConnsPerHost:   100,
 	}
@@ -152,14 +152,14 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 
 	seen := make(map[string]struct{})
 	for _, env := range envReadEndpoints {
-		nameAndUrl := strings.SplitN(env, ":", 2)
-		if len(nameAndUrl) != 2 {
+		nameAndURL := strings.SplitN(env, ":", 2)
+		if len(nameAndURL) != 2 {
 			log.Warn("etcd read-urls contain an invalid value")
 			continue
 		}
 
-		name := nameAndUrl[0]
-		readUrl := nameAndUrl[1]
+		name := nameAndURL[0]
+		readURL := nameAndURL[1]
 		seen[name] = struct{}{}
 
 		var username string
@@ -188,7 +188,7 @@ func parseEnvironmentsIntoMap(etcdReadEnv string, etcdCred string, etcdS3Env str
 			log.Infof("No S3 url supplied for access to environment %v", name)
 		}
 
-		envMap[name] = Environment{name, readUrl, s3Url, username, password}
+		envMap[name] = Environment{name, readURL, s3Url, username, password}
 	}
 
 	// now remove unseen environments
@@ -261,7 +261,7 @@ func configureEtcdFeeds(envMap map[string]Environment, removedEnvs []string) {
 			}
 
 			if !found {
-				endpointUrl, err := url.Parse(env.ReadUrl + metric.Endpoint)
+				endpointURL, err := url.Parse(env.ReadURL + metric.Endpoint)
 				if err != nil {
 					log.Errorf("Cannot parse url [%v], error: [%v]", metric.Endpoint, err.Error())
 					continue
@@ -269,7 +269,7 @@ func configureEtcdFeeds(envMap map[string]Environment, removedEnvs []string) {
 
 				interval := appConfig.Threshold / metric.Granularity
 
-				if f := feeds.NewNotificationsFeed(metric.Alias, *endpointUrl, appConfig.Threshold, interval, env.Username, env.Password, metric.ApiKey); f != nil {
+				if f := feeds.NewNotificationsFeed(metric.Alias, *endpointURL, appConfig.Threshold, interval, env.Username, env.Password, metric.APIKey); f != nil {
 					subscribedFeeds[env.Name] = append(envFeeds, f)
 					f.Start()
 				}
