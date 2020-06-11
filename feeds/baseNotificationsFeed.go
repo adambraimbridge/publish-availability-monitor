@@ -15,7 +15,7 @@ import (
 type baseNotificationsFeed struct {
 	feedName          string
 	httpCaller        checks.HttpCaller
-	baseUrl           string
+	baseURL           string
 	username          string
 	password          string
 	expiry            int
@@ -95,5 +95,5 @@ func (f *baseNotificationsFeed) NotificationsFor(uuid string) []*Notification {
 }
 
 func (f *baseNotificationsFeed) FeedURL() string {
-	return f.baseUrl
+	return f.baseURL
 }

@@ -49,10 +49,10 @@ func (c ContentNeo4jCheck) isCurrentOperationFinished(pc *PublishCheck) (operati
 	url := pm.endpoint.String() + pm.UUID
 
 	resp, err := c.httpCaller.DoCall(checks.Config{
-		Url:      url,
+		URL:      url,
 		Username: pc.username,
 		Password: pc.password,
-		TxID:     checks.ConstructPamTxID(pm.tid)})
+		TxID:     checks.ConstructPamTxID(pm.tid)}) //nolint:bodyclose
 
 	if err != nil {
 		log.Warnf("Error calling URL: [%v] for %s : [%v]", url, pc, err.Error())
@@ -163,7 +163,7 @@ func (pc PublishCheck) String() string {
 func (c ContentCheck) isCurrentOperationFinished(pc *PublishCheck) (operationFinished, ignoreCheck bool) {
 	pm := pc.Metric
 	url := pm.endpoint.String() + pm.UUID
-	resp, err := c.httpCaller.DoCall(checks.Config{Url: url, Username: pc.username, Password: pc.password, TxID: checks.ConstructPamTxID(pm.tid)})
+	resp, err := c.httpCaller.DoCall(checks.Config{URL: url, Username: pc.username, Password: pc.password, TxID: checks.ConstructPamTxID(pm.tid)}) //nolint:bodyclose
 	if err != nil {
 		log.Warnf("Error calling URL: [%v] for %s : [%v]", url, pc, err.Error())
 		return false, false
@@ -245,7 +245,7 @@ func parseLastModifiedDate(jsonContent map[string]interface{}) (*time.Time, bool
 func (s S3Check) isCurrentOperationFinished(pc *PublishCheck) (operationFinished, ignoreCheck bool) {
 	pm := pc.Metric
 	url := pm.endpoint.String() + pm.UUID
-	resp, err := s.httpCaller.DoCall(checks.Config{Url: url})
+	resp, err := s.httpCaller.DoCall(checks.Config{URL: url}) //nolint:bodyclose
 	if err != nil {
 		log.Warnf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, err.Error())
 		return false, false
@@ -294,7 +294,7 @@ func (n NotificationsCheck) shouldSkipCheck(pc *PublishCheck) bool {
 		return false
 	}
 	url := pm.endpoint.String() + "/" + pm.UUID
-	resp, err := n.httpCaller.DoCall(checks.Config{Url: url, Username: pc.username, Password: pc.password, TxID: checks.ConstructPamTxID(pm.tid)})
+	resp, err := n.httpCaller.DoCall(checks.Config{URL: url, Username: pc.username, Password: pc.password, TxID: checks.ConstructPamTxID(pm.tid)}) //nolint:bodyclose
 	if err != nil {
 		log.Warnf("Checking %s. Error calling URL: [%v] : [%v]", loggingContextForCheck(pm.config.Alias, pm.UUID, pm.platform, pm.tid), url, err.Error())
 		return false

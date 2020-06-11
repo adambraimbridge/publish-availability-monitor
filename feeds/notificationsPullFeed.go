@@ -16,7 +16,7 @@ type NotificationsPullFeed struct {
 	baseNotificationsFeed
 	notificationsURL         string
 	notificationsQueryString string
-	notificationsUrlLock     *sync.Mutex
+	notificationsURLLock     *sync.Mutex
 	interval                 int
 	ticker                   *time.Ticker
 	poller                   chan struct{}
@@ -52,7 +52,7 @@ func (f *NotificationsPullFeed) Start() {
 }
 
 func (f *NotificationsPullFeed) Stop() {
-	log.Infof("shutting down notifications pull feed for %s", f.baseUrl)
+	log.Infof("shutting down notifications pull feed for %s", f.baseURL)
 	close(f.poller)
 }
 
@@ -61,12 +61,12 @@ func (f *NotificationsPullFeed) FeedType() string {
 }
 
 func (f *NotificationsPullFeed) pollNotificationsFeed() {
-	f.notificationsUrlLock.Lock()
-	defer f.notificationsUrlLock.Unlock()
+	f.notificationsURLLock.Lock()
+	defer f.notificationsURLLock.Unlock()
 
 	txID := f.buildNotificationsTxID()
 	notificationsURL := f.notificationsURL + "?" + f.notificationsQueryString
-	resp, err := f.httpCaller.DoCall(checks.Config{Url: notificationsURL, Username: f.username, Password: f.password, TxID: txID})
+	resp, err := f.httpCaller.DoCall(checks.Config{URL: notificationsURL, Username: f.username, Password: f.password, TxID: txID}) //nolint:bodyclose
 
 	if err != nil {
 		log.WithField("transaction_id", txID).WithError(err).Errorf("error calling notifications %s", notificationsURL)
@@ -102,13 +102,13 @@ func (f *NotificationsPullFeed) pollNotificationsFeed() {
 		f.notifications[uuid] = history
 	}
 
-	nextPageUrl, err := url.Parse(notifications.Links[0].Href)
+	nextPageURL, err := url.Parse(notifications.Links[0].Href)
 	if err != nil {
 		log.Errorf("unparseable next url: [%s]", notifications.Links[0].Href)
 		return // and hope that a retry will fix this
 	}
 
-	f.notificationsQueryString = nextPageUrl.RawQuery
+	f.notificationsQueryString = nextPageURL.RawQuery
 }
 
 func (f *NotificationsPullFeed) buildNotificationsTxID() string {

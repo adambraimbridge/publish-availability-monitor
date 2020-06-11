@@ -9,11 +9,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func NewNotificationsFeed(name string, baseUrl url.URL, expiry int, interval int, username string, password string, APIKey string) Feed {
+func NewNotificationsFeed(name string, baseURL url.URL, expiry int, interval int, username string, password string, APIKey string) Feed {
 	if isNotificationsPullFeed(name) {
-		return newNotificationsPullFeed(name, baseUrl, expiry, interval, username, password)
+		return newNotificationsPullFeed(name, baseURL, expiry, interval, username, password)
 	} else if isNotificationsPushFeed(name) {
-		return newNotificationsPushFeed(name, baseUrl, expiry, interval, username, password, APIKey)
+		return newNotificationsPushFeed(name, baseURL, expiry, interval, username, password, APIKey)
 	}
 
 	return nil
@@ -28,26 +28,26 @@ func isNotificationsPushFeed(feedName string) bool {
 	return strings.HasSuffix(feedName, "notifications-push")
 }
 
-func newNotificationsPullFeed(name string, baseUrl url.URL, expiry int, interval int, username string, password string) *NotificationsPullFeed {
-	feedUrl := baseUrl.String()
+func newNotificationsPullFeed(name string, baseURL url.URL, expiry int, interval int, username string, password string) *NotificationsPullFeed {
+	feedURL := baseURL.String()
 
-	bootstrapValues := baseUrl.Query()
+	bootstrapValues := baseURL.Query()
 	bootstrapValues.Add("since", time.Now().Format(time.RFC3339))
-	baseUrl.RawQuery = ""
+	baseURL.RawQuery = ""
 
-	log.Infof("constructing NotificationsPullFeed for [%s], baseUrl = [%s], bootstrapValues = [%s]", feedUrl, baseUrl.String(), bootstrapValues.Encode())
+	log.Infof("constructing NotificationsPullFeed for [%s], baseUrl = [%s], bootstrapValues = [%s]", feedURL, baseURL.String(), bootstrapValues.Encode())
 	return &NotificationsPullFeed{
 		baseNotificationsFeed{
 			name,
 			nil,
-			feedUrl,
+			feedURL,
 			username,
 			password,
 			expiry + 2*interval,
 			make(map[string][]*Notification),
 			&sync.RWMutex{},
 		},
-		baseUrl.String(),
+		baseURL.String(),
 		bootstrapValues.Encode(),
 		&sync.Mutex{},
 		interval,
@@ -56,13 +56,13 @@ func newNotificationsPullFeed(name string, baseUrl url.URL, expiry int, interval
 	}
 }
 
-func newNotificationsPushFeed(name string, baseUrl url.URL, expiry int, interval int, username string, password string, APIKey string) *NotificationsPushFeed {
-	log.Infof("constructing NotificationsPushFeed, bootstrapUrl = [%s]", baseUrl.String())
+func newNotificationsPushFeed(name string, baseURL url.URL, expiry int, interval int, username string, password string, APIKey string) *NotificationsPushFeed {
+	log.Infof("constructing NotificationsPushFeed, bootstrapUrl = [%s]", baseURL.String())
 	return &NotificationsPushFeed{
 		baseNotificationsFeed{
 			name,
 			nil,
-			baseUrl.String(),
+			baseURL.String(),
 			username,
 			password,
 			expiry + 2*interval,

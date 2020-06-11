@@ -20,7 +20,7 @@ type defaultHttpCaller struct {
 }
 
 type Config struct {
-	HttpMethod, Url, Username, Password, APIKey, TxID, ContentType string
+	HTTPMethod, URL, Username, Password, APIKey, TxID, ContentType string
 	Entity                                                         io.Reader
 }
 
@@ -46,10 +46,10 @@ func NewHttpCaller(timeoutSeconds int) HttpCaller {
 
 // Performs http GET calls using the default http client
 func (c defaultHttpCaller) DoCall(config Config) (resp *http.Response, err error) {
-	if config.HttpMethod == "" {
-		config.HttpMethod = "GET"
+	if config.HTTPMethod == "" {
+		config.HTTPMethod = "GET"
 	}
-	req, err := http.NewRequest(config.HttpMethod, config.Url, config.Entity)
+	req, err := http.NewRequest(config.HTTPMethod, config.URL, config.Entity)
 	if config.Username != "" && config.Password != "" {
 		req.SetBasicAuth(config.Username, config.Password)
 	}

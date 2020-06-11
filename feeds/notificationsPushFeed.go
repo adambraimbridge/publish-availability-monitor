@@ -22,7 +22,7 @@ type NotificationsPushFeed struct {
 }
 
 func (f *NotificationsPushFeed) Start() {
-	log.Infof("starting notifications-push feed from %v", f.baseUrl)
+	log.Infof("starting notifications-push feed from %v", f.baseURL)
 	f.stopFeedLock.Lock()
 	defer f.stopFeedLock.Unlock()
 
@@ -40,7 +40,7 @@ func (f *NotificationsPushFeed) Start() {
 }
 
 func (f *NotificationsPushFeed) Stop() {
-	log.Infof("shutting down notifications push feed for %s", f.baseUrl)
+	log.Infof("shutting down notifications push feed for %s", f.baseURL)
 	f.stopFeedLock.Lock()
 	defer f.stopFeedLock.Unlock()
 
@@ -64,7 +64,7 @@ func (f *NotificationsPushFeed) isConsuming() bool {
 
 func (f *NotificationsPushFeed) consumeFeed() bool {
 	txID := f.buildNotificationsTxID()
-	resp, err := f.httpCaller.DoCall(checks.Config{Url: f.baseUrl, Username: f.username, Password: f.password, APIKey: f.APIKey, TxID: txID})
+	resp, err := f.httpCaller.DoCall(checks.Config{URL: f.baseURL, Username: f.username, Password: f.password, APIKey: f.APIKey, TxID: txID})
 
 	if err != nil {
 		log.WithField("transaction_id", txID).Errorf("Sending request: [%v]", err)

@@ -57,7 +57,7 @@ var noReadEnvironments = fthealth.Check{
 	Severity:         1,
 	TechnicalSummary: "There are no read environments to monitor. This could be because none have been configured",
 	Checker: func() (string, error) {
-		return "", errors.New("There are no read environments to monitor")
+		return "", errors.New("there are no read environments to monitor")
 	},
 }
 

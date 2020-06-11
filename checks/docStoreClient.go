@@ -40,7 +40,7 @@ func (c *httpDocStoreClient) ContentQuery(authority string, identifier string, t
 	docStoreUrl.RawQuery = query.Encode()
 
 	resp, err := c.httpCaller.DoCall(Config{
-		Url:      docStoreUrl.String(),
+		URL:      docStoreUrl.String(),
 		Username: c.username,
 		Password: c.password,
 		TxID:     ConstructPamTxID(tid),
@@ -61,7 +61,7 @@ func (c *httpDocStoreClient) IsUUIDPresent(uuid, tid string) (isPresent bool, er
 	}
 
 	resp, err := c.httpCaller.DoCall(Config{
-		Url:      docStoreUrl.String(),
+		URL:      docStoreUrl.String(),
 		Username: c.username,
 		Password: c.password,
 		TxID:     ConstructPamTxID(tid),
