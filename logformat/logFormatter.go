@@ -16,18 +16,16 @@ const (
 
 // Our default SLF4J format is: "%-5p [%d{ISO8601, GMT}] %c: %X{transaction_id} %m [%thread]%n%xEx"
 type SLF4JFormatter struct {
-	stackPattern  *regexp.Regexp
-	vendorPattern *regexp.Regexp
+	stackPattern *regexp.Regexp
 }
 
 func NewSLF4JFormatter(pattern string) *SLF4JFormatter {
-	var p, v *regexp.Regexp
+	var p *regexp.Regexp
 	if pattern != "" {
 		p = regexp.MustCompile(pattern)
-		v = regexp.MustCompile(pattern + "vendor/.*")
 	}
 
-	f := SLF4JFormatter{p, v}
+	f := SLF4JFormatter{p}
 	return &f
 }
 

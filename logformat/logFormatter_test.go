@@ -11,7 +11,7 @@ import (
 )
 
 func TestInfoLogging(t *testing.T) {
-	f := NewSLF4JFormatter(`.*/github.com/Financial-Times/.*`)
+	f := NewSLF4JFormatter(`.*/github.com/Financial-Times/publish-availability-monitor/logformat.*`)
 
 	now := time.Now().Round(time.Millisecond)
 	msg := "Hello world"
@@ -31,7 +31,7 @@ func TestInfoLogging(t *testing.T) {
 }
 
 func TestWarnLogging(t *testing.T) {
-	f := NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
+	f := NewSLF4JFormatter(`.*/github.com/Financial-Times/publish-availability-monitor/logformat.*`)
 
 	now := time.Now().Round(time.Millisecond)
 	msg := "Uh-oh!"
@@ -51,7 +51,7 @@ func TestWarnLogging(t *testing.T) {
 }
 
 func TestErrorLogging(t *testing.T) {
-	f := NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
+	f := NewSLF4JFormatter(`.*/github.com/Financial-Times/publish-availability-monitor/logformat.*`)
 
 	now := time.Now().Round(time.Millisecond)
 	msg := "Terrible!"
@@ -71,7 +71,7 @@ func TestErrorLogging(t *testing.T) {
 }
 
 func TestTxIdLogging(t *testing.T) {
-	f := NewSLF4JFormatter(`.*/github\.com/Financial-Times/.*`)
+	f := NewSLF4JFormatter(`.*/github.com/Financial-Times/publish-availability-monitor/logformat.*`)
 
 	now := time.Now().Round(time.Millisecond)
 	msg := "Hello world"
@@ -99,7 +99,7 @@ func checkLogEntry(t *testing.T, expectedLogLevel string, expectedTimestamp time
 	assert.Equal(t, expectedTimestamp.UTC(), timestamp, "log entry timestamp")
 
 	log.Info(actual)
-	assert.True(t, regexp.MustCompile(`.*logFormatter_test\.go:\d+: `).MatchString(actual), "formatted entry should contain code location")
+	assert.True(t, regexp.MustCompile(`.*logFormatter_test.go:\d+: `).MatchString(actual), "formatted entry should contain code location")
 
 	if expectedTxID == "" {
 		assert.False(t, regexp.MustCompile(`.* transaction_id=\S+ `).MatchString(actual), "formatted entry should not contain transaction_id")
