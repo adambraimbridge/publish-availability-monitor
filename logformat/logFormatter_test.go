@@ -98,6 +98,7 @@ func checkLogEntry(t *testing.T, expectedLogLevel string, expectedTimestamp time
 	timestamp, _ := time.Parse("2006-01-02 15:04:05.000", strings.Replace(loggedTimestamp, ",", ".", -1))
 	assert.Equal(t, expectedTimestamp.UTC(), timestamp, "log entry timestamp")
 
+	log.Info(actual)
 	assert.True(t, regexp.MustCompile(`.* logFormatter_test.go:\d+: `).MatchString(actual), "formatted entry should contain code location")
 
 	if expectedTxID == "" {
