@@ -64,7 +64,7 @@ func (f *SLF4JFormatter) findCodeLocation() string {
 		_, file, lineNum, ok := runtime.Caller(i)
 		// find stack entry that matches the specified pattern
 		// but exclude vendored code (which likely matches the pattern regardless)
-		if ok && f.stackPattern.MatchString(file) && !f.vendorPattern.MatchString(file) {
+		if ok && f.stackPattern.MatchString(file) {
 			return fmt.Sprintf("%s:%v:", file[strings.LastIndex(file, "/")+1:], lineNum)
 		}
 	}
